@@ -24,15 +24,16 @@
 .DS_Store
 *.pem
 
-# env files (can opt-in for committing if needed)
-.env*
+# env files
+.env
+.env.*
 
 # vercel
 .vercel
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
+# 注意：next-env.d.ts 不忽略，纳入版本控制以保证克隆后类型完整
 
 # Build outputs
 dist/
