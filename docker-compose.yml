@@ -1,0 +1,53 @@
+services:
+  secrets:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: ["node", "scripts/initialize-secrets.mjs"]
+    restart: "no"
+    volumes:
+      - seanblog_secrets:/run/secrets
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: seanblog-app
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "scripts/start-production.sh"]
+    environment:
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      SECRETS_DIRECTORY: /run/secrets
+    ports:
+      - "3000:3000"
+    volumes:
+      - seanblog_secrets:/run/secrets:ro
+    depends_on:
+      secrets:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    container_name: seanblog-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_DB: seanblog_frame
+    volumes:
+      - seanblog_pgdata:/var/lib/postgresql/data
+      - seanblog_secrets:/run/secrets:ro
+    depends_on:
+      secrets:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d seanblog_frame"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  seanblog_pgdata:
+  seanblog_secrets:

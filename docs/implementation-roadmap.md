@@ -24,7 +24,7 @@
 - [ ] Prisma 初始化：安装依赖，创建 `prisma/schema.prisma`（核心表：User, Article, Category, Tag, ArticleTag, Comment）
 - [ ] 首次数据库迁移：`npx prisma migrate dev`
 - [ ] 种子脚本：`prisma/seed.ts`（1 个 admin 用户 + 3 篇示例文章 + 3 个分类 + 5 个标签）
-- [ ] `docker-compose.yml`（仅 Next.js + PostgreSQL）本地可跑通
+- [ ] `docker-compose.yml`（生产环境的 Next.js + PostgreSQL + 密钥初始化服务）可跑通
 - [ ] `.gitignore` 配置
 - [ ] `.env.example` 模板文件
 - [ ] `README.md` + `docs/` 项目文档体系建立
@@ -150,7 +150,7 @@
 
 ### 3.1 缓存
 
-- [ ] Redis 接入（`docker-compose.yml` 增加 redis 服务）
+- [ ] Redis 接入（生产 `docker-compose.yml` 增加 redis 服务）
 - [ ] 文章详情缓存（Cache-Aside 模式）
 - [ ] 热门文章 / 近期文章缓存
 - [ ] 搜索缓存（热门搜索词）
