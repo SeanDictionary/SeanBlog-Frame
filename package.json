@@ -12,7 +12,8 @@
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "admin:reset-password": "node scripts/reset-admin-password.mjs"
   },
   "keywords": [],
   "author": "",
@@ -23,9 +24,11 @@
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.3.1",
     "next": "^16.2.10",
+    "next-auth": "^5.0.0-beta.32",
     "pg": "^8.16.3",
     "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react-dom": "^19.2.7",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^26.1.1",

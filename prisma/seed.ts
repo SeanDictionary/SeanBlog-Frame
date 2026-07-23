@@ -1,3 +1,5 @@
+import { randomBytes } from 'node:crypto'
+
 import 'dotenv/config'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { ArticleStatus, PrismaClient } from '@prisma/client'
@@ -13,24 +15,31 @@ const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString }),
 })
 
-async function main() {
-  const adminEmail = process.env.ADMIN_SEED_EMAIL ?? 'admin@example.com'
-  const adminPassword = process.env.ADMIN_SEED_PASSWORD ?? 'ChangeMe123!'
-  const passwordHash = await hash(adminPassword, 12)
+async function ensureAdmin() {
+  const admin = await prisma.user.findUnique({
+    where: { username: 'admin' },
+  })
 
-  await prisma.user.upsert({
-    where: { email: adminEmail },
-    update: {
-      name: 'Admin',
-      passwordHash,
-    },
-    create: {
-      name: 'Admin',
-      email: adminEmail,
-      passwordHash,
+  if (admin) {
+    return
+  }
+
+  const password = randomBytes(24).toString('base64url')
+
+  await prisma.user.create({
+    data: {
+      username: 'admin',
+      passwordHash: await hash(password, 12),
     },
   })
 
+  console.log('\nAdministrator account created.')
+  console.log('Username: admin')
+  console.log(`Password: ${password}`)
+  console.log('Save this password now. It will not be shown again.\n')
+}
+
+async function seedContent() {
   const categories = await Promise.all(
     [
       {
@@ -127,9 +136,12 @@ async function main() {
     }),
   )
 
-  console.log(
-    `Seeded 1 administrator, ${categories.length} categories, ${tags.length} tags, and ${articles.length} articles.`,
-  )
+  console.log(`Seeded ${categories.length} categories, ${tags.length} tags, and ${articles.length} articles.`)
+}
+
+async function main() {
+  await ensureAdmin()
+  await seedContent()
 }
 
 main()

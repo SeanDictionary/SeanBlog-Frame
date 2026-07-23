@@ -1,0 +1,48 @@
+# 容器化部署用：Next.js 应用容器 + PostgreSQL 容器。
+# app 通过 Docker 网络以主机名 db 连接数据库。
+# 构建并启动：docker compose -f docker-compose.prod.yml up -d --build
+#
+# 注意：
+# - 生产环境请通过 .env 或部署平台注入真实的 AUTH_SECRET 等敏感变量，不要用默认值。
+# - 数据库迁移建议在部署流程中单独执行：
+#   docker compose -f docker-compose.prod.yml run --rm app npx prisma migrate deploy
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: seanblog-app
+    restart: unless-stopped
+    entrypoint:
+      - /bin/sh
+      - -c
+      - npx prisma migrate deploy && node scripts/initialize-admin.mjs && node server.js
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/seanblog_frame?schema=public
+      AUTH_SECRET: ${AUTH_SECRET:-replace-with-a-long-random-string}
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    container_name: seanblog-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: seanblog_frame
+    volumes:
+      - seanblog_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d seanblog_frame"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  seanblog_pgdata:
