@@ -28,6 +28,8 @@
 
 - 常见错误码：`VALIDATION_ERROR`, `UNAUTHORIZED`, `NOT_FOUND`, `CONFLICT`, `INTERNAL_SERVER_ERROR`。
 - 列表接口分页参数：`page` 默认 `1`，`pageSize` 默认 `20`，最大 `100`。
+- 列表接口中的空查询值会按“未传”处理，例如 `page=&pageSize=&category=&tag=` 等同于未传这些筛选/分页参数；明确非法值仍返回 `400`，例如 `page=0`, `page=abc`, `pageSize=999`。
+- 必填查询参数仍需非空，例如 `/api/search?q=` 会返回 `400`。
 
 ## 认证接口
 

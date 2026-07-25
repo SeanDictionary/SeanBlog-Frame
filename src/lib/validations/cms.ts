@@ -8,6 +8,17 @@ const optionalTrimmedString = z
   .nullable()
   .optional()
 
+function emptyQueryParamToUndefined(value: unknown) {
+  return typeof value === 'string' && value.trim() === '' ? undefined : value
+}
+
+const optionalQueryString = z.preprocess(emptyQueryParamToUndefined, z.string().trim().min(1).optional())
+const requiredQueryString = z.preprocess(emptyQueryParamToUndefined, z.string().trim().min(1))
+const queryPage = z.preprocess(emptyQueryParamToUndefined, z.coerce.number().int().min(1).default(1))
+const queryPageSize = z.preprocess(emptyQueryParamToUndefined, z.coerce.number().int().min(1).max(100).default(20))
+const optionalArticleStatusQuery = z.preprocess(emptyQueryParamToUndefined, z.nativeEnum(ArticleStatus).optional())
+const optionalCommentStatusQuery = z.preprocess(emptyQueryParamToUndefined, z.nativeEnum(CommentStatus).optional())
+
 const slugSchema = z
   .string()
   .trim()
@@ -17,20 +28,20 @@ const slugSchema = z
   .optional()
 
 export const paginationQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+  page: queryPage,
+  pageSize: queryPageSize,
 })
 
 export const articleListQuerySchema = paginationQuerySchema.extend({
-  status: z.nativeEnum(ArticleStatus).optional(),
-  category: z.string().trim().min(1).optional(),
-  tag: z.string().trim().min(1).optional(),
-  q: z.string().trim().min(1).optional(),
+  status: optionalArticleStatusQuery,
+  category: optionalQueryString,
+  tag: optionalQueryString,
+  q: optionalQueryString,
 })
 
 export const publicArticleListQuerySchema = paginationQuerySchema.extend({
-  category: z.string().trim().min(1).optional(),
-  tag: z.string().trim().min(1).optional(),
+  category: optionalQueryString,
+  tag: optionalQueryString,
 })
 
 export const articleInputSchema = z.object({
@@ -80,8 +91,8 @@ export const commentInputSchema = z.object({
 })
 
 export const commentListQuerySchema = paginationQuerySchema.extend({
-  status: z.nativeEnum(CommentStatus).optional(),
-  articleId: z.string().trim().min(1).optional(),
+  status: optionalCommentStatusQuery,
+  articleId: optionalQueryString,
 })
 
 export const commentModerationSchema = z.object({
@@ -104,7 +115,7 @@ export const settingInputSchema = z.object({
 })
 
 export const searchQuerySchema = paginationQuerySchema.extend({
-  q: z.string().trim().min(1),
+  q: requiredQueryString,
 })
 
 export type ArticleInput = z.infer<typeof articleInputSchema>

@@ -63,7 +63,9 @@
           "type": "integer",
           "minimum": 1,
           "default": 1
-        }
+        },
+        "description": "Page number. If omitted or passed as an empty query value, defaults to 1.",
+        "allowEmptyValue": true
       },
       "PageSize": {
         "name": "pageSize",
@@ -73,7 +75,9 @@
           "minimum": 1,
           "maximum": 100,
           "default": 20
-        }
+        },
+        "description": "Page size. If omitted or passed as an empty query value, defaults to 20. Explicit invalid values still return 400.",
+        "allowEmptyValue": true
       },
       "Slug": {
         "name": "slug",
@@ -1282,7 +1286,9 @@
             "schema": {
               "type": "string",
               "minLength": 1
-            }
+            },
+            "description": "Category slug filter. Empty query value is treated as omitted.",
+            "allowEmptyValue": true
           },
           {
             "name": "tag",
@@ -1290,7 +1296,9 @@
             "schema": {
               "type": "string",
               "minLength": 1
-            }
+            },
+            "description": "Tag slug filter. Empty query value is treated as omitted.",
+            "allowEmptyValue": true
           }
         ],
         "responses": {
@@ -1322,7 +1330,8 @@
           "400": {
             "$ref": "#/components/responses/ValidationError"
           }
-        }
+        },
+        "description": "Empty query values are treated as omitted. For example, page=&pageSize= use defaults; empty filters such as category= are ignored."
       }
     },
     "/api/articles/{slug}": {
@@ -1375,7 +1384,9 @@
             "schema": {
               "type": "string",
               "minLength": 1
-            }
+            },
+            "description": "Required search keyword. Empty value is invalid and returns 400.",
+            "allowEmptyValue": false
           },
           {
             "$ref": "#/components/parameters/Page"
@@ -1413,7 +1424,8 @@
           "400": {
             "$ref": "#/components/responses/ValidationError"
           }
-        }
+        },
+        "description": "Search requires a non-empty q parameter. Empty page/pageSize query values are treated as omitted and use defaults."
       }
     },
     "/api/categories": {
@@ -1677,28 +1689,36 @@
             "in": "query",
             "schema": {
               "$ref": "#/components/schemas/ArticleStatus"
-            }
+            },
+            "description": "Article status filter. Empty query value is treated as omitted.",
+            "allowEmptyValue": true
           },
           {
             "name": "category",
             "in": "query",
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "Category slug filter. Empty query value is treated as omitted.",
+            "allowEmptyValue": true
           },
           {
             "name": "tag",
             "in": "query",
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "Tag slug filter. Empty query value is treated as omitted.",
+            "allowEmptyValue": true
           },
           {
             "name": "q",
             "in": "query",
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "Search keyword. Empty query value is treated as omitted.",
+            "allowEmptyValue": true
           }
         ],
         "responses": {
@@ -1730,7 +1750,8 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           }
-        }
+        },
+        "description": "Empty query values are treated as omitted. For example, page=&pageSize= use defaults; empty filters such as category= are ignored."
       },
       "post": {
         "tags": [
@@ -2375,14 +2396,18 @@
             "in": "query",
             "schema": {
               "$ref": "#/components/schemas/CommentStatus"
-            }
+            },
+            "description": "Comment status filter. Empty query value is treated as omitted.",
+            "allowEmptyValue": true
           },
           {
             "name": "articleId",
             "in": "query",
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "Article ID filter. Empty query value is treated as omitted.",
+            "allowEmptyValue": true
           }
         ],
         "responses": {
@@ -2414,7 +2439,8 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           }
-        }
+        },
+        "description": "Empty query values are treated as omitted. For example, page=&pageSize= use defaults; empty filters such as category= are ignored."
       }
     },
     "/api/admin/comments/{id}": {
