@@ -36,7 +36,7 @@ DRAFT → PUBLISHED → ARCHIVED
            └────────────┘ (可以重新发布)
 ```
 
-- **DRAFT**：仅作者和管理员可见，不出现在任何公开页面
+- **DRAFT**：仅管理员后台可见，不出现在任何公开页面
 - **PUBLISHED**：公开可访问，出现在文章列表、分类、标签、搜索、sitemap 中
 - **ARCHIVED**：URL 保留可访问，但不出现在文章列表和 sitemap 中
 

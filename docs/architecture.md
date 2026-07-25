@@ -50,8 +50,7 @@
 **Server Actions** 用于：
 
 - 后台管理中的所有表单提交（创建/编辑/删除文章、分类、标签）
-- 评论提交（登录用户）
-- 需要 auth 上下文的写操作
+- 需要管理员身份的写操作
 
 **Route Handlers** (`/api/*`) 用于：
 
@@ -89,7 +88,7 @@
 | `categoryService` | 分类 CRUD，slug 唯一性 |
 | `tagService` | 标签 CRUD，slug 唯一性 |
 | `commentService` | 评论提交，嵌套回复构建，审核流转，反垃圾标记 |
-| `userService` | 注册/登录，角色变更，禁言管理 |
+| `adminAuthService` | 管理员登录、密码重置与后台访问校验 |
 | `seoService` | sitemap 生成，robots 策略，结构化数据 JSON-LD 生成 |
 | `searchService` | 搜索统一接口（Phase 1：PG tsvector；Phase 2：Meilisearch） |
 | `storageService` | 图片上传/删除/URL 签名，对象存储抽象（Phase 1 本地，Phase 2 S3） |
@@ -115,7 +114,7 @@
 
 ```
 用户操作 → Client Component → Server Action
-  → auth() 校验 → RBAC check → Zod 校验
+  → requireAdmin() 校验 → Zod 校验
   → service 层 → Prisma Client → PostgreSQL
   → revalidatePath / revalidateTag
   → 返回结果 / redirect
@@ -132,14 +131,14 @@
 
 ## 5. 认证与授权架构
 
-采用 Auth.js v5 + Prisma Adapter + JWT session 策略：
+采用 Auth.js v5 + Credentials Provider + JWT session 策略，服务于唯一管理员登录：
 
 - `src/lib/auth.ts`：Auth.js 配置入口
 - `src/lib/auth.config.ts`：独立配置供 middleware 使用
-- `src/lib/auth.utils.ts`：`requireAuth` / `requireAdmin` / `requireEditor` 等服务端工具函数
-- `middleware.ts`：保护 `/admin/*` 路径，检查 session 有效性
+- `src/lib/auth.utils.ts`：`requireAdmin` / `isAdminAuthenticated` 等服务端工具函数
+- `proxy.ts` / middleware：保护 `/admin/*` 路径，检查 session 有效性
 
-为什么不使用数据库 session？因为 middleware 在 Edge 环境运行，无法访问 Prisma。JWT session 策略让中间件可以直接验证和解析 token，无需数据库查询。
+为什么不使用数据库 session？因为当前单管理员模式只需要二元后台鉴权，JWT session 策略足够表达“是否为已登录管理员”，也避免引入 Account / Session / VerificationToken 等额外表。
 
 ## 6. 工程目录约定
 
@@ -151,7 +150,7 @@ src/
     prisma.ts   # Prisma 客户端单例
     auth.ts     # Auth.js 配置
     auth.config.ts
-    auth.utils.ts
+    auth.utils.ts   # 单管理员鉴权工具函数
     env.ts      # 环境变量 Zod 校验
     utils.ts    # 通用工具函数
     markdown.ts # Markdown 编译 pipeline

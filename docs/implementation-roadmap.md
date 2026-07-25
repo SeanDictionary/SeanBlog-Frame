@@ -21,7 +21,7 @@
 ### 交付物
 
 - [ ] `npx create-next-app@latest` 初始化项目（TypeScript + App Router + Tailwind CSS + `src/` 目录）
-- [ ] Prisma 初始化：安装依赖，创建 `prisma/schema.prisma`（核心表：User, Article, Category, Tag, ArticleTag, Comment）
+- [ ] Prisma 初始化：安装依赖，创建 `prisma/schema.prisma`（核心表：User, Article, Category, Tag, ArticleTag）
 - [ ] 首次数据库迁移：`npx prisma migrate dev`
 - [ ] 种子脚本：`prisma/seed.ts`（1 个 admin 用户 + 3 篇示例文章 + 3 个分类 + 5 个标签）
 - [ ] `docker-compose.yml`（生产环境的 Next.js + PostgreSQL + 密钥初始化服务）可跑通
@@ -41,12 +41,12 @@
 
 **目标**：完成文章、分类、标签、后台管理、前台展示的最小闭环。
 
-### 1.1 认证与权限
+### 1.1 管理员认证
 
-- [ ] Auth.js 配置（Credentials + Prisma Adapter + JWT session）
+- [ ] Auth.js 配置（Credentials + JWT session）
 - [ ] `/admin/login` 登录页
-- [ ] `middleware.ts` 保护 `/admin/*` 路径
-- [ ] RBAC 权限工具函数（`requireAuth` / `requireAdmin` / `requireEditor`）
+- [ ] `proxy.ts` / middleware 保护 `/admin/*` 路径
+- [ ] 单管理员鉴权工具函数（`requireAdmin` / `isAdminAuthenticated`）
 - [ ] Admin 共享 layout（侧栏导航 + 鉴权）
 
 ### 1.2 文章系统
@@ -97,8 +97,8 @@
 
 ### 2.1 评论系统
 
-- [ ] 评论数据表迁移（Comment 模型已在 Phase 0 的 schema 中）
-- [ ] 评论提交接口（`/api/comments`）：支持游客和登录用户
+- [ ] 评论数据表迁移（Comment 模型在 Phase 2 追加）
+- [ ] 评论提交接口（`/api/comments`）：支持游客评论
 - [ ] 嵌套评论渲染（前端递归组件）
 - [ ] 后台评论审核（`/admin/comments`）：列表 + 状态变更
 - [ ] 评论审核模式配置（通过 SiteSetting）
@@ -127,7 +127,6 @@
 
 - [ ] 仪表盘统计（最近文章数、评论数、待审核数、阅读量趋势）
 - [ ] 站点设置页 `/admin/settings`（`SiteSetting` 数据表）
-- [ ] 用户管理页 `/admin/users`（仅 ADMIN）
 
 ### 2.6 内容分发
 
@@ -136,7 +135,7 @@
 
 ### 验收标准
 
-- 游客和登录用户可在文章下发表评论，支持嵌套回复
+- 游客可在文章下发表评论，支持嵌套回复
 - 管理员可在后台审核评论
 - 可上传图片并在文章中引用
 - 搜索功能可用（标题 + 正文内容搜索）
