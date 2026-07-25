@@ -33,6 +33,8 @@
 - [后台与权限](docs/admin-and-auth.md)
 - [SEO 与内容系统](docs/seo-and-content.md)
 - [开发路线图](docs/implementation-roadmap.md)
+- [后端接口约定](docs/backend-api.md)
+- [OpenAPI 导入文件](docs/openapi.json)
 
 ## 当前阶段产出
 
@@ -49,7 +51,7 @@
 
 1. 初始化 Next.js App Router 项目
 2. 初始化 Prisma 与 PostgreSQL
-3. 建立 Auth.js 登录与 RBAC 基线
+3. 建立 Auth.js 单管理员登录基线
 4. 完成文章、分类、标签的核心内容系统
 5. 完成博客前台与后台管理面板
 6. 补齐评论、SEO、部署与生产能力
