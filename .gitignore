@@ -52,7 +52,6 @@ coverage/
 # Editors and OS files
 Thumbs.db
 .idea/
-.vscode/
 *.swp
 *.swo
 *~
