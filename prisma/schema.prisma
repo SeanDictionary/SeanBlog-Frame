@@ -65,8 +65,10 @@ model Article {
   updatedAt       DateTime      @updatedAt
 
   categoryId String?
-  category   Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  category   Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   tags       ArticleTag[]
+  comments   Comment[]
+  revisions  ArticleRevision[]
 
   @@index([status, publishedAt])
   @@index([categoryId])
@@ -82,4 +84,68 @@ model ArticleTag {
 
   @@id([articleId, tagId])
   @@index([tagId])
+}
+
+enum CommentStatus {
+  PENDING
+  APPROVED
+  SPAM
+  TRASHED
+}
+
+model Comment {
+  id         String        @id @default(cuid())
+  content    String
+  status     CommentStatus @default(PENDING)
+  ip         String?
+  userAgent  String?
+  guestName  String?
+  guestEmail String?
+  isSpam     Boolean       @default(false)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  articleId String
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  parentId  String?
+  parent    Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: SetNull)
+  replies   Comment[] @relation("CommentReplies")
+
+  @@index([articleId, status, createdAt])
+  @@index([parentId])
+  @@index([guestEmail])
+}
+
+model ArticleRevision {
+  id              String   @id @default(cuid())
+  articleId       String
+  article         Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  title           String
+  contentMarkdown String
+  contentHtml     String
+  version         Int
+  changeNote      String?
+  createdAt       DateTime @default(now())
+
+  @@index([articleId, version])
+}
+
+model Media {
+  id        String   @id @default(cuid())
+  filename  String
+  url       String
+  key       String   @unique
+  size      Int
+  mimeType  String
+  width     Int?
+  height    Int?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model SiteSetting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
 }
