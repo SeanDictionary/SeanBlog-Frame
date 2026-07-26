@@ -4,7 +4,15 @@ import { conflict, notFound } from '@/lib/api/errors'
 import { createExcerpt, markdownToHtml } from '@/lib/content/markdown'
 import { resolveSlug } from '@/lib/content/slug'
 import { getPrisma } from '@/lib/prisma'
-import { articleInclude, pageMeta, paginate, serializeArticle } from '@/lib/services/shared'
+import {
+  adminArticleDetailSelect,
+  adminArticleSummarySelect,
+  pageMeta,
+  paginate,
+  publicArticleDetailSelect,
+  publicArticleSummarySelect,
+  serializeArticleTags,
+} from '@/lib/services/shared'
 import type { ArticleInput, ArticleUpdateInput } from '@/lib/validations/cms'
 
 const publicArticleWhere = {
@@ -16,15 +24,17 @@ const publicArticleWhere = {
 
 type PrismaExecutor = ReturnType<typeof getPrisma> | Prisma.TransactionClient
 
-function buildArticleData(input: ArticleInput | ArticleUpdateInput) {
+function buildArticleData(input: ArticleInput | ArticleUpdateInput, options: { generateSlugFromTitle?: boolean } = {}) {
   const data: Prisma.ArticleUncheckedUpdateInput = {}
 
   if (input.title !== undefined) {
     data.title = input.title
   }
 
-  if (input.slug !== undefined || input.title !== undefined) {
-    data.slug = resolveSlug({ slug: input.slug, title: input.title })
+  if (input.slug !== undefined) {
+    data.slug = resolveSlug({ slug: input.slug })
+  } else if (options.generateSlugFromTitle && input.title !== undefined) {
+    data.slug = resolveSlug({ title: input.title })
   }
 
   if (input.contentMarkdown !== undefined) {
@@ -156,13 +166,13 @@ export async function listPublicArticles(input: { page: number; pageSize: number
         { isPinned: 'desc' },
         { publishedAt: 'desc' },
       ],
-      include: articleInclude,
+      select: publicArticleSummarySelect,
     }),
     prisma.article.count({ where }),
   ])
 
   return {
-    items: items.map(serializeArticle),
+    items: items.map(serializeArticleTags),
     meta: pageMeta(total, input.page, input.pageSize),
   }
 }
@@ -196,13 +206,13 @@ export async function listAdminArticles(input: {
       where,
       ...paginate(input.page, input.pageSize),
       orderBy: { updatedAt: 'desc' },
-      include: articleInclude,
+      select: adminArticleSummarySelect,
     }),
     prisma.article.count({ where }),
   ])
 
   return {
-    items: items.map(serializeArticle),
+    items: items.map(serializeArticleTags),
     meta: pageMeta(total, input.page, input.pageSize),
   }
 }
@@ -213,52 +223,32 @@ export async function getPublicArticleBySlug(slug: string) {
       slug,
       ...publicArticleWhere,
     },
-    include: {
-      ...articleInclude,
-      comments: {
-        where: {
-          status: 'APPROVED',
-          parentId: null,
-        },
-        orderBy: { createdAt: 'asc' },
-        include: {
-          replies: {
-            where: { status: 'APPROVED' },
-            orderBy: { createdAt: 'asc' },
-          },
-        },
-      },
-    },
+    select: publicArticleDetailSelect,
   })
 
   if (!article) {
     throw notFound('Article not found.')
   }
 
-  return serializeArticle(article)
+  return serializeArticleTags(article)
 }
 
 export async function getAdminArticleById(id: string) {
   const article = await getPrisma().article.findUnique({
     where: { id },
-    include: {
-      ...articleInclude,
-      revisions: {
-        orderBy: { version: 'desc' },
-      },
-    },
+    select: adminArticleDetailSelect,
   })
 
   if (!article) {
     throw notFound('Article not found.')
   }
 
-  return serializeArticle(article)
+  return serializeArticleTags(article)
 }
 
 export async function createArticle(input: ArticleInput) {
   const prisma = getPrisma()
-  const data = buildArticleData(input)
+  const data = buildArticleData(input, { generateSlugFromTitle: true })
 
   try {
     const articleId = await prisma.$transaction(async (tx) => {
@@ -359,13 +349,13 @@ export async function searchArticles(input: { q: string; page: number; pageSize:
       where,
       ...paginate(input.page, input.pageSize),
       orderBy: { publishedAt: 'desc' },
-      include: articleInclude,
+      select: publicArticleSummarySelect,
     }),
     prisma.article.count({ where }),
   ])
 
   return {
-    items: items.map(serializeArticle),
+    items: items.map(serializeArticleTags),
     meta: pageMeta(total, input.page, input.pageSize),
   }
 }

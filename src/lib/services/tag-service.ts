@@ -63,8 +63,8 @@ export async function updateTag(id: string, input: TagUpdateInput) {
     data.name = input.name
   }
 
-  if (input.slug !== undefined || input.name !== undefined) {
-    data.slug = resolveSlug({ slug: input.slug, name: input.name })
+  if (input.slug !== undefined) {
+    data.slug = resolveSlug({ slug: input.slug })
   }
 
   try {

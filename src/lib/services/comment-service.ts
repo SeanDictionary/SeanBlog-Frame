@@ -5,6 +5,56 @@ import { getPrisma } from '@/lib/prisma'
 import { pageMeta, paginate } from '@/lib/services/shared'
 import type { CommentInput } from '@/lib/validations/cms'
 
+function toPublicCommentReceipt(comment: {
+  id: string
+  content: string
+  status: CommentStatus
+  createdAt: Date
+  articleId: string
+  parentId: string | null
+}) {
+  return {
+    id: comment.id,
+    content: comment.content,
+    status: comment.status,
+    createdAt: comment.createdAt,
+    articleId: comment.articleId,
+    parentId: comment.parentId,
+  }
+}
+
+function toAdminComment(comment: {
+  id: string
+  content: string
+  status: CommentStatus
+  guestName: string | null
+  guestEmail: string | null
+  isSpam: boolean
+  createdAt: Date
+  updatedAt: Date
+  articleId: string
+  parentId: string | null
+  article?: {
+    id: string
+    title: string
+    slug: string
+  }
+}) {
+  return {
+    id: comment.id,
+    content: comment.content,
+    status: comment.status,
+    guestName: comment.guestName,
+    guestEmail: comment.guestEmail,
+    isSpam: comment.isSpam,
+    createdAt: comment.createdAt,
+    updatedAt: comment.updatedAt,
+    articleId: comment.articleId,
+    parentId: comment.parentId,
+    ...(comment.article ? { article: comment.article } : {}),
+  }
+}
+
 export async function createComment(input: CommentInput, request?: Request) {
   const prisma = getPrisma()
   const article = await prisma.article.findUnique({
@@ -30,7 +80,7 @@ export async function createComment(input: CommentInput, request?: Request) {
   const forwardedFor = request?.headers.get('x-forwarded-for')
   const ip = forwardedFor?.split(',')[0]?.trim() || request?.headers.get('x-real-ip') || null
 
-  return prisma.comment.create({
+  const comment = await prisma.comment.create({
     data: {
       articleId: input.articleId,
       parentId: input.parentId,
@@ -41,6 +91,8 @@ export async function createComment(input: CommentInput, request?: Request) {
       userAgent: request?.headers.get('user-agent'),
     },
   })
+
+  return toPublicCommentReceipt(comment)
 }
 
 export async function listComments(input: {
@@ -73,20 +125,22 @@ export async function listComments(input: {
   ])
 
   return {
-    items,
+    items: items.map(toAdminComment),
     meta: pageMeta(total, input.page, input.pageSize),
   }
 }
 
 export async function moderateComment(id: string, input: { status: CommentStatus; isSpam?: boolean }) {
   try {
-    return await getPrisma().comment.update({
+    const comment = await getPrisma().comment.update({
       where: { id },
       data: {
         status: input.status,
         isSpam: input.isSpam ?? input.status === CommentStatus.SPAM,
       },
     })
+
+    return toAdminComment(comment)
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
       throw notFound('Comment not found.')

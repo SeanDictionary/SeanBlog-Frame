@@ -68,8 +68,8 @@ export async function updateCategory(id: string, input: CategoryUpdateInput) {
     data.name = input.name
   }
 
-  if (input.slug !== undefined || input.name !== undefined) {
-    data.slug = resolveSlug({ slug: input.slug, name: input.name })
+  if (input.slug !== undefined) {
+    data.slug = resolveSlug({ slug: input.slug })
   }
 
   if (input.description !== undefined) {
