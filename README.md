@@ -33,7 +33,6 @@
 - [后台与权限](docs/admin-and-auth.md)
 - [SEO 与内容系统](docs/seo-and-content.md)
 - [开发路线图](docs/implementation-roadmap.md)
-- [后端接口约定](docs/backend-api.md)
 - [OpenAPI 导入文件](docs/openapi.json)
 
 ## 当前阶段产出

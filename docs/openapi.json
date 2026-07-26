@@ -3,47 +3,62 @@
   "info": {
     "title": "SeanBlog Frame Backend API",
     "version": "0.1.0",
-    "description": "OpenAPI specification for the SeanBlog Frame backend. The project uses a single-administrator model: public endpoints do not require authentication, while /api/admin/* endpoints require a valid Auth.js session cookie."
+    "description": "SeanBlog Frame backend API for a single-administrator personal blog CMS. Public endpoints require no authentication. All /api/admin/* endpoints require a valid Auth.js administrator session cookie. Response DTOs are scenario-oriented: list/search endpoints return compact summaries, detail/editor endpoints return the fields needed by that page, and public endpoints omit private moderation/request metadata."
   },
   "servers": [
     {
+      "url": "http://127.0.0.1:3000",
+      "description": "Local development via loopback IP"
+    },
+    {
       "url": "http://localhost:3000",
-      "description": "Local development"
+      "description": "Local development via localhost"
     }
   ],
   "tags": [
     {
-      "name": "Public Articles"
+      "name": "Public Articles",
+      "description": "Unauthenticated article list, search, and article detail endpoints for the public blog frontend."
     },
     {
-      "name": "Public Taxonomy"
+      "name": "Public Taxonomy",
+      "description": "Unauthenticated category and tag endpoints for public navigation/filtering."
     },
     {
-      "name": "Public Comments"
+      "name": "Public Comments",
+      "description": "Unauthenticated guest comment submission endpoint. Submitted comments enter moderation."
     },
     {
-      "name": "Content Distribution"
+      "name": "Content Distribution",
+      "description": "RSS, sitemap, robots, and other crawler/feed endpoints."
     },
     {
-      "name": "Admin Articles"
+      "name": "Admin Articles",
+      "description": "Authenticated article management endpoints for the single administrator."
     },
     {
-      "name": "Admin Taxonomy"
+      "name": "Admin Taxonomy",
+      "description": "Authenticated category and tag management endpoints."
     },
     {
-      "name": "Admin Comments"
+      "name": "Admin Comments",
+      "description": "Authenticated comment moderation endpoints."
     },
     {
-      "name": "Admin Media"
+      "name": "Admin Media",
+      "description": "Authenticated media metadata management endpoints. These endpoints do not upload binary files."
     },
     {
-      "name": "Admin Settings"
+      "name": "Admin Settings",
+      "description": "Authenticated key/value site setting endpoints."
     },
     {
-      "name": "Auth"
+      "name": "Auth",
+      "description": "Auth.js managed authentication endpoints for the single administrator account."
     },
     {
-      "name": "Health"
+      "name": "Health",
+      "description": "Lightweight liveness endpoint."
     }
   ],
   "components": {
@@ -64,7 +79,7 @@
           "minimum": 1,
           "default": 1
         },
-        "description": "Page number. If omitted or passed as an empty query value, defaults to 1.",
+        "description": "One-based page number. Omitted or empty value defaults to 1; invalid explicit values return 400.",
         "allowEmptyValue": true
       },
       "PageSize": {
@@ -76,7 +91,7 @@
           "maximum": 100,
           "default": 20
         },
-        "description": "Page size. If omitted or passed as an empty query value, defaults to 20. Explicit invalid values still return 400.",
+        "description": "Page size. Omitted or empty value defaults to 20; maximum is 100; invalid explicit values return 400.",
         "allowEmptyValue": true
       },
       "Slug": {
@@ -86,7 +101,8 @@
         "schema": {
           "type": "string",
           "minLength": 1
-        }
+        },
+        "description": "URL-safe slug path parameter."
       },
       "Id": {
         "name": "id",
@@ -95,7 +111,8 @@
         "schema": {
           "type": "string",
           "minLength": 1
-        }
+        },
+        "description": "Stable resource ID path parameter."
       },
       "SettingKey": {
         "name": "key",
@@ -104,7 +121,8 @@
         "schema": {
           "type": "string",
           "minLength": 1
-        }
+        },
+        "description": "Site setting key path parameter. Arbitrary non-empty keys are accepted."
       }
     },
     "schemas": {
@@ -114,7 +132,8 @@
           "DRAFT",
           "PUBLISHED",
           "ARCHIVED"
-        ]
+        ],
+        "description": "Lifecycle status of an article. Only PUBLISHED articles with a non-null publishedAt are visible through public article endpoints."
       },
       "CommentStatus": {
         "type": "string",
@@ -123,7 +142,8 @@
           "APPROVED",
           "SPAM",
           "TRASHED"
-        ]
+        ],
+        "description": "Moderation status of a guest comment. Only APPROVED comments are visible in public article detail responses."
       },
       "ErrorResponse": {
         "type": "object",
@@ -148,20 +168,24 @@
                   "BAD_REQUEST",
                   "FORBIDDEN",
                   "INTERNAL_SERVER_ERROR"
-                ]
+                ],
+                "description": "Stable application error code. Use this for client-side branching instead of parsing message text."
               },
               "message": {
-                "type": "string"
+                "type": "string",
+                "description": "Human-readable error message intended for debugging or simple UI display."
               },
               "issues": {
                 "type": "array",
                 "items": {
                   "type": "object",
                   "additionalProperties": true
-                }
+                },
+                "description": "Validation issue details from Zod. Present on VALIDATION_ERROR responses."
               }
             },
-            "additionalProperties": false
+            "additionalProperties": false,
+            "description": "Machine-readable error wrapper used by application-owned API endpoints."
           }
         },
         "additionalProperties": false
@@ -177,19 +201,23 @@
         "properties": {
           "total": {
             "type": "integer",
-            "minimum": 0
+            "minimum": 0,
+            "description": "Total number of records matching the filter before pagination."
           },
           "page": {
             "type": "integer",
-            "minimum": 1
+            "minimum": 1,
+            "description": "Current one-based page number after defaults are applied."
           },
           "pageSize": {
             "type": "integer",
-            "minimum": 1
+            "minimum": 1,
+            "description": "Number of records requested per page after defaults are applied. Maximum is 100."
           },
           "pageCount": {
             "type": "integer",
-            "minimum": 0
+            "minimum": 0,
+            "description": "Total number of pages for the current pageSize. Can be 0 when total is 0."
           }
         },
         "additionalProperties": false
@@ -206,43 +234,53 @@
         ],
         "properties": {
           "id": {
-            "type": "string"
+            "type": "string",
+            "description": "Stable category identifier."
           },
           "name": {
-            "type": "string"
+            "type": "string",
+            "description": "Unique display name for the category."
           },
           "slug": {
-            "type": "string"
+            "type": "string",
+            "description": "Unique URL-safe slug used in routes and category filters."
           },
           "description": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Optional category description."
           },
           "sortOrder": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Manual ordering value. Lower values appear first."
           },
           "createdAt": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "Creation timestamp."
           },
           "updatedAt": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "Last update timestamp."
           },
           "_count": {
             "type": "object",
             "properties": {
               "articles": {
                 "type": "integer",
-                "minimum": 0
+                "minimum": 0,
+                "description": "Number of all articles related to this category, including draft, published, and archived articles."
               }
             },
-            "additionalProperties": false
+            "additionalProperties": false,
+            "description": "Relation counts returned by Prisma. _count.articles counts all related articles, including draft and archived articles."
           }
         },
-        "additionalProperties": true
+        "additionalProperties": false,
+        "description": "Category record used by public taxonomy endpoints and admin taxonomy management. Public/admin category lists are sorted by sortOrder ascending, then name ascending."
       },
       "Tag": {
         "type": "object",
@@ -255,290 +293,42 @@
         ],
         "properties": {
           "id": {
-            "type": "string"
+            "type": "string",
+            "description": "Stable tag identifier."
           },
           "name": {
-            "type": "string"
+            "type": "string",
+            "description": "Unique display name for the tag."
           },
           "slug": {
-            "type": "string"
+            "type": "string",
+            "description": "Unique URL-safe slug used in routes and tag filters."
           },
           "createdAt": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "Creation timestamp."
           },
           "updatedAt": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "Last update timestamp."
           },
           "_count": {
             "type": "object",
             "properties": {
               "articles": {
                 "type": "integer",
-                "minimum": 0
+                "minimum": 0,
+                "description": "Number of all articles related to this tag, including draft, published, and archived articles."
               }
             },
-            "additionalProperties": false
+            "additionalProperties": false,
+            "description": "Relation counts returned by Prisma. _count.articles counts all related articles, including draft and archived articles."
           }
         },
-        "additionalProperties": true
-      },
-      "Article": {
-        "type": "object",
-        "required": [
-          "id",
-          "title",
-          "slug",
-          "contentMarkdown",
-          "contentHtml",
-          "status",
-          "isPinned",
-          "viewCount",
-          "createdAt",
-          "updatedAt"
-        ],
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "title": {
-            "type": "string"
-          },
-          "slug": {
-            "type": "string"
-          },
-          "excerpt": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "contentMarkdown": {
-            "type": "string"
-          },
-          "contentHtml": {
-            "type": "string"
-          },
-          "coverImage": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "status": {
-            "$ref": "#/components/schemas/ArticleStatus"
-          },
-          "metaTitle": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "metaDescription": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "metaKeywords": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "isPinned": {
-            "type": "boolean"
-          },
-          "publishedAt": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date-time"
-          },
-          "viewCount": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "categoryId": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "category": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Category"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "tags": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Tag"
-            }
-          },
-          "comments": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Comment"
-            }
-          },
-          "revisions": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ArticleRevision"
-            }
-          }
-        },
-        "additionalProperties": true
-      },
-      "ArticleRevision": {
-        "type": "object",
-        "required": [
-          "id",
-          "articleId",
-          "title",
-          "contentMarkdown",
-          "contentHtml",
-          "version",
-          "createdAt"
-        ],
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "articleId": {
-            "type": "string"
-          },
-          "title": {
-            "type": "string"
-          },
-          "contentMarkdown": {
-            "type": "string"
-          },
-          "contentHtml": {
-            "type": "string"
-          },
-          "version": {
-            "type": "integer",
-            "minimum": 1
-          },
-          "changeNote": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "additionalProperties": true
-      },
-      "Comment": {
-        "type": "object",
-        "required": [
-          "id",
-          "content",
-          "status",
-          "isSpam",
-          "createdAt",
-          "updatedAt",
-          "articleId"
-        ],
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "content": {
-            "type": "string"
-          },
-          "status": {
-            "$ref": "#/components/schemas/CommentStatus"
-          },
-          "ip": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "userAgent": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "guestName": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "guestEmail": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "email"
-          },
-          "isSpam": {
-            "type": "boolean"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "articleId": {
-            "type": "string"
-          },
-          "parentId": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "replies": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Comment"
-            }
-          },
-          "article": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "title": {
-                "type": "string"
-              },
-              "slug": {
-                "type": "string"
-              }
-            },
-            "additionalProperties": true
-          }
-        },
-        "additionalProperties": true
+        "additionalProperties": false,
+        "description": "Tag record used by public taxonomy endpoints and admin taxonomy management. Tag lists are sorted by name ascending."
       },
       "Media": {
         "type": "object",
@@ -553,44 +343,54 @@
         ],
         "properties": {
           "id": {
-            "type": "string"
+            "type": "string",
+            "description": "Stable media metadata identifier."
           },
           "filename": {
-            "type": "string"
+            "type": "string",
+            "description": "Original or display filename."
           },
           "url": {
-            "type": "string"
+            "type": "string",
+            "description": "Public or application URL where the media can be accessed."
           },
           "key": {
-            "type": "string"
+            "type": "string",
+            "description": "Unique storage key/reference for the media object. The backend enforces uniqueness."
           },
           "size": {
             "type": "integer",
-            "minimum": 0
+            "minimum": 0,
+            "description": "File size in bytes."
           },
           "mimeType": {
-            "type": "string"
+            "type": "string",
+            "description": "MIME content type, such as image/webp."
           },
           "width": {
             "type": [
               "integer",
               "null"
             ],
-            "minimum": 1
+            "minimum": 1,
+            "description": "Optional image width in pixels. Null/omitted for non-image files or unknown dimensions."
           },
           "height": {
             "type": [
               "integer",
               "null"
             ],
-            "minimum": 1
+            "minimum": 1,
+            "description": "Optional image height in pixels. Null/omitted for non-image files or unknown dimensions."
           },
           "createdAt": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "Metadata creation timestamp."
           }
         },
-        "additionalProperties": true
+        "additionalProperties": false,
+        "description": "Media metadata record. This API stores metadata only; it does not upload, transform, or delete binary files/blobs."
       },
       "SiteSetting": {
         "type": "object",
@@ -601,14 +401,19 @@
         ],
         "properties": {
           "id": {
-            "type": "string"
+            "type": "string",
+            "description": "Stable setting identifier."
           },
           "key": {
-            "type": "string"
+            "type": "string",
+            "description": "Unique setting key. The backend accepts arbitrary keys."
           },
-          "value": {}
+          "value": {
+            "description": "Deserialized setting value. Non-string values are JSON-stringified on write. String values that look like JSON literals can deserialize as non-strings on read."
+          }
         },
-        "additionalProperties": true
+        "additionalProperties": false,
+        "description": "Arbitrary site setting key/value record. Values are stored as strings and deserialized with JSON.parse when possible on read."
       },
       "ArticleInput": {
         "type": "object",
@@ -620,66 +425,78 @@
           "title": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "description": "Required article title. Also used to generate slug on create when slug is omitted."
           },
           "slug": {
             "type": "string",
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-            "maxLength": 120
+            "maxLength": 120,
+            "description": "Optional custom URL slug. Must contain lowercase letters, numbers, and dashes only. Generated from title on create when omitted."
           },
           "excerpt": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Optional summary. Empty string is normalized to null. Generated from contentMarkdown on create/update when contentMarkdown is provided and excerpt is omitted."
           },
           "contentMarkdown": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "description": "Required Markdown source used for editing and server-side HTML generation."
           },
           "contentHtml": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Optional pre-rendered HTML. Empty string is normalized to null. When omitted/null and contentMarkdown is supplied, the server generates HTML."
           },
           "coverImage": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Optional cover image URL/path. Empty string is normalized to null."
           },
           "status": {
             "$ref": "#/components/schemas/ArticleStatus",
-            "default": "DRAFT"
+            "default": "DRAFT",
+            "description": "Article status. Defaults to DRAFT on create."
           },
           "metaTitle": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Optional SEO title. Empty string is normalized to null."
           },
           "metaDescription": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Optional SEO description. Empty string is normalized to null."
           },
           "metaKeywords": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Optional SEO keywords string. Empty string is normalized to null."
           },
           "isPinned": {
             "type": "boolean",
-            "default": false
+            "default": false,
+            "description": "Whether the article should be prioritized in public lists. Defaults to false on create."
           },
           "categoryId": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Optional category ID. Empty string is normalized to null."
           },
           "tagIds": {
             "type": "array",
@@ -687,91 +504,105 @@
               "type": "string",
               "minLength": 1
             },
-            "default": []
+            "default": [],
+            "description": "Tag IDs to attach to the article. Defaults to an empty list on create."
           },
           "publishedAt": {
             "type": [
               "string",
               "null"
             ],
-            "format": "date-time"
+            "format": "date-time",
+            "description": "Optional publish timestamp. Used when status is PUBLISHED, or when status is omitted and the caller explicitly updates publishedAt."
           },
           "changeNote": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Optional revision note. Empty string is normalized to null."
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Create article request body. Unknown JSON properties are rejected. If slug is omitted, it is generated from title. If contentHtml is omitted/null, it is generated from contentMarkdown. If excerpt is omitted, it is generated from contentMarkdown. Creating a PUBLISHED article sets publishedAt to the provided value or current server time; non-published status clears publishedAt unless explicitly provided. tagIds syncs article tags and an initial revision is created."
       },
       "ArticleUpdateInput": {
         "type": "object",
-        "description": "Article update payload. All fields are optional for PATCH.",
+        "description": "Patch article request body. Unknown JSON properties are rejected. Omitted fields are left unchanged. Updating title does not change slug unless slug is explicitly provided. If contentMarkdown is provided and contentHtml is omitted/null, contentHtml is regenerated. If tagIds is omitted, tags are unchanged; if tagIds is [], all tags are removed. Each successful update creates a revision.",
         "properties": {
           "title": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 200,
+            "description": "Optional new title. Does not change slug unless slug is also provided."
           },
           "slug": {
             "type": "string",
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-            "maxLength": 120
+            "maxLength": 120,
+            "description": "Optional new URL slug. Must contain lowercase letters, numbers, and dashes only."
           },
           "excerpt": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Optional summary override. Empty string is normalized to null. If contentMarkdown is provided and excerpt is omitted, excerpt is regenerated."
           },
           "contentMarkdown": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "description": "Optional Markdown source update. When supplied, contentHtml is regenerated unless contentHtml is also supplied."
           },
           "contentHtml": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Optional pre-rendered HTML override. Empty string is normalized to null."
           },
           "coverImage": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Optional cover image URL/path. Empty string is normalized to null."
           },
           "status": {
             "$ref": "#/components/schemas/ArticleStatus",
-            "default": "DRAFT"
+            "description": "Optional status update. PUBLISHED sets publishedAt to provided value or current server time; non-published clears publishedAt unless provided."
           },
           "metaTitle": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Optional SEO title. Empty string is normalized to null."
           },
           "metaDescription": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Optional SEO description. Empty string is normalized to null."
           },
           "metaKeywords": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Optional SEO keywords string. Empty string is normalized to null."
           },
           "isPinned": {
             "type": "boolean",
-            "default": false
+            "description": "Optional pin flag update."
           },
           "categoryId": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Optional category ID update. Empty string is normalized to null."
           },
           "tagIds": {
             "type": "array",
@@ -779,20 +610,22 @@
               "type": "string",
               "minLength": 1
             },
-            "default": []
+            "description": "Optional complete replacement of article tags. Omitted leaves tags unchanged; [] clears all tags."
           },
           "publishedAt": {
             "type": [
               "string",
               "null"
             ],
-            "format": "date-time"
+            "format": "date-time",
+            "description": "Optional publish timestamp update."
           },
           "changeNote": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Optional revision note. Empty string is normalized to null."
           }
         },
         "additionalProperties": false
@@ -806,25 +639,30 @@
           "name": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 80
+            "maxLength": 80,
+            "description": "Required unique category display name. Used to generate slug on create when slug is omitted."
           },
           "slug": {
             "type": "string",
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-            "maxLength": 120
+            "maxLength": 120,
+            "description": "Optional custom URL slug. Must contain lowercase letters, numbers, and dashes only."
           },
           "description": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Optional category description. Empty string is normalized to null."
           },
           "sortOrder": {
             "type": "integer",
-            "default": 0
+            "default": 0,
+            "description": "Optional manual ordering value. Defaults to 0 on create."
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Create category request body. Unknown JSON properties are rejected. If slug is omitted, it is generated from name. sortOrder defaults to 0."
       },
       "TagInput": {
         "type": "object",
@@ -835,15 +673,18 @@
           "name": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 80
+            "maxLength": 80,
+            "description": "Required unique tag display name. Used to generate slug on create when slug is omitted."
           },
           "slug": {
             "type": "string",
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-            "maxLength": 120
+            "maxLength": 120,
+            "description": "Optional custom URL slug. Must contain lowercase letters, numbers, and dashes only."
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Create tag request body. Unknown JSON properties are rejected. If slug is omitted, it is generated from name."
       },
       "CommentInput": {
         "type": "object",
@@ -854,34 +695,40 @@
         "properties": {
           "articleId": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "description": "Target article ID. The article only needs to exist; it does not need to be public/published."
           },
           "content": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 5000
+            "maxLength": 5000,
+            "description": "Comment body. Trimmed and required after trimming. Maximum 5000 characters."
           },
           "guestName": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Optional guest display name. Empty string is normalized to null."
           },
           "guestEmail": {
             "type": [
               "string",
               "null"
             ],
-            "format": "email"
+            "format": "email",
+            "description": "Optional guest email. Must be a valid email when supplied; empty string is invalid, not normalized to null."
           },
           "parentId": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Optional parent comment ID for replies. Empty string is normalized to null. Must belong to the same article."
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Guest comment submission body. Unknown JSON properties are rejected. Comments can be created for any existing article ID. parentId, when provided, must reference a comment on the same article. The server records IP and user agent for moderation but never returns them from public responses."
       },
       "CommentModerationInput": {
         "type": "object",
@@ -890,13 +737,16 @@
         ],
         "properties": {
           "status": {
-            "$ref": "#/components/schemas/CommentStatus"
+            "$ref": "#/components/schemas/CommentStatus",
+            "description": "New moderation status."
           },
           "isSpam": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Optional explicit spam flag. If omitted, SPAM sets true and all other statuses set false."
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Admin comment moderation body. Unknown JSON properties are rejected. If isSpam is omitted, it is derived from status: true only for SPAM, false for all other statuses."
       },
       "MediaInput": {
         "type": "object",
@@ -911,43 +761,51 @@
           "filename": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 255
+            "maxLength": 255,
+            "description": "Original or display filename."
           },
           "url": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 2048
+            "maxLength": 2048,
+            "description": "Public/application URL for the media file. The backend validates only that this is a non-empty string."
           },
           "key": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 512
+            "maxLength": 512,
+            "description": "Unique storage key/reference. The backend validates uniqueness but does not verify the object exists in storage."
           },
           "size": {
             "type": "integer",
-            "minimum": 0
+            "minimum": 0,
+            "description": "File size in bytes. Must be >= 0."
           },
           "mimeType": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 120
+            "maxLength": 120,
+            "description": "MIME content type, such as image/webp."
           },
           "width": {
             "type": [
               "integer",
               "null"
             ],
-            "minimum": 1
+            "minimum": 1,
+            "description": "Optional image width in pixels. Must be positive when supplied."
           },
           "height": {
             "type": [
               "integer",
               "null"
             ],
-            "minimum": 1
+            "minimum": 1,
+            "description": "Optional image height in pixels. Must be positive when supplied."
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Create media metadata request body. Unknown JSON properties are rejected. This creates a database metadata record only; it does not upload binary data."
       },
       "SettingInput": {
         "type": "object",
@@ -974,51 +832,764 @@
                 "type": "array",
                 "items": true
               }
-            ]
+            ],
+            "description": "Setting value. Non-string values are JSON-stringified on write. String values are stored raw and may deserialize as non-strings if they look like JSON literals."
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Create/update site setting request body. Unknown JSON properties are rejected. The value can be a string, number, boolean, object, or array."
       },
       "CategoryUpdateInput": {
         "type": "object",
-        "description": "Category update payload. All fields are optional for PATCH.",
+        "description": "Patch category request body. Unknown JSON properties are rejected. Omitted fields are left unchanged. Updating name does not change slug unless slug is explicitly provided.",
         "properties": {
           "name": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 80
+            "maxLength": 80,
+            "description": "Optional new category display name. Does not change slug unless slug is also provided."
           },
           "slug": {
             "type": "string",
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-            "maxLength": 120
+            "maxLength": 120,
+            "description": "Optional new URL slug. Must contain lowercase letters, numbers, and dashes only."
           },
           "description": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Optional category description. Empty string is normalized to null."
           },
           "sortOrder": {
             "type": "integer",
-            "default": 0
+            "description": "Optional manual ordering value. Omitted leaves the current sortOrder unchanged."
           }
         },
         "additionalProperties": false
       },
       "TagUpdateInput": {
         "type": "object",
-        "description": "Tag update payload. All fields are optional for PATCH.",
+        "description": "Patch tag request body. Unknown JSON properties are rejected. Omitted fields are left unchanged. Updating name does not change slug unless slug is explicitly provided.",
         "properties": {
           "name": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 80
+            "maxLength": 80,
+            "description": "Optional new tag display name. Does not change slug unless slug is also provided."
           },
           "slug": {
             "type": "string",
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-            "maxLength": 120
+            "maxLength": 120,
+            "description": "Optional new URL slug. Must contain lowercase letters, numbers, and dashes only."
+          }
+        },
+        "additionalProperties": false
+      },
+      "CategorySummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "slug"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Stable category identifier."
+          },
+          "name": {
+            "type": "string",
+            "description": "Category display name."
+          },
+          "slug": {
+            "type": "string",
+            "description": "Category URL/filter slug."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Compact category object embedded in article DTOs."
+      },
+      "TagSummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "slug"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Stable tag identifier."
+          },
+          "name": {
+            "type": "string",
+            "description": "Tag display name."
+          },
+          "slug": {
+            "type": "string",
+            "description": "Tag URL/filter slug."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Compact tag object embedded in article DTOs."
+      },
+      "PublicArticleSummary": {
+        "type": "object",
+        "description": "Slim article card for public listing/search pages. Does not include article body or admin-only fields.",
+        "required": [
+          "id",
+          "title",
+          "slug",
+          "isPinned"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Stable article identifier. Use this for admin/editor APIs when available."
+          },
+          "title": {
+            "type": "string",
+            "description": "Article title for cards and search results."
+          },
+          "slug": {
+            "type": "string",
+            "description": "Public article slug. Use this to request GET /api/articles/{slug}."
+          },
+          "excerpt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Article summary shown in cards/search results. Can be null."
+          },
+          "coverImage": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional cover image URL/path."
+          },
+          "isPinned": {
+            "type": "boolean",
+            "description": "Pinned articles are sorted before non-pinned articles in public lists."
+          },
+          "publishedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Public publish timestamp. Public lists only include records where this is non-null."
+          },
+          "category": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CategorySummary"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Compact category object, or null when uncategorized."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TagSummary"
+            },
+            "description": "Compact tag objects attached to the article."
+          }
+        },
+        "additionalProperties": false,
+        "example": {
+          "id": "article-id",
+          "title": "Hello SeanBlog Frame",
+          "slug": "hello-seanblog-frame",
+          "excerpt": "Initial seeded article for the blog CMS.",
+          "coverImage": null,
+          "isPinned": false,
+          "publishedAt": "2026-07-23T00:00:00.000Z",
+          "category": {
+            "id": "category-id",
+            "name": "Engineering",
+            "slug": "engineering"
+          },
+          "tags": [
+            {
+              "id": "tag-id",
+              "name": "Next.js",
+              "slug": "nextjs"
+            }
+          ]
+        }
+      },
+      "PublicComment": {
+        "type": "object",
+        "description": "Public-safe approved comment payload. Email, IP address, user agent, spam flags, and moderation status are intentionally omitted.",
+        "required": [
+          "id",
+          "content",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Stable comment identifier."
+          },
+          "content": {
+            "type": "string",
+            "description": "Approved comment body."
+          },
+          "guestName": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Guest display name, or null when omitted."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Comment creation timestamp."
+          },
+          "parentId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Parent comment ID for replies. Top-level public comments have null."
+          },
+          "replies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicComment"
+            },
+            "description": "Approved replies ordered oldest first."
+          }
+        },
+        "additionalProperties": false
+      },
+      "PublicCommentReceipt": {
+        "type": "object",
+        "description": "Minimal receipt returned after a guest submits a comment.",
+        "required": [
+          "id",
+          "content",
+          "status",
+          "createdAt",
+          "articleId"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Created comment identifier."
+          },
+          "content": {
+            "type": "string",
+            "description": "Submitted comment body after trimming."
+          },
+          "status": {
+            "$ref": "#/components/schemas/CommentStatus",
+            "description": "Initial moderation status. New public comments default to PENDING."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Comment creation timestamp."
+          },
+          "articleId": {
+            "type": "string",
+            "description": "Target article ID."
+          },
+          "parentId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Parent comment ID for replies, or null."
+          }
+        },
+        "additionalProperties": false,
+        "example": {
+          "id": "comment-id",
+          "content": "Great article!",
+          "status": "PENDING",
+          "createdAt": "2026-07-23T00:00:00.000Z",
+          "articleId": "article-id",
+          "parentId": null
+        }
+      },
+      "PublicArticleDetail": {
+        "type": "object",
+        "description": "Public article detail for the article page. Includes rendered HTML body and public-safe approved comments.",
+        "required": [
+          "id",
+          "title",
+          "slug",
+          "contentHtml",
+          "viewCount"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Stable article identifier."
+          },
+          "title": {
+            "type": "string",
+            "description": "Article title."
+          },
+          "slug": {
+            "type": "string",
+            "description": "Public article slug."
+          },
+          "excerpt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Article summary. Can be null."
+          },
+          "contentHtml": {
+            "type": "string",
+            "description": "Rendered HTML body for public display. Markdown source is intentionally omitted from public responses."
+          },
+          "coverImage": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional cover image URL/path."
+          },
+          "metaTitle": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional SEO title."
+          },
+          "metaDescription": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional SEO description."
+          },
+          "metaKeywords": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional SEO keywords string."
+          },
+          "publishedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Public publish timestamp."
+          },
+          "viewCount": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Stored view count. This endpoint currently reads the value but does not increment it."
+          },
+          "category": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CategorySummary"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Compact category object, or null when uncategorized."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TagSummary"
+            },
+            "description": "Compact tag objects attached to the article."
+          },
+          "comments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicComment"
+            },
+            "description": "Approved top-level comments with approved replies only. Ordered oldest first."
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdminArticleSummary": {
+        "type": "object",
+        "description": "Slim article row for admin list pages. Does not include article body or revision bodies.",
+        "required": [
+          "id",
+          "title",
+          "slug",
+          "status",
+          "isPinned",
+          "viewCount",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Stable article identifier."
+          },
+          "title": {
+            "type": "string",
+            "description": "Article title."
+          },
+          "slug": {
+            "type": "string",
+            "description": "Article slug."
+          },
+          "excerpt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Article summary. Can be null."
+          },
+          "coverImage": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional cover image URL/path."
+          },
+          "status": {
+            "$ref": "#/components/schemas/ArticleStatus",
+            "description": "Current article lifecycle status."
+          },
+          "isPinned": {
+            "type": "boolean",
+            "description": "Whether this article is prioritized in public lists."
+          },
+          "publishedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Publish timestamp, or null for non-published articles."
+          },
+          "viewCount": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Stored view count."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp."
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last update timestamp. Admin article lists are sorted by this field descending."
+          },
+          "category": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CategorySummary"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Compact category object, or null when uncategorized."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TagSummary"
+            },
+            "description": "Compact tag objects attached to the article."
+          }
+        },
+        "additionalProperties": false,
+        "example": {
+          "id": "article-id",
+          "title": "Draft article",
+          "slug": "draft-article",
+          "excerpt": "Draft summary",
+          "coverImage": null,
+          "status": "DRAFT",
+          "isPinned": false,
+          "publishedAt": null,
+          "viewCount": 0,
+          "createdAt": "2026-07-23T00:00:00.000Z",
+          "updatedAt": "2026-07-23T00:00:00.000Z",
+          "category": null,
+          "tags": []
+        }
+      },
+      "ArticleRevisionSummary": {
+        "type": "object",
+        "description": "Revision metadata for admin article detail. Body snapshots are intentionally omitted from the default detail response.",
+        "required": [
+          "id",
+          "version",
+          "title",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Stable revision identifier."
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Sequential revision number for this article. Admin detail sorts revisions by version descending."
+          },
+          "title": {
+            "type": "string",
+            "description": "Article title captured for this revision."
+          },
+          "changeNote": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional change note for this revision."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Revision creation timestamp."
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdminArticleDetail": {
+        "type": "object",
+        "description": "Full editable article payload for admin create/update/detail pages. Revision bodies are not included by default.",
+        "required": [
+          "id",
+          "title",
+          "slug",
+          "contentMarkdown",
+          "contentHtml",
+          "status",
+          "isPinned",
+          "viewCount",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Stable article identifier."
+          },
+          "title": {
+            "type": "string",
+            "description": "Article title."
+          },
+          "slug": {
+            "type": "string",
+            "description": "Article slug used by public article routes when published."
+          },
+          "excerpt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Article summary. Can be null."
+          },
+          "contentMarkdown": {
+            "type": "string",
+            "description": "Editable Markdown source."
+          },
+          "contentHtml": {
+            "type": "string",
+            "description": "Rendered HTML body used for public display."
+          },
+          "coverImage": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional cover image URL/path."
+          },
+          "status": {
+            "$ref": "#/components/schemas/ArticleStatus",
+            "description": "Current article lifecycle status."
+          },
+          "metaTitle": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional SEO title."
+          },
+          "metaDescription": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional SEO description."
+          },
+          "metaKeywords": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional SEO keywords string."
+          },
+          "isPinned": {
+            "type": "boolean",
+            "description": "Whether this article is prioritized in public lists."
+          },
+          "publishedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Publish timestamp, or null for non-published articles."
+          },
+          "viewCount": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Stored view count."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp."
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last update timestamp."
+          },
+          "categoryId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Attached category ID, or null when uncategorized."
+          },
+          "category": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CategorySummary"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Compact category object, or null when uncategorized."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TagSummary"
+            },
+            "description": "Compact tag objects attached to the article."
+          },
+          "revisions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArticleRevisionSummary"
+            },
+            "description": "Revision metadata only. Historical Markdown/HTML bodies are intentionally omitted from the default detail response."
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdminComment": {
+        "type": "object",
+        "description": "Comment payload for moderation UI. Technical request metadata such as IP address and user agent are omitted from default responses.",
+        "required": [
+          "id",
+          "content",
+          "status",
+          "isSpam",
+          "createdAt",
+          "updatedAt",
+          "articleId"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Stable comment identifier."
+          },
+          "content": {
+            "type": "string",
+            "description": "Comment body."
+          },
+          "status": {
+            "$ref": "#/components/schemas/CommentStatus",
+            "description": "Current moderation status."
+          },
+          "guestName": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Guest display name, or null when omitted."
+          },
+          "guestEmail": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "email",
+            "description": "Guest email, or null when omitted."
+          },
+          "isSpam": {
+            "type": "boolean",
+            "description": "Spam moderation flag."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Comment creation timestamp."
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last update timestamp."
+          },
+          "articleId": {
+            "type": "string",
+            "description": "Target article ID."
+          },
+          "parentId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Parent comment ID for replies, or null."
+          },
+          "article": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Stable article identifier."
+              },
+              "title": {
+                "type": "string",
+                "description": "Article title shown in moderation context."
+              },
+              "slug": {
+                "type": "string",
+                "description": "Article slug for linking from moderation UI."
+              }
+            },
+            "additionalProperties": false,
+            "description": "Compact article object included in admin comment list responses. Patch/delete responses omit this property."
           }
         },
         "additionalProperties": false
@@ -1067,6 +1638,16 @@
             }
           }
         }
+      },
+      "InternalServerError": {
+        "description": "Unexpected server error.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
       }
     }
   },
@@ -1077,12 +1658,16 @@
           "Auth"
         ],
         "summary": "Auth.js sign-in entry",
-        "description": "Auth.js managed sign-in endpoint for the single administrator account.",
+        "description": "Auth.js managed sign-in endpoint/page for the single administrator account. Exact HTML/redirect behavior is managed by Auth.js.",
         "responses": {
           "200": {
             "description": "Auth.js sign-in page or response. Content type is managed by Auth.js."
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "authSignIn"
       }
     },
     "/api/auth/providers": {
@@ -1091,7 +1676,7 @@
           "Auth"
         ],
         "summary": "List Auth.js providers",
-        "description": "Returns the Auth.js provider registry. Current backend exposes the Credentials provider for the single administrator account.",
+        "description": "Returns the Auth.js provider registry. This backend currently exposes only the Credentials provider for username=admin.",
         "responses": {
           "200": {
             "description": "Provider registry response managed by Auth.js.",
@@ -1103,8 +1688,12 @@
                 }
               }
             }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "authProviders"
       }
     },
     "/api/auth/error": {
@@ -1113,12 +1702,16 @@
           "Auth"
         ],
         "summary": "Auth.js error entry",
-        "description": "Auth.js managed error endpoint/page used for authentication failures.",
+        "description": "Auth.js managed error endpoint/page for authentication failures. Exact response shape is managed by Auth.js.",
         "responses": {
           "200": {
             "description": "Auth.js error page or response. Content type is managed by Auth.js."
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "authError"
       }
     },
     "/api/auth/session": {
@@ -1127,7 +1720,7 @@
           "Auth"
         ],
         "summary": "Get current Auth.js session",
-        "description": "Returns the current Auth.js session payload when a valid session cookie is present.",
+        "description": "Returns the current session when a valid Auth.js session cookie is present; unauthenticated requests return Auth.js empty/null session semantics.",
         "responses": {
           "200": {
             "description": "Current session object or an empty/null session response managed by Auth.js.",
@@ -1139,8 +1732,12 @@
                 }
               }
             }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "authSession"
       }
     },
     "/api/auth/csrf": {
@@ -1149,7 +1746,7 @@
           "Auth"
         ],
         "summary": "Get Auth.js CSRF token",
-        "description": "Returns a CSRF token used by Auth.js form posts.",
+        "description": "Returns a CSRF token used by Auth.js form POST requests.",
         "responses": {
           "200": {
             "description": "CSRF token response managed by Auth.js.",
@@ -1166,8 +1763,12 @@
                 }
               }
             }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "authCsrf"
       }
     },
     "/api/auth/signout": {
@@ -1176,15 +1777,19 @@
           "Auth"
         ],
         "summary": "Auth.js sign-out",
-        "description": "Signs out the current administrator session. Auth.js may require a CSRF token depending on request mode.",
+        "description": "Signs out the current administrator session. Auth.js may require CSRF form semantics and may return redirects depending on request mode.",
         "responses": {
           "200": {
             "description": "Sign-out response managed by Auth.js."
           },
           "302": {
             "description": "Redirect response managed by Auth.js."
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "authSignOut"
       }
     },
     "/api/auth/callback/credentials": {
@@ -1193,7 +1798,7 @@
           "Auth"
         ],
         "summary": "Credentials sign-in callback",
-        "description": "Auth.js Credentials Provider callback. Submit administrator credentials (`username=admin`, `password`) using Auth.js form semantics, typically with a CSRF token.",
+        "description": "Auth.js Credentials Provider callback. Submit username=admin and password using Auth.js form semantics. Invalid credentials generally follow Auth.js callback/redirect behavior rather than this application error format.",
         "requestBody": {
           "required": true,
           "content": {
@@ -1234,8 +1839,12 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "authCredentialsCallback"
       }
     },
     "/api/health": {
@@ -1259,12 +1868,18 @@
                   },
                   "required": [
                     "status"
-                  ]
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "healthCheck",
+        "description": "Lightweight liveness check. Returns exactly { status: \"ok\" }."
       }
     },
     "/api/articles": {
@@ -1272,7 +1887,7 @@
         "tags": [
           "Public Articles"
         ],
-        "summary": "List published articles",
+        "summary": "List published article summaries",
         "parameters": [
           {
             "$ref": "#/components/parameters/Page"
@@ -1303,7 +1918,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Published article list.",
+            "description": "Paginated public article summaries.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1316,22 +1931,29 @@
                     "items": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/Article"
-                      }
+                        "$ref": "#/components/schemas/PublicArticleSummary"
+                      },
+                      "description": "Page of result items."
                     },
                     "meta": {
-                      "$ref": "#/components/schemas/PageMeta"
+                      "$ref": "#/components/schemas/PageMeta",
+                      "description": "Pagination metadata."
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
           },
           "400": {
             "$ref": "#/components/responses/ValidationError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
         },
-        "description": "Empty query values are treated as omitted. For example, page=&pageSize= use defaults; empty filters such as category= are ignored."
+        "description": "Returns PUBLISHED articles with non-null publishedAt only. Results are sorted by isPinned descending, then publishedAt descending. category and tag filters are slugs; unknown slugs return an empty list, not 404. List items intentionally omit article body and admin-only fields.",
+        "operationId": "listPublishedArticles"
       }
     },
     "/api/articles/{slug}": {
@@ -1339,7 +1961,7 @@
         "tags": [
           "Public Articles"
         ],
-        "summary": "Get published article by slug",
+        "summary": "Get published article detail by slug",
         "parameters": [
           {
             "$ref": "#/components/parameters/Slug"
@@ -1347,7 +1969,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Article detail.",
+            "description": "Published article detail with rendered HTML body and public-safe comments.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1357,17 +1979,24 @@
                   ],
                   "properties": {
                     "article": {
-                      "$ref": "#/components/schemas/Article"
+                      "$ref": "#/components/schemas/PublicArticleDetail",
+                      "description": "Article resource for this operation."
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "getPublishedArticleBySlug",
+        "description": "Returns one public article detail by slug. Returns 404 unless the article is PUBLISHED and has a non-null publishedAt. Includes rendered HTML and approved public-safe comments only. Does not increment viewCount."
       }
     },
     "/api/search": {
@@ -1375,7 +2004,7 @@
         "tags": [
           "Public Articles"
         ],
-        "summary": "Search published articles",
+        "summary": "Search published article summaries",
         "parameters": [
           {
             "name": "q",
@@ -1397,7 +2026,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Search result list.",
+            "description": "Paginated public article search results.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1410,22 +2039,29 @@
                     "items": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/Article"
-                      }
+                        "$ref": "#/components/schemas/PublicArticleSummary"
+                      },
+                      "description": "Page of result items."
                     },
                     "meta": {
-                      "$ref": "#/components/schemas/PageMeta"
+                      "$ref": "#/components/schemas/PageMeta",
+                      "description": "Pagination metadata."
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
           },
           "400": {
             "$ref": "#/components/responses/ValidationError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
         },
-        "description": "Search requires a non-empty q parameter. Empty page/pageSize query values are treated as omitted and use defaults."
+        "description": "Searches PUBLISHED articles with non-null publishedAt. The keyword is matched case-insensitively against title, excerpt, and contentMarkdown. Results are sorted by publishedAt descending and return the same summary DTO as public article lists.",
+        "operationId": "searchPublishedArticles"
       }
     },
     "/api/categories": {
@@ -1451,12 +2087,18 @@
                         "$ref": "#/components/schemas/Category"
                       }
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "listPublicCategories",
+        "description": "Returns all categories sorted by sortOrder ascending, then name ascending. _count.articles counts all related articles, including drafts and archived articles."
       }
     },
     "/api/categories/{slug}": {
@@ -1482,17 +2124,24 @@
                   ],
                   "properties": {
                     "category": {
-                      "$ref": "#/components/schemas/Category"
+                      "$ref": "#/components/schemas/Category",
+                      "description": "Category resource for this operation."
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "getCategoryBySlug",
+        "description": "Returns one category by slug. _count.articles counts all related articles, including drafts and archived articles."
       }
     },
     "/api/tags": {
@@ -1518,12 +2167,18 @@
                         "$ref": "#/components/schemas/Tag"
                       }
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "listPublicTags",
+        "description": "Returns all tags sorted by name ascending. _count.articles counts all related articles, including drafts and archived articles."
       }
     },
     "/api/tags/{slug}": {
@@ -1549,17 +2204,24 @@
                   ],
                   "properties": {
                     "tag": {
-                      "$ref": "#/components/schemas/Tag"
+                      "$ref": "#/components/schemas/Tag",
+                      "description": "Tag resource for this operation."
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "getTagBySlug",
+        "description": "Returns one tag by slug. _count.articles counts all related articles, including drafts and archived articles."
       }
     },
     "/api/comments": {
@@ -1590,9 +2252,11 @@
                   ],
                   "properties": {
                     "comment": {
-                      "$ref": "#/components/schemas/Comment"
+                      "$ref": "#/components/schemas/PublicCommentReceipt",
+                      "description": "Comment resource for this operation."
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
@@ -1602,8 +2266,13 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "createGuestComment",
+        "description": "Creates a guest comment for any existing article ID. New comments default to PENDING moderation. parentId must belong to the same article. The server records IP from x-forwarded-for first, then x-real-ip, and records user-agent; these values are not returned in public responses."
       }
     },
     "/rss.xml": {
@@ -1622,8 +2291,13 @@
                 }
               }
             }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "getRssFeed",
+        "description": "Returns RSS 2.0 XML for the latest 50 PUBLISHED articles with non-null publishedAt. Item fields are title, link, guid, description, and pubDate. XML values are escaped. Channel title/description/link come from siteName, siteDescription, and siteUrl settings with environment/default fallbacks."
       }
     },
     "/sitemap.xml": {
@@ -1642,8 +2316,13 @@
                 }
               }
             }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "getSitemap",
+        "description": "Returns XML sitemap entries for the homepage, all PUBLISHED articles with non-null publishedAt, all categories, and all tags. Article priority is 0.8 weekly; category/tag priority is 0.5 weekly; homepage priority is 1 daily. Base URL comes from siteUrl setting or NEXT_PUBLIC_SITE_URL/default fallback."
       }
     },
     "/robots.txt": {
@@ -1662,8 +2341,13 @@
                 }
               }
             }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "getRobotsTxt",
+        "description": "Returns robots.txt allowing /, disallowing /admin/, and pointing to /sitemap.xml. Base URL comes from NEXT_PUBLIC_SITE_URL or localhost fallback, not the database siteUrl setting."
       }
     },
     "/api/admin/articles": {
@@ -1736,22 +2420,32 @@
                     "items": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/Article"
-                      }
+                        "$ref": "#/components/schemas/AdminArticleSummary"
+                      },
+                      "description": "Page of result items."
                     },
                     "meta": {
-                      "$ref": "#/components/schemas/PageMeta"
+                      "$ref": "#/components/schemas/PageMeta",
+                      "description": "Pagination metadata."
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
           },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
         },
-        "description": "Empty query values are treated as omitted. For example, page=&pageSize= use defaults; empty filters such as category= are ignored."
+        "description": "Authenticated endpoint returning paginated admin article summaries sorted by updatedAt descending. Filters: status enum, category slug, tag slug, q keyword. q matches title, excerpt, and contentMarkdown case-insensitively. Empty query values are treated as omitted.",
+        "operationId": "listAdminArticles"
       },
       "post": {
         "tags": [
@@ -1785,9 +2479,11 @@
                   ],
                   "properties": {
                     "article": {
-                      "$ref": "#/components/schemas/Article"
+                      "$ref": "#/components/schemas/AdminArticleDetail",
+                      "description": "Article resource for this operation."
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
@@ -1800,8 +2496,13 @@
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "createAdminArticle",
+        "description": "Authenticated endpoint that creates an article and returns the full editable admin detail. Server-derived fields: slug from title if omitted, contentHtml from contentMarkdown if omitted/null, excerpt from contentMarkdown if omitted, publishedAt set when status=PUBLISHED, tags synced from tagIds, and an initial revision is created."
       }
     },
     "/api/admin/articles/{id}": {
@@ -1832,9 +2533,11 @@
                   ],
                   "properties": {
                     "article": {
-                      "$ref": "#/components/schemas/Article"
+                      "$ref": "#/components/schemas/AdminArticleDetail",
+                      "description": "Article resource for this operation."
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
@@ -1844,8 +2547,13 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "getAdminArticle",
+        "description": "Authenticated endpoint returning full editable article detail by ID. Revisions are returned as metadata only and sorted by version descending."
       },
       "patch": {
         "tags": [
@@ -1884,9 +2592,11 @@
                   ],
                   "properties": {
                     "article": {
-                      "$ref": "#/components/schemas/Article"
+                      "$ref": "#/components/schemas/AdminArticleDetail",
+                      "description": "Article resource for this operation."
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
@@ -1902,8 +2612,13 @@
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "updateAdminArticle",
+        "description": "Authenticated endpoint for partial article updates. Omitted fields remain unchanged. Updating title does not change slug unless slug is explicitly provided. Omitted tagIds leaves tags unchanged; [] clears all tags. Every successful update creates a revision."
       },
       "delete": {
         "tags": [
@@ -1929,8 +2644,13 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "deleteAdminArticle",
+        "description": "Authenticated endpoint that hard-deletes the article. Related article-tag joins, comments, and revisions are removed by cascading relations."
       }
     },
     "/api/admin/articles/{id}/publish": {
@@ -1961,9 +2681,11 @@
                   ],
                   "properties": {
                     "article": {
-                      "$ref": "#/components/schemas/Article"
+                      "$ref": "#/components/schemas/AdminArticleDetail",
+                      "description": "Article resource for this operation."
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
@@ -1973,8 +2695,13 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "publishAdminArticle",
+        "description": "Authenticated endpoint that sets status=PUBLISHED, sets publishedAt to the current server time, writes changeNote=\"Published article\", creates a revision, and returns admin article detail."
       }
     },
     "/api/admin/articles/{id}/archive": {
@@ -2005,9 +2732,11 @@
                   ],
                   "properties": {
                     "article": {
-                      "$ref": "#/components/schemas/Article"
+                      "$ref": "#/components/schemas/AdminArticleDetail",
+                      "description": "Article resource for this operation."
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
@@ -2017,8 +2746,13 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "archiveAdminArticle",
+        "description": "Authenticated endpoint that sets status=ARCHIVED, clears publishedAt, writes changeNote=\"Archived article\", creates a revision, and returns admin article detail."
       }
     },
     "/api/admin/categories": {
@@ -2049,15 +2783,21 @@
                         "$ref": "#/components/schemas/Category"
                       }
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "listAdminCategories",
+        "description": "Authenticated endpoint returning all categories sorted by sortOrder ascending, then name ascending. _count.articles counts all related articles, including drafts and archived articles."
       },
       "post": {
         "tags": [
@@ -2091,9 +2831,11 @@
                   ],
                   "properties": {
                     "category": {
-                      "$ref": "#/components/schemas/Category"
+                      "$ref": "#/components/schemas/Category",
+                      "description": "Category resource for this operation."
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
@@ -2106,8 +2848,13 @@
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "createAdminCategory",
+        "description": "Authenticated endpoint that creates a category. If slug is omitted, it is generated from name. sortOrder defaults to 0. name and slug are unique."
       }
     },
     "/api/admin/categories/{id}": {
@@ -2148,9 +2895,11 @@
                   ],
                   "properties": {
                     "category": {
-                      "$ref": "#/components/schemas/Category"
+                      "$ref": "#/components/schemas/Category",
+                      "description": "Category resource for this operation."
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
@@ -2166,8 +2915,13 @@
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "updateAdminCategory",
+        "description": "Authenticated endpoint for partial category updates. Omitted fields remain unchanged. Updating name does not change slug unless slug is explicitly provided."
       },
       "delete": {
         "tags": [
@@ -2193,8 +2947,13 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "deleteAdminCategory",
+        "description": "Authenticated endpoint that deletes the category record. Articles in the category are not deleted; their categoryId is set to null by the database relation."
       }
     },
     "/api/admin/tags": {
@@ -2225,15 +2984,21 @@
                         "$ref": "#/components/schemas/Tag"
                       }
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "listAdminTags",
+        "description": "Authenticated endpoint returning all tags sorted by name ascending. _count.articles counts all related articles, including drafts and archived articles."
       },
       "post": {
         "tags": [
@@ -2267,9 +3032,11 @@
                   ],
                   "properties": {
                     "tag": {
-                      "$ref": "#/components/schemas/Tag"
+                      "$ref": "#/components/schemas/Tag",
+                      "description": "Tag resource for this operation."
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
@@ -2282,8 +3049,13 @@
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "createAdminTag",
+        "description": "Authenticated endpoint that creates a tag. If slug is omitted, it is generated from name. name and slug are unique."
       }
     },
     "/api/admin/tags/{id}": {
@@ -2324,9 +3096,11 @@
                   ],
                   "properties": {
                     "tag": {
-                      "$ref": "#/components/schemas/Tag"
+                      "$ref": "#/components/schemas/Tag",
+                      "description": "Tag resource for this operation."
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
@@ -2342,8 +3116,13 @@
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "updateAdminTag",
+        "description": "Authenticated endpoint for partial tag updates. Omitted fields remain unchanged. Updating name does not change slug unless slug is explicitly provided."
       },
       "delete": {
         "tags": [
@@ -2369,8 +3148,13 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "deleteAdminTag",
+        "description": "Authenticated endpoint that deletes the tag record and article-tag join rows. Articles themselves are not deleted."
       }
     },
     "/api/admin/comments": {
@@ -2425,22 +3209,32 @@
                     "items": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/Comment"
-                      }
+                        "$ref": "#/components/schemas/AdminComment"
+                      },
+                      "description": "Page of result items."
                     },
                     "meta": {
-                      "$ref": "#/components/schemas/PageMeta"
+                      "$ref": "#/components/schemas/PageMeta",
+                      "description": "Pagination metadata."
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
           },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
         },
-        "description": "Empty query values are treated as omitted. For example, page=&pageSize= use defaults; empty filters such as category= are ignored."
+        "description": "Authenticated endpoint returning paginated comments sorted by createdAt descending. Filters: status enum and articleId. List items include compact article { id, title, slug } and do not include nested replies, IP, or userAgent. Empty query values are treated as omitted.",
+        "operationId": "listAdminComments"
       }
     },
     "/api/admin/comments/{id}": {
@@ -2481,9 +3275,11 @@
                   ],
                   "properties": {
                     "comment": {
-                      "$ref": "#/components/schemas/Comment"
+                      "$ref": "#/components/schemas/AdminComment",
+                      "description": "Comment resource for this operation."
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
@@ -2496,8 +3292,13 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "moderateAdminComment",
+        "description": "Authenticated endpoint that updates comment status and spam flag. If isSpam is omitted, it is derived from status: true only for SPAM, otherwise false."
       },
       "delete": {
         "tags": [
@@ -2526,9 +3327,11 @@
                   ],
                   "properties": {
                     "comment": {
-                      "$ref": "#/components/schemas/Comment"
+                      "$ref": "#/components/schemas/AdminComment",
+                      "description": "Comment resource for this operation."
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
@@ -2538,8 +3341,13 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "trashAdminComment",
+        "description": "Authenticated soft-delete endpoint. Sets status=TRASHED and, because isSpam is omitted, sets isSpam=false. Returns the updated admin comment DTO."
       }
     },
     "/api/admin/media": {
@@ -2568,23 +3376,30 @@
                       "type": "array",
                       "items": {
                         "$ref": "#/components/schemas/Media"
-                      }
+                      },
+                      "description": "Media metadata resource(s) for this operation."
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "listAdminMedia",
+        "description": "Authenticated endpoint returning all media metadata records sorted by createdAt descending. This list is currently not paginated."
       },
       "post": {
         "tags": [
           "Admin Media"
         ],
-        "summary": "Create media record",
+        "summary": "Create media metadata record",
         "security": [
           {
             "adminSession": []
@@ -2612,9 +3427,11 @@
                   ],
                   "properties": {
                     "media": {
-                      "$ref": "#/components/schemas/Media"
+                      "$ref": "#/components/schemas/Media",
+                      "description": "Media metadata resource(s) for this operation."
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
@@ -2627,8 +3444,13 @@
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "createAdminMedia",
+        "description": "Authenticated endpoint that creates a metadata record only. It does not upload binary data. key must be unique. url and key are plain strings and are not verified against storage."
       }
     },
     "/api/admin/media/{id}": {
@@ -2636,7 +3458,7 @@
         "tags": [
           "Admin Media"
         ],
-        "summary": "Delete media record",
+        "summary": "Delete media metadata record",
         "security": [
           {
             "adminSession": []
@@ -2656,8 +3478,13 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "deleteAdminMedia",
+        "description": "Authenticated endpoint that deletes only the database media metadata record. It does not delete the underlying file/blob from storage."
       }
     },
     "/api/admin/settings": {
@@ -2686,17 +3513,24 @@
                       "type": "array",
                       "items": {
                         "$ref": "#/components/schemas/SiteSetting"
-                      }
+                      },
+                      "description": "All site settings sorted by key ascending."
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "listAdminSettings",
+        "description": "Authenticated endpoint returning all site settings sorted by key ascending. Values are deserialized using JSON.parse when possible."
       }
     },
     "/api/admin/settings/{key}": {
@@ -2734,17 +3568,24 @@
                         {
                           "type": "null"
                         }
-                      ]
+                      ],
+                      "description": "Site setting resource, or null for missing keys on GET."
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "getAdminSetting",
+        "description": "Authenticated endpoint returning one setting by arbitrary key. Missing keys return { setting: null } with HTTP 200, not 404."
       },
       "put": {
         "tags": [
@@ -2783,9 +3624,11 @@
                   ],
                   "properties": {
                     "setting": {
-                      "$ref": "#/components/schemas/SiteSetting"
+                      "$ref": "#/components/schemas/SiteSetting",
+                      "description": "Site setting resource, or null for missing keys on GET."
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
@@ -2795,8 +3638,13 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "operationId": "upsertAdminSetting",
+        "description": "Authenticated endpoint that upserts an arbitrary setting key. Non-string values are JSON-stringified on write. String values are stored raw and may deserialize as non-strings if they look like JSON literals."
       }
     }
   }
