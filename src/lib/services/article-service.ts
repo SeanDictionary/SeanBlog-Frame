@@ -1,15 +1,24 @@
 import { ArticleStatus, Prisma } from '@prisma/client'
 
 import { conflict, notFound } from '@/lib/api/errors'
+import {
+  deleteArticleContent,
+  deleteArticleRevisionMarkdown,
+  readArticleMarkdown,
+  writeArticleMarkdown,
+  writeArticleRevisionMarkdown,
+} from '@/lib/content/article-content'
 import { createExcerpt, markdownToHtml } from '@/lib/content/markdown'
 import { resolveSlug } from '@/lib/content/slug'
 import { getPrisma } from '@/lib/prisma'
 import {
   adminArticleDetailSelect,
+  adminArticleSearchSelect,
   adminArticleSummarySelect,
   pageMeta,
   paginate,
   publicArticleDetailSelect,
+  publicArticleSearchSelect,
   publicArticleSummarySelect,
   serializeArticleTags,
 } from '@/lib/services/shared'
@@ -23,6 +32,10 @@ const publicArticleWhere = {
 } satisfies Prisma.ArticleWhereInput
 
 type PrismaExecutor = ReturnType<typeof getPrisma> | Prisma.TransactionClient
+type ArticleContentSource = {
+  contentPath: string | null
+  legacyContentMarkdown: string | null
+}
 
 function buildArticleData(input: ArticleInput | ArticleUpdateInput, options: { generateSlugFromTitle?: boolean } = {}) {
   const data: Prisma.ArticleUncheckedUpdateInput = {}
@@ -37,21 +50,12 @@ function buildArticleData(input: ArticleInput | ArticleUpdateInput, options: { g
     data.slug = resolveSlug({ title: input.title })
   }
 
-  if (input.contentMarkdown !== undefined) {
-    data.contentMarkdown = input.contentMarkdown
-    data.contentHtml = input.contentHtml ?? markdownToHtml(input.contentMarkdown)
-
-    if (input.excerpt === undefined) {
-      data.excerpt = createExcerpt(input.contentMarkdown)
-    }
+  if (input.contentMarkdown !== undefined && input.excerpt === undefined) {
+    data.excerpt = createExcerpt(input.contentMarkdown)
   }
 
   if (input.excerpt !== undefined) {
     data.excerpt = input.excerpt
-  }
-
-  if (input.contentHtml !== undefined && input.contentMarkdown === undefined && input.contentHtml !== null) {
-    data.contentHtml = input.contentHtml
   }
 
   if (input.coverImage !== undefined) {
@@ -97,29 +101,107 @@ function buildArticleData(input: ArticleInput | ArticleUpdateInput, options: { g
   return data
 }
 
-async function createRevision(articleId: string, changeNote?: string | null, client: PrismaExecutor = getPrisma()) {
-  const article = await client.article.findUnique({ where: { id: articleId } })
-
-  if (!article) {
-    throw notFound('Article not found.')
+async function readMarkdownFromStorage(article: ArticleContentSource) {
+  if (article.contentPath) {
+    try {
+      return await readArticleMarkdown(article.contentPath)
+    } catch (error) {
+      if (article.legacyContentMarkdown === null) {
+        throw error
+      }
+    }
   }
 
-  const latest = await client.articleRevision.findFirst({
+  if (article.legacyContentMarkdown !== null) {
+    return article.legacyContentMarkdown
+  }
+
+  throw new Error('Article content is unavailable.')
+}
+
+function withoutContentSource<T extends ArticleContentSource & { tags?: Array<{ tag: unknown }> }>(article: T) {
+  const { contentPath: _contentPath, legacyContentMarkdown: _legacyContentMarkdown, ...rest } = article
+  return serializeArticleTags(rest)
+}
+
+async function getPublicArticleRecord(slug: string) {
+  return getPrisma().article.findFirst({
+    where: {
+      slug,
+      ...publicArticleWhere,
+    },
+    select: publicArticleDetailSelect,
+  })
+}
+
+async function getAdminArticleRecord(id: string) {
+  return getPrisma().article.findUnique({
+    where: { id },
+    select: adminArticleDetailSelect,
+  })
+}
+
+async function withPublicArticleContent(article: NonNullable<Awaited<ReturnType<typeof getPublicArticleRecord>>>) {
+  const markdown = await readMarkdownFromStorage(article)
+
+  return {
+    ...withoutContentSource(article),
+    contentHtml: markdownToHtml(markdown),
+  }
+}
+
+async function withAdminArticleContent(article: NonNullable<Awaited<ReturnType<typeof getAdminArticleRecord>>>) {
+  const markdown = await readMarkdownFromStorage(article)
+
+  return {
+    ...withoutContentSource(article),
+    contentMarkdown: markdown,
+    contentHtml: markdownToHtml(markdown),
+  }
+}
+
+async function createRevision(articleId: string, title: string, markdown: string, changeNote?: string | null) {
+  const prisma = getPrisma()
+  const latest = await prisma.articleRevision.findFirst({
     where: { articleId },
     orderBy: { version: 'desc' },
     select: { version: true },
   })
-
-  return client.articleRevision.create({
+  const revision = await prisma.articleRevision.create({
     data: {
       articleId,
-      title: article.title,
-      contentMarkdown: article.contentMarkdown,
-      contentHtml: article.contentHtml,
+      title,
+      contentPath: null,
       version: (latest?.version ?? 0) + 1,
       changeNote,
     },
   })
+
+  let revisionContentPath: string | null = null
+
+  try {
+    revisionContentPath = await writeArticleRevisionMarkdown(articleId, revision.id, markdown)
+
+    return await prisma.articleRevision.update({
+      where: { id: revision.id },
+      data: { contentPath: revisionContentPath },
+    })
+  } catch (error) {
+    if (revisionContentPath) {
+      await deleteArticleRevisionMarkdown(revisionContentPath).catch(() => undefined)
+    }
+
+    await prisma.articleRevision.delete({ where: { id: revision.id } }).catch(() => undefined)
+    throw error
+  }
+}
+
+async function deleteRevisionContent(revision: { id: string; contentPath: string | null }) {
+  if (revision.contentPath) {
+    await deleteArticleRevisionMarkdown(revision.contentPath).catch(() => undefined)
+  }
+
+  await getPrisma().articleRevision.delete({ where: { id: revision.id } }).catch(() => undefined)
 }
 
 async function syncArticleTags(articleId: string, tagIds: string[], client: PrismaExecutor = getPrisma()) {
@@ -132,6 +214,17 @@ async function syncArticleTags(articleId: string, tagIds: string[], client: Pris
   await client.articleTag.createMany({
     data: [...new Set(tagIds)].map((tagId) => ({ articleId, tagId })),
   })
+}
+
+async function articleMatchesQuery(
+  article: ArticleContentSource & { title: string; excerpt: string | null },
+  normalizedQuery: string,
+) {
+  if (article.title.toLocaleLowerCase().includes(normalizedQuery) || article.excerpt?.toLocaleLowerCase().includes(normalizedQuery)) {
+    return true
+  }
+
+  return (await readMarkdownFromStorage(article)).toLocaleLowerCase().includes(normalizedQuery)
 }
 
 export async function listPublicArticles(input: { page: number; pageSize: number; category?: string; tag?: string }) {
@@ -190,80 +283,99 @@ export async function listAdminArticles(input: {
     ...(input.status ? { status: input.status } : {}),
     ...(input.category ? { category: { slug: input.category } } : {}),
     ...(input.tag ? { tags: { some: { tag: { slug: input.tag } } } } : {}),
-    ...(input.q
-      ? {
-          OR: [
-            { title: { contains: input.q, mode: 'insensitive' } },
-            { excerpt: { contains: input.q, mode: 'insensitive' } },
-            { contentMarkdown: { contains: input.q, mode: 'insensitive' } },
-          ],
-        }
-      : {}),
   }
 
-  const [items, total] = await Promise.all([
-    prisma.article.findMany({
-      where,
-      ...paginate(input.page, input.pageSize),
-      orderBy: { updatedAt: 'desc' },
-      select: adminArticleSummarySelect,
-    }),
-    prisma.article.count({ where }),
-  ])
+  if (!input.q) {
+    const [items, total] = await Promise.all([
+      prisma.article.findMany({
+        where,
+        ...paginate(input.page, input.pageSize),
+        orderBy: { updatedAt: 'desc' },
+        select: adminArticleSummarySelect,
+      }),
+      prisma.article.count({ where }),
+    ])
+
+    return {
+      items: items.map(serializeArticleTags),
+      meta: pageMeta(total, input.page, input.pageSize),
+    }
+  }
+
+  const normalizedQuery = input.q.toLocaleLowerCase()
+  const candidates = await prisma.article.findMany({
+    where,
+    orderBy: { updatedAt: 'desc' },
+    select: adminArticleSearchSelect,
+  })
+  const matching = (
+    await Promise.all(
+      candidates.map(async (article) => ((await articleMatchesQuery(article, normalizedQuery)) ? article : null)),
+    )
+  ).filter((article): article is NonNullable<typeof article> => article !== null)
+  const start = (input.page - 1) * input.pageSize
 
   return {
-    items: items.map(serializeArticleTags),
-    meta: pageMeta(total, input.page, input.pageSize),
+    items: matching.slice(start, start + input.pageSize).map(withoutContentSource),
+    meta: pageMeta(matching.length, input.page, input.pageSize),
   }
 }
 
 export async function getPublicArticleBySlug(slug: string) {
-  const article = await getPrisma().article.findFirst({
-    where: {
-      slug,
-      ...publicArticleWhere,
-    },
-    select: publicArticleDetailSelect,
-  })
+  const article = await getPublicArticleRecord(slug)
 
   if (!article) {
     throw notFound('Article not found.')
   }
 
-  return serializeArticleTags(article)
+  return withPublicArticleContent(article)
 }
 
 export async function getAdminArticleById(id: string) {
-  const article = await getPrisma().article.findUnique({
-    where: { id },
-    select: adminArticleDetailSelect,
-  })
+  const article = await getAdminArticleRecord(id)
 
   if (!article) {
     throw notFound('Article not found.')
   }
 
-  return serializeArticleTags(article)
+  return withAdminArticleContent(article)
 }
 
 export async function createArticle(input: ArticleInput) {
   const prisma = getPrisma()
   const data = buildArticleData(input, { generateSlugFromTitle: true })
+  let articleId: string | null = null
+  let contentPath: string | null = null
 
   try {
-    const articleId = await prisma.$transaction(async (tx) => {
-      const article = await tx.article.create({
+    const article = await prisma.$transaction(async (tx) => {
+      const created = await tx.article.create({
         data: data as Prisma.ArticleUncheckedCreateInput,
       })
 
-      await syncArticleTags(article.id, input.tagIds, tx)
-      await createRevision(article.id, input.changeNote ?? 'Initial version', tx)
+      await syncArticleTags(created.id, input.tagIds, tx)
 
-      return article.id
+      return created
     })
+    articleId = article.id
+    contentPath = await writeArticleMarkdown(article.id, input.contentMarkdown)
 
-    return getAdminArticleById(articleId)
+    await prisma.article.update({
+      where: { id: article.id },
+      data: { contentPath },
+    })
+    await createRevision(article.id, article.title, input.contentMarkdown, input.changeNote ?? 'Initial version')
+
+    return getAdminArticleById(article.id)
   } catch (error) {
+    if (articleId) {
+      await prisma.article.delete({ where: { id: articleId } }).catch(() => undefined)
+    }
+
+    if (contentPath) {
+      await deleteArticleContent(contentPath).catch(() => undefined)
+    }
+
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       throw conflict('Article slug already exists.')
     }
@@ -274,24 +386,55 @@ export async function createArticle(input: ArticleInput) {
 
 export async function updateArticle(id: string, input: ArticleUpdateInput) {
   const prisma = getPrisma()
+  const existing = await prisma.article.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      title: true,
+      contentPath: true,
+      legacyContentMarkdown: true,
+    },
+  })
+
+  if (!existing) {
+    throw notFound('Article not found.')
+  }
+
+  const previousMarkdown = await readMarkdownFromStorage(existing)
+  const markdown = input.contentMarkdown ?? previousMarkdown
   const data = buildArticleData(input)
+  const contentPath = await writeArticleMarkdown(id, markdown)
+  let revision: { id: string; contentPath: string | null } | null = null
 
   try {
+    revision = await createRevision(id, input.title ?? existing.title, markdown, input.changeNote)
+
     await prisma.$transaction(async (tx) => {
       await tx.article.update({
         where: { id },
-        data,
+        data: {
+          ...data,
+          contentPath,
+        },
       })
 
-      if (input.tagIds) {
+      if (input.tagIds !== undefined) {
         await syncArticleTags(id, input.tagIds, tx)
       }
-
-      await createRevision(id, input.changeNote, tx)
     })
 
     return getAdminArticleById(id)
   } catch (error) {
+    if (revision) {
+      await deleteRevisionContent(revision)
+    }
+
+    if (existing.contentPath) {
+      await writeArticleMarkdown(id, previousMarkdown).catch(() => undefined)
+    } else {
+      await deleteArticleContent(contentPath).catch(() => undefined)
+    }
+
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       if (error.code === 'P2025') {
         throw notFound('Article not found.')
@@ -307,8 +450,19 @@ export async function updateArticle(id: string, input: ArticleUpdateInput) {
 }
 
 export async function deleteArticle(id: string) {
+  const prisma = getPrisma()
+
   try {
-    await getPrisma().article.delete({ where: { id } })
+    const article = await prisma.article.delete({
+      where: { id },
+      select: { contentPath: true },
+    })
+
+    if (article.contentPath) {
+      await deleteArticleContent(article.contentPath).catch((error) => {
+        console.error(`Unable to remove content files for article ${id}.`, error)
+      })
+    }
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
       throw notFound('Article not found.')
@@ -334,28 +488,21 @@ export async function archiveArticle(id: string) {
 }
 
 export async function searchArticles(input: { q: string; page: number; pageSize: number }) {
-  const prisma = getPrisma()
-  const where: Prisma.ArticleWhereInput = {
-    ...publicArticleWhere,
-    OR: [
-      { title: { contains: input.q, mode: 'insensitive' } },
-      { excerpt: { contains: input.q, mode: 'insensitive' } },
-      { contentMarkdown: { contains: input.q, mode: 'insensitive' } },
-    ],
-  }
-
-  const [items, total] = await Promise.all([
-    prisma.article.findMany({
-      where,
-      ...paginate(input.page, input.pageSize),
-      orderBy: { publishedAt: 'desc' },
-      select: publicArticleSummarySelect,
-    }),
-    prisma.article.count({ where }),
-  ])
+  const normalizedQuery = input.q.toLocaleLowerCase()
+  const candidates = await getPrisma().article.findMany({
+    where: publicArticleWhere,
+    orderBy: { publishedAt: 'desc' },
+    select: publicArticleSearchSelect,
+  })
+  const matching = (
+    await Promise.all(
+      candidates.map(async (article) => ((await articleMatchesQuery(article, normalizedQuery)) ? article : null)),
+    )
+  ).filter((article): article is NonNullable<typeof article> => article !== null)
+  const start = (input.page - 1) * input.pageSize
 
   return {
-    items: items.map(serializeArticleTags),
-    meta: pageMeta(total, input.page, input.pageSize),
+    items: matching.slice(start, start + input.pageSize).map(withoutContentSource),
+    meta: pageMeta(matching.length, input.page, input.pageSize),
   }
 }

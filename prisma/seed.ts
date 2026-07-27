@@ -5,6 +5,8 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { ArticleStatus, PrismaClient } from '@prisma/client'
 import { hash } from 'bcryptjs'
 
+import { writeArticleMarkdown } from '../src/lib/content/article-content'
+
 const connectionString = process.env.DATABASE_URL
 
 if (!connectionString) {
@@ -88,7 +90,6 @@ async function seedContent() {
         slug: 'hello-seanblog-frame',
         excerpt: 'Initial seeded article for the blog CMS.',
         contentMarkdown: '# Hello SeanBlog Frame\n\nThis is the first seeded article.',
-        contentHtml: '<h1>Hello SeanBlog Frame</h1><p>This is the first seeded article.</p>',
         categoryId: categories[0].id,
         tagIds: [tags[0].id, tags[1].id],
       },
@@ -97,7 +98,6 @@ async function seedContent() {
         slug: 'building-with-postgresql',
         excerpt: 'A seeded note about a reliable data foundation.',
         contentMarkdown: '# Building with PostgreSQL\n\nPostgreSQL is the data foundation for this project.',
-        contentHtml: '<h1>Building with PostgreSQL</h1><p>PostgreSQL is the data foundation for this project.</p>',
         categoryId: categories[0].id,
         tagIds: [tags[2].id, tags[3].id],
       },
@@ -106,11 +106,10 @@ async function seedContent() {
         slug: 'why-keep-writing',
         excerpt: 'A small note on keeping a personal publishing habit.',
         contentMarkdown: '# Why Keep Writing\n\nWriting makes ideas easier to revisit and improve.',
-        contentHtml: '<h1>Why Keep Writing</h1><p>Writing makes ideas easier to revisit and improve.</p>',
         categoryId: categories[1].id,
         tagIds: [tags[4].id],
       },
-    ].map(async ({ tagIds, ...article }) => {
+    ].map(async ({ tagIds, contentMarkdown, ...article }) => {
       const savedArticle = await prisma.article.upsert({
         where: { slug: article.slug },
         update: {
@@ -123,6 +122,13 @@ async function seedContent() {
           status: ArticleStatus.PUBLISHED,
           publishedAt: new Date(),
         },
+      })
+
+      const contentPath = await writeArticleMarkdown(savedArticle.id, contentMarkdown)
+
+      await prisma.article.update({
+        where: { id: savedArticle.id },
+        data: { contentPath },
       })
 
       await prisma.articleTag.deleteMany({

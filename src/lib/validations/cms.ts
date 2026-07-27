@@ -52,7 +52,6 @@ export const articleInputSchema = z
     slug: slugSchema,
     excerpt: optionalTrimmedString,
     contentMarkdown: z.string().trim().min(1),
-    contentHtml: optionalTrimmedString,
     coverImage: optionalTrimmedString,
     status: z.nativeEnum(ArticleStatus).default(ArticleStatus.DRAFT),
     metaTitle: optionalTrimmedString,

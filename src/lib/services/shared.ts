@@ -32,6 +32,12 @@ export const publicArticleSummarySelect = {
   },
 } satisfies Prisma.ArticleSelect
 
+export const publicArticleSearchSelect = {
+  ...publicArticleSummarySelect,
+  contentPath: true,
+  legacyContentMarkdown: true,
+} satisfies Prisma.ArticleSelect
+
 const publicCommentBaseSelect = {
   id: true,
   content: true,
@@ -44,8 +50,9 @@ export const publicArticleDetailSelect = {
   id: true,
   title: true,
   slug: true,
+  contentPath: true,
+  legacyContentMarkdown: true,
   excerpt: true,
-  contentHtml: true,
   coverImage: true,
   metaTitle: true,
   metaDescription: true,
@@ -109,6 +116,12 @@ export const adminArticleSummarySelect = {
   },
 } satisfies Prisma.ArticleSelect
 
+export const adminArticleSearchSelect = {
+  ...adminArticleSummarySelect,
+  contentPath: true,
+  legacyContentMarkdown: true,
+} satisfies Prisma.ArticleSelect
+
 const articleRevisionSummarySelect = {
   id: true,
   version: true,
@@ -121,9 +134,9 @@ export const adminArticleDetailSelect = {
   id: true,
   title: true,
   slug: true,
+  contentPath: true,
+  legacyContentMarkdown: true,
   excerpt: true,
-  contentMarkdown: true,
-  contentHtml: true,
   coverImage: true,
   status: true,
   metaTitle: true,

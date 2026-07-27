@@ -47,14 +47,15 @@ enum ArticleStatus {
 }
 
 model Article {
-  id              String        @id @default(cuid())
-  title           String
-  slug            String        @unique
-  excerpt         String?
-  contentMarkdown String
-  contentHtml     String
-  coverImage      String?
-  status          ArticleStatus @default(DRAFT)
+  id                    String        @id @default(cuid())
+  title                 String
+  slug                  String        @unique
+  excerpt               String?
+  contentPath           String?
+  legacyContentMarkdown String?       @map("contentMarkdown")
+  legacyContentHtml     String?       @map("contentHtml")
+  coverImage            String?
+  status                ArticleStatus @default(DRAFT)
   metaTitle       String?
   metaDescription String?
   metaKeywords    String?
@@ -117,13 +118,14 @@ model Comment {
 }
 
 model ArticleRevision {
-  id              String   @id @default(cuid())
-  articleId       String
-  article         Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  title           String
-  contentMarkdown String
-  contentHtml     String
-  version         Int
+  id                    String   @id @default(cuid())
+  articleId             String
+  article               Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  contentPath           String?
+  legacyContentMarkdown String?  @map("contentMarkdown")
+  legacyContentHtml     String?  @map("contentHtml")
+  title                 String
+  version               Int
   changeNote      String?
   createdAt       DateTime @default(now())
 
