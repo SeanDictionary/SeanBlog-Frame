@@ -97,30 +97,31 @@ model Tag {
 
 ```prisma
 model Article {
-  id              String        @id @default(cuid())
-  title           String
-  slug            String        @unique
-  excerpt         String?
-  contentMarkdown String
-  contentHtml     String
-  coverImage      String?
-  status          ArticleStatus @default(DRAFT)
+  id                    String        @id @default(cuid())
+  title                 String
+  slug                  String        @unique
+  excerpt               String?
+  contentPath           String?       // content/articles/{articleId}/index.md
+  legacyContentMarkdown String?       @map("contentMarkdown") // 迁移期回退来源
+  legacyContentHtml     String?       @map("contentHtml")     // 迁移期回退来源
+  coverImage            String?
+  status                ArticleStatus @default(DRAFT)
 
-  metaTitle       String?
-  metaDescription String?
-  metaKeywords    String?
+  metaTitle             String?
+  metaDescription       String?
+  metaKeywords          String?
 
-  isPinned        Boolean       @default(false)
-  publishedAt     DateTime?
-  viewCount       Int           @default(0)
+  isPinned              Boolean       @default(false)
+  publishedAt           DateTime?
+  viewCount             Int           @default(0)
 
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
 
-  categoryId      String?
-  category        Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  categoryId            String?
+  category              Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
-  tags            ArticleTag[]
+  tags                  ArticleTag[]
 
   @@index([status, publishedAt])
   @@index([categoryId])
@@ -130,7 +131,10 @@ model Article {
 
 设计说明：
 
-- `contentMarkdown` 存储原文，`contentHtml` 存储编译后的 HTML，避免每次请求重复编译
+- Markdown 正文以 `content/articles/{articleId}/index.md` 文件为唯一权威源；`contentPath` 保存该相对路径，因此 slug 改动不会重命名正文文件
+- 文章详情/后台编辑按需读取 Markdown 文件；`contentHtml` 为运行时渲染结果，可由缓存层缓存，但不是持久化源数据
+- `legacyContentMarkdown` / `legacyContentHtml` 映射旧数据库列，仅用于迁移期回退与导出；所有存量文件迁移完成、验证备份后可用后续迁移删除
+- 修订正文同样保存在 `content/articles/{articleId}/revisions/{revisionId}.md`，数据库仅保留修订元数据和相对路径
 - SEO 字段 (`metaTitle` / `metaDescription` / `metaKeywords`) 为可选，fallback 到文章标题和摘要
 - `viewCount` 使用数据库字段，后续可改用 Redis HLL 异步更新
 - `isPinned` 配合 `publishedAt` 索引，用于首页置顶查询
@@ -210,15 +214,16 @@ model Comment {
 
 ```prisma
 model ArticleRevision {
-  id              String   @id @default(cuid())
-  articleId       String
-  article         Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  title           String
-  contentMarkdown String
-  contentHtml     String
-  version         Int
-  changeNote      String?
-  createdAt       DateTime @default(now())
+  id                    String   @id @default(cuid())
+  articleId             String
+  article               Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  title                 String
+  contentPath           String?  // content/articles/{articleId}/revisions/{revisionId}.md
+  legacyContentMarkdown String?  @map("contentMarkdown") // 迁移期回退来源
+  legacyContentHtml     String?  @map("contentHtml")     // 迁移期回退来源
+  version               Int
+  changeNote            String?
+  createdAt             DateTime @default(now())
 
   @@index([articleId, version])
 }
