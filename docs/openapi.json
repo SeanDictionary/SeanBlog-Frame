@@ -1,64 +1,64 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "SeanBlog Frame Backend API",
+    "title": "SeanBlog Frame 后端 API",
     "version": "0.1.0",
-    "description": "SeanBlog Frame backend API for a single-administrator personal blog CMS. Public endpoints require no authentication. All /api/admin/* endpoints require a valid Auth.js administrator session cookie. Response DTOs are scenario-oriented: list/search endpoints return compact summaries, detail/editor endpoints return the fields needed by that page, and public endpoints omit private moderation/request metadata."
+    "description": "SeanBlog Frame 后端 API 的 OpenAPI 规范。项目采用单管理员模式：公开接口无需认证，/api/admin/* 接口需要有效的 Auth.js 会话 Cookie。文章 Markdown 保存在 content/articles/{articleId}/index.md；PostgreSQL 保存文章元数据和相对内容路径。"
   },
   "servers": [
     {
       "url": "http://127.0.0.1:3000",
-      "description": "Local development via loopback IP"
+      "description": "通过回环 IP 的本地开发服务"
     },
     {
       "url": "http://localhost:3000",
-      "description": "Local development via localhost"
+      "description": "通过 localhost 的本地开发服务"
     }
   ],
   "tags": [
     {
-      "name": "Public Articles",
-      "description": "Unauthenticated article list, search, and article detail endpoints for the public blog frontend."
+      "name": "公开文章",
+      "description": "供博客前台使用的无需认证文章列表、搜索和详情接口。"
     },
     {
-      "name": "Public Taxonomy",
-      "description": "Unauthenticated category and tag endpoints for public navigation/filtering."
+      "name": "公开分类与标签",
+      "description": "供前台导航和筛选使用的无需认证分类与标签接口。"
     },
     {
-      "name": "Public Comments",
-      "description": "Unauthenticated guest comment submission endpoint. Submitted comments enter moderation."
+      "name": "公开评论",
+      "description": "无需认证的访客评论提交接口；提交后评论会进入审核流程。"
     },
     {
-      "name": "Content Distribution",
-      "description": "RSS, sitemap, robots, and other crawler/feed endpoints."
+      "name": "内容分发",
+      "description": "RSS、站点地图、robots 等供爬虫和订阅使用的接口。"
     },
     {
-      "name": "Admin Articles",
-      "description": "Authenticated article management endpoints for the single administrator."
+      "name": "后台文章管理",
+      "description": "供唯一管理员使用、需要认证的文章管理接口。"
     },
     {
-      "name": "Admin Taxonomy",
-      "description": "Authenticated category and tag management endpoints."
+      "name": "后台分类与标签管理",
+      "description": "需要认证的分类和标签管理接口。"
     },
     {
-      "name": "Admin Comments",
-      "description": "Authenticated comment moderation endpoints."
+      "name": "后台评论审核",
+      "description": "需要认证的评论审核接口。"
     },
     {
-      "name": "Admin Media",
-      "description": "Authenticated media metadata management endpoints. These endpoints do not upload binary files."
+      "name": "后台媒体管理",
+      "description": "需要认证的媒体元数据管理接口。这些接口不上传二进制文件。"
     },
     {
-      "name": "Admin Settings",
-      "description": "Authenticated key/value site setting endpoints."
+      "name": "后台站点设置",
+      "description": "需要认证的站点键值设置接口。"
     },
     {
-      "name": "Auth",
-      "description": "Auth.js managed authentication endpoints for the single administrator account."
+      "name": "认证",
+      "description": "由 Auth.js 管理的单管理员账户认证接口。"
     },
     {
-      "name": "Health",
-      "description": "Lightweight liveness endpoint."
+      "name": "健康检查",
+      "description": "轻量级存活检查接口。"
     }
   ],
   "components": {
@@ -67,7 +67,7 @@
         "type": "apiKey",
         "in": "cookie",
         "name": "authjs.session-token",
-        "description": "Auth.js administrator session cookie. Local development usually uses authjs.session-token; HTTPS production may use __Secure-authjs.session-token."
+        "description": "Auth.js 管理员会话 Cookie。本地开发通常使用 authjs.session-token；HTTPS 生产环境可能使用 __Secure-authjs.session-token。"
       }
     },
     "parameters": {
@@ -79,7 +79,7 @@
           "minimum": 1,
           "default": 1
         },
-        "description": "One-based page number. Omitted or empty value defaults to 1; invalid explicit values return 400.",
+        "description": "从 1 开始的页码。未传或传空值时默认为 1；显式传入非法值时返回 400。",
         "allowEmptyValue": true
       },
       "PageSize": {
@@ -91,7 +91,7 @@
           "maximum": 100,
           "default": 20
         },
-        "description": "Page size. Omitted or empty value defaults to 20; maximum is 100; invalid explicit values return 400.",
+        "description": "每页记录数。未传或传空值时默认为 20，最大为 100；显式传入非法值时返回 400。",
         "allowEmptyValue": true
       },
       "Slug": {
@@ -102,7 +102,7 @@
           "type": "string",
           "minLength": 1
         },
-        "description": "URL-safe slug path parameter."
+        "description": "URL 安全的 slug 路径参数。"
       },
       "Id": {
         "name": "id",
@@ -112,7 +112,7 @@
           "type": "string",
           "minLength": 1
         },
-        "description": "Stable resource ID path parameter."
+        "description": "稳定的资源 ID 路径参数。"
       },
       "SettingKey": {
         "name": "key",
@@ -122,7 +122,7 @@
           "type": "string",
           "minLength": 1
         },
-        "description": "Site setting key path parameter. Arbitrary non-empty keys are accepted."
+        "description": "站点设置键路径参数。接受任意非空键名。"
       }
     },
     "schemas": {
@@ -133,7 +133,7 @@
           "PUBLISHED",
           "ARCHIVED"
         ],
-        "description": "Lifecycle status of an article. Only PUBLISHED articles with a non-null publishedAt are visible through public article endpoints."
+        "description": "文章生命周期状态。只有状态为 PUBLISHED 且 publishedAt 非空的文章会在公开文章接口中可见。"
       },
       "CommentStatus": {
         "type": "string",
@@ -143,7 +143,7 @@
           "SPAM",
           "TRASHED"
         ],
-        "description": "Moderation status of a guest comment. Only APPROVED comments are visible in public article detail responses."
+        "description": "访客评论审核状态。只有 APPROVED 评论会出现在公开文章详情响应中。"
       },
       "ErrorResponse": {
         "type": "object",
@@ -169,11 +169,11 @@
                   "FORBIDDEN",
                   "INTERNAL_SERVER_ERROR"
                 ],
-                "description": "Stable application error code. Use this for client-side branching instead of parsing message text."
+                "description": "稳定的应用错误码。客户端应据此分支处理，而不是解析 message 文本。"
               },
               "message": {
                 "type": "string",
-                "description": "Human-readable error message intended for debugging or simple UI display."
+                "description": "面向人类的错误信息，可用于调试或简单 UI 展示。"
               },
               "issues": {
                 "type": "array",
@@ -181,11 +181,11 @@
                   "type": "object",
                   "additionalProperties": true
                 },
-                "description": "Validation issue details from Zod. Present on VALIDATION_ERROR responses."
+                "description": "来自 Zod 的校验问题详情，仅在 VALIDATION_ERROR 响应中出现。"
               }
             },
             "additionalProperties": false,
-            "description": "Machine-readable error wrapper used by application-owned API endpoints."
+            "description": "项目自有 API 接口使用的机器可读错误包装对象。"
           }
         },
         "additionalProperties": false
@@ -202,22 +202,22 @@
           "total": {
             "type": "integer",
             "minimum": 0,
-            "description": "Total number of records matching the filter before pagination."
+            "description": "筛选条件匹配的总记录数，分页前计算。"
           },
           "page": {
             "type": "integer",
             "minimum": 1,
-            "description": "Current one-based page number after defaults are applied."
+            "description": "应用默认值后的当前页码，从 1 开始。"
           },
           "pageSize": {
             "type": "integer",
             "minimum": 1,
-            "description": "Number of records requested per page after defaults are applied. Maximum is 100."
+            "description": "应用默认值后的每页记录数，最大为 100。"
           },
           "pageCount": {
             "type": "integer",
             "minimum": 0,
-            "description": "Total number of pages for the current pageSize. Can be 0 when total is 0."
+            "description": "按当前 pageSize 计算的总页数；total 为 0 时可以为 0。"
           }
         },
         "additionalProperties": false
@@ -235,36 +235,36 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "Stable category identifier."
+            "description": "稳定的分类标识符。"
           },
           "name": {
             "type": "string",
-            "description": "Unique display name for the category."
+            "description": "分类的唯一显示名称。"
           },
           "slug": {
             "type": "string",
-            "description": "Unique URL-safe slug used in routes and category filters."
+            "description": "用于路由和分类筛选的唯一 URL 安全 slug。"
           },
           "description": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Optional category description."
+            "description": "可选的分类描述。"
           },
           "sortOrder": {
             "type": "integer",
-            "description": "Manual ordering value. Lower values appear first."
+            "description": "手动排序值，数值越小越靠前。"
           },
           "createdAt": {
             "type": "string",
             "format": "date-time",
-            "description": "Creation timestamp."
+            "description": "创建时间。"
           },
           "updatedAt": {
             "type": "string",
             "format": "date-time",
-            "description": "Last update timestamp."
+            "description": "最后更新时间。"
           },
           "_count": {
             "type": "object",
@@ -272,15 +272,15 @@
               "articles": {
                 "type": "integer",
                 "minimum": 0,
-                "description": "Number of all articles related to this category, including draft, published, and archived articles."
+                "description": "关联到该分类的全部文章数量，包含草稿、已发布和已归档文章。"
               }
             },
             "additionalProperties": false,
-            "description": "Relation counts returned by Prisma. _count.articles counts all related articles, including draft and archived articles."
+            "description": "Prisma 返回的关联计数。_count.articles 统计全部关联文章，包含草稿和已归档文章。"
           }
         },
         "additionalProperties": false,
-        "description": "Category record used by public taxonomy endpoints and admin taxonomy management. Public/admin category lists are sorted by sortOrder ascending, then name ascending."
+        "description": "公开分类接口和后台分类管理使用的分类记录。公开/后台分类列表先按 sortOrder 升序，再按 name 升序排列。"
       },
       "Tag": {
         "type": "object",
@@ -294,25 +294,25 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "Stable tag identifier."
+            "description": "稳定的标签标识符。"
           },
           "name": {
             "type": "string",
-            "description": "Unique display name for the tag."
+            "description": "标签的唯一显示名称。"
           },
           "slug": {
             "type": "string",
-            "description": "Unique URL-safe slug used in routes and tag filters."
+            "description": "用于路由和标签筛选的唯一 URL 安全 slug。"
           },
           "createdAt": {
             "type": "string",
             "format": "date-time",
-            "description": "Creation timestamp."
+            "description": "创建时间。"
           },
           "updatedAt": {
             "type": "string",
             "format": "date-time",
-            "description": "Last update timestamp."
+            "description": "最后更新时间。"
           },
           "_count": {
             "type": "object",
@@ -320,15 +320,15 @@
               "articles": {
                 "type": "integer",
                 "minimum": 0,
-                "description": "Number of all articles related to this tag, including draft, published, and archived articles."
+                "description": "关联到该标签的全部文章数量，包含草稿、已发布和已归档文章。"
               }
             },
             "additionalProperties": false,
-            "description": "Relation counts returned by Prisma. _count.articles counts all related articles, including draft and archived articles."
+            "description": "Prisma 返回的关联计数。_count.articles 统计全部关联文章，包含草稿和已归档文章。"
           }
         },
         "additionalProperties": false,
-        "description": "Tag record used by public taxonomy endpoints and admin taxonomy management. Tag lists are sorted by name ascending."
+        "description": "公开标签接口和后台标签管理使用的标签记录。标签列表按 name 升序排列。"
       },
       "Media": {
         "type": "object",
@@ -344,28 +344,28 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "Stable media metadata identifier."
+            "description": "稳定的媒体元数据标识符。"
           },
           "filename": {
             "type": "string",
-            "description": "Original or display filename."
+            "description": "原始文件名或展示文件名。"
           },
           "url": {
             "type": "string",
-            "description": "Public or application URL where the media can be accessed."
+            "description": "可访问该媒体的公开 URL 或应用内 URL。"
           },
           "key": {
             "type": "string",
-            "description": "Unique storage key/reference for the media object. The backend enforces uniqueness."
+            "description": "媒体对象的唯一存储键或引用。后端会强制唯一性。"
           },
           "size": {
             "type": "integer",
             "minimum": 0,
-            "description": "File size in bytes."
+            "description": "文件大小，单位为字节。"
           },
           "mimeType": {
             "type": "string",
-            "description": "MIME content type, such as image/webp."
+            "description": "MIME 内容类型，例如 image/webp。"
           },
           "width": {
             "type": [
@@ -373,7 +373,7 @@
               "null"
             ],
             "minimum": 1,
-            "description": "Optional image width in pixels. Null/omitted for non-image files or unknown dimensions."
+            "description": "可选的图片宽度，单位为像素。非图片文件或尺寸未知时为 null 或省略。"
           },
           "height": {
             "type": [
@@ -381,16 +381,16 @@
               "null"
             ],
             "minimum": 1,
-            "description": "Optional image height in pixels. Null/omitted for non-image files or unknown dimensions."
+            "description": "可选的图片高度，单位为像素。非图片文件或尺寸未知时为 null 或省略。"
           },
           "createdAt": {
             "type": "string",
             "format": "date-time",
-            "description": "Metadata creation timestamp."
+            "description": "元数据创建时间。"
           }
         },
         "additionalProperties": false,
-        "description": "Media metadata record. This API stores metadata only; it does not upload, transform, or delete binary files/blobs."
+        "description": "媒体元数据记录。该 API 仅保存元数据，不上传、转换或删除二进制文件/对象。"
       },
       "SiteSetting": {
         "type": "object",
@@ -402,18 +402,18 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "Stable setting identifier."
+            "description": "稳定的设置标识符。"
           },
           "key": {
             "type": "string",
-            "description": "Unique setting key. The backend accepts arbitrary keys."
+            "description": "唯一设置键。后端接受任意键名。"
           },
           "value": {
-            "description": "Deserialized setting value. Non-string values are JSON-stringified on write. String values that look like JSON literals can deserialize as non-strings on read."
+            "description": "反序列化后的设置值。非字符串值写入时会 JSON 序列化；看起来像 JSON 字面量的字符串在读取时可能被反序列化为非字符串。"
           }
         },
         "additionalProperties": false,
-        "description": "Arbitrary site setting key/value record. Values are stored as strings and deserialized with JSON.parse when possible on read."
+        "description": "任意站点设置键值记录。值以字符串形式保存，读取时会在可能的情况下通过 JSON.parse 反序列化。"
       },
       "ArticleInput": {
         "type": "object",
@@ -426,77 +426,70 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 200,
-            "description": "Required article title. Also used to generate slug on create when slug is omitted."
+            "description": "必填文章标题。创建时未传 slug 会用标题生成 slug。"
           },
           "slug": {
             "type": "string",
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
             "maxLength": 120,
-            "description": "Optional custom URL slug. Must contain lowercase letters, numbers, and dashes only. Generated from title on create when omitted."
+            "description": "可选的自定义 URL slug。只能包含小写字母、数字和短横线；创建时省略则从标题生成。"
           },
           "excerpt": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Optional summary. Empty string is normalized to null. Generated from contentMarkdown on create/update when contentMarkdown is provided and excerpt is omitted."
+            "description": "可选摘要。空字符串会规范化为 null；创建时省略则从 contentMarkdown 自动生成。"
           },
           "contentMarkdown": {
             "type": "string",
             "minLength": 1,
-            "description": "Required Markdown source used for editing and server-side HTML generation."
-          },
-          "contentHtml": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "Optional pre-rendered HTML. Empty string is normalized to null. When omitted/null and contentMarkdown is supplied, the server generates HTML."
+            "description": "必填 Markdown 源文。服务端会将其写入 content/articles/{articleId}/index.md；迁移后数据库仅保存相对 contentPath 元数据。"
           },
           "coverImage": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Optional cover image URL/path. Empty string is normalized to null."
+            "description": "可选封面图片 URL/路径。空字符串会规范化为 null。"
           },
           "status": {
             "$ref": "#/components/schemas/ArticleStatus",
             "default": "DRAFT",
-            "description": "Article status. Defaults to DRAFT on create."
+            "description": "文章状态。创建时默认值为 DRAFT。"
           },
           "metaTitle": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Optional SEO title. Empty string is normalized to null."
+            "description": "可选 SEO 标题。空字符串会规范化为 null。"
           },
           "metaDescription": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Optional SEO description. Empty string is normalized to null."
+            "description": "可选 SEO 描述。空字符串会规范化为 null。"
           },
           "metaKeywords": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Optional SEO keywords string. Empty string is normalized to null."
+            "description": "可选 SEO 关键词字符串。空字符串会规范化为 null。"
           },
           "isPinned": {
             "type": "boolean",
             "default": false,
-            "description": "Whether the article should be prioritized in public lists. Defaults to false on create."
+            "description": "文章是否在公开列表中优先展示。创建时默认 false。"
           },
           "categoryId": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Optional category ID. Empty string is normalized to null."
+            "description": "可选分类 ID。空字符串会规范化为 null。"
           },
           "tagIds": {
             "type": "array",
@@ -505,7 +498,7 @@
               "minLength": 1
             },
             "default": [],
-            "description": "Tag IDs to attach to the article. Defaults to an empty list on create."
+            "description": "要关联到文章的标签 ID 列表。创建时默认为空列表。"
           },
           "publishedAt": {
             "type": [
@@ -513,96 +506,89 @@
               "null"
             ],
             "format": "date-time",
-            "description": "Optional publish timestamp. Used when status is PUBLISHED, or when status is omitted and the caller explicitly updates publishedAt."
+            "description": "可选发布时间。status 为 PUBLISHED 时使用；或 status 省略且调用方显式更新 publishedAt 时使用。"
           },
           "changeNote": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Optional revision note. Empty string is normalized to null."
+            "description": "可选修订说明。空字符串会规范化为 null。"
           }
         },
         "additionalProperties": false,
-        "description": "Create article request body. Unknown JSON properties are rejected. If slug is omitted, it is generated from title. If contentHtml is omitted/null, it is generated from contentMarkdown. If excerpt is omitted, it is generated from contentMarkdown. Creating a PUBLISHED article sets publishedAt to the provided value or current server time; non-published status clears publishedAt unless explicitly provided. tagIds syncs article tags and an initial revision is created."
+        "description": "创建文章请求体。未知 JSON 字段会被拒绝。服务端将 contentMarkdown 写入 content/articles/{articleId}/index.md，并创建 Markdown 修订快照。未传 slug 时从 title 生成；未传 excerpt 时从 Markdown 生成。创建 PUBLISHED 文章时 publishedAt 使用传入时间或当前服务端时间；非发布状态会清空 publishedAt。tagIds 会设置初始文章标签集合。"
       },
       "ArticleUpdateInput": {
         "type": "object",
-        "description": "Patch article request body. Unknown JSON properties are rejected. Omitted fields are left unchanged. Updating title does not change slug unless slug is explicitly provided. If contentMarkdown is provided and contentHtml is omitted/null, contentHtml is regenerated. If tagIds is omitted, tags are unchanged; if tagIds is [], all tags are removed. Each successful update creates a revision.",
+        "description": "更新文章请求体。未知 JSON 字段会被拒绝，省略字段保持不变。更新 title 不会修改 slug，除非显式传入 slug。contentMarkdown 会覆盖文章 Markdown 文件；省略 tagIds 时标签不变，传入 [] 会清空全部标签。每次成功更新都会创建 Markdown 修订快照。",
         "properties": {
           "title": {
             "type": "string",
             "minLength": 1,
             "maxLength": 200,
-            "description": "Optional new title. Does not change slug unless slug is also provided."
+            "description": "可选的新标题。除非同时传入 slug，否则不会修改 slug。"
           },
           "slug": {
             "type": "string",
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
             "maxLength": 120,
-            "description": "Optional new URL slug. Must contain lowercase letters, numbers, and dashes only."
+            "description": "可选的新 URL slug。只能包含小写字母、数字和短横线。"
           },
           "excerpt": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Optional summary override. Empty string is normalized to null. If contentMarkdown is provided and excerpt is omitted, excerpt is regenerated."
+            "description": "可选摘要覆盖值。空字符串会规范化为 null。传入 contentMarkdown 且省略 excerpt 时，服务端会重新生成摘要。"
           },
           "contentMarkdown": {
             "type": "string",
             "minLength": 1,
-            "description": "Optional Markdown source update. When supplied, contentHtml is regenerated unless contentHtml is also supplied."
-          },
-          "contentHtml": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "Optional pre-rendered HTML override. Empty string is normalized to null."
+            "description": "可选 Markdown 源文替换值。传入时服务端会覆盖 content/articles/{articleId}/index.md 并创建修订快照；省略时保留当前文件内容。"
           },
           "coverImage": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Optional cover image URL/path. Empty string is normalized to null."
+            "description": "可选封面图片 URL/路径。空字符串会规范化为 null。"
           },
           "status": {
             "$ref": "#/components/schemas/ArticleStatus",
-            "description": "Optional status update. PUBLISHED sets publishedAt to provided value or current server time; non-published clears publishedAt unless provided."
+            "description": "可选状态更新。PUBLISHED 会将 publishedAt 设为传入值或当前服务端时间；非发布状态会清空 publishedAt，除非显式传入。"
           },
           "metaTitle": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Optional SEO title. Empty string is normalized to null."
+            "description": "可选 SEO 标题。空字符串会规范化为 null。"
           },
           "metaDescription": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Optional SEO description. Empty string is normalized to null."
+            "description": "可选 SEO 描述。空字符串会规范化为 null。"
           },
           "metaKeywords": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Optional SEO keywords string. Empty string is normalized to null."
+            "description": "可选 SEO 关键词字符串。空字符串会规范化为 null。"
           },
           "isPinned": {
             "type": "boolean",
-            "description": "Optional pin flag update."
+            "description": "可选置顶标记更新。"
           },
           "categoryId": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Optional category ID update. Empty string is normalized to null."
+            "description": "可选分类 ID 更新。空字符串会规范化为 null。"
           },
           "tagIds": {
             "type": "array",
@@ -610,7 +596,7 @@
               "type": "string",
               "minLength": 1
             },
-            "description": "Optional complete replacement of article tags. Omitted leaves tags unchanged; [] clears all tags."
+            "description": "可选的文章标签完整替换列表。省略时标签不变；[] 会清空全部标签。"
           },
           "publishedAt": {
             "type": [
@@ -618,14 +604,14 @@
               "null"
             ],
             "format": "date-time",
-            "description": "Optional publish timestamp update."
+            "description": "可选发布时间更新。"
           },
           "changeNote": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Optional revision note. Empty string is normalized to null."
+            "description": "可选修订说明。空字符串会规范化为 null。"
           }
         },
         "additionalProperties": false
@@ -640,29 +626,29 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 80,
-            "description": "Required unique category display name. Used to generate slug on create when slug is omitted."
+            "description": "必填且唯一的分类显示名称。创建时省略 slug 会用该名称生成 slug。"
           },
           "slug": {
             "type": "string",
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
             "maxLength": 120,
-            "description": "Optional custom URL slug. Must contain lowercase letters, numbers, and dashes only."
+            "description": "可选的自定义 URL slug。只能包含小写字母、数字和短横线。"
           },
           "description": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Optional category description. Empty string is normalized to null."
+            "description": "可选的分类描述。空字符串会规范化为 null。"
           },
           "sortOrder": {
             "type": "integer",
             "default": 0,
-            "description": "Optional manual ordering value. Defaults to 0 on create."
+            "description": "可选手动排序值。创建时默认 0。"
           }
         },
         "additionalProperties": false,
-        "description": "Create category request body. Unknown JSON properties are rejected. If slug is omitted, it is generated from name. sortOrder defaults to 0."
+        "description": "创建分类请求体。未知 JSON 字段会被拒绝。未传 slug 时从 name 生成；sortOrder 默认 0。"
       },
       "TagInput": {
         "type": "object",
@@ -674,17 +660,17 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 80,
-            "description": "Required unique tag display name. Used to generate slug on create when slug is omitted."
+            "description": "必填且唯一的标签显示名称。创建时省略 slug 会用该名称生成 slug。"
           },
           "slug": {
             "type": "string",
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
             "maxLength": 120,
-            "description": "Optional custom URL slug. Must contain lowercase letters, numbers, and dashes only."
+            "description": "可选的自定义 URL slug。只能包含小写字母、数字和短横线。"
           }
         },
         "additionalProperties": false,
-        "description": "Create tag request body. Unknown JSON properties are rejected. If slug is omitted, it is generated from name."
+        "description": "创建标签请求体。未知 JSON 字段会被拒绝。未传 slug 时从 name 生成。"
       },
       "CommentInput": {
         "type": "object",
@@ -696,20 +682,20 @@
           "articleId": {
             "type": "string",
             "minLength": 1,
-            "description": "Target article ID. The article only needs to exist; it does not need to be public/published."
+            "description": "目标文章 ID。文章只需存在，无需公开或已发布。"
           },
           "content": {
             "type": "string",
             "minLength": 1,
             "maxLength": 5000,
-            "description": "Comment body. Trimmed and required after trimming. Maximum 5000 characters."
+            "description": "评论正文。会去除首尾空白，去除后不能为空，最大 5000 个字符。"
           },
           "guestName": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Optional guest display name. Empty string is normalized to null."
+            "description": "可选访客显示名称。空字符串会规范化为 null。"
           },
           "guestEmail": {
             "type": [
@@ -717,18 +703,18 @@
               "null"
             ],
             "format": "email",
-            "description": "Optional guest email. Must be a valid email when supplied; empty string is invalid, not normalized to null."
+            "description": "可选访客邮箱。传入时必须是合法邮箱；空字符串非法，不会规范化为 null。"
           },
           "parentId": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Optional parent comment ID for replies. Empty string is normalized to null. Must belong to the same article."
+            "description": "可选父评论 ID，用于回复。空字符串会规范化为 null，且父评论必须属于同一篇文章。"
           }
         },
         "additionalProperties": false,
-        "description": "Guest comment submission body. Unknown JSON properties are rejected. Comments can be created for any existing article ID. parentId, when provided, must reference a comment on the same article. The server records IP and user agent for moderation but never returns them from public responses."
+        "description": "访客评论提交请求体。未知 JSON 字段会被拒绝。任何已存在文章 ID 都可创建评论；传入 parentId 时必须引用同一篇文章的评论。服务端会记录 IP 和 User-Agent 用于审核，但不会在公开响应中返回。"
       },
       "CommentModerationInput": {
         "type": "object",
@@ -738,15 +724,15 @@
         "properties": {
           "status": {
             "$ref": "#/components/schemas/CommentStatus",
-            "description": "New moderation status."
+            "description": "新的审核状态。"
           },
           "isSpam": {
             "type": "boolean",
-            "description": "Optional explicit spam flag. If omitted, SPAM sets true and all other statuses set false."
+            "description": "可选的显式垃圾评论标记。省略时 SPAM 对应 true，其他状态对应 false。"
           }
         },
         "additionalProperties": false,
-        "description": "Admin comment moderation body. Unknown JSON properties are rejected. If isSpam is omitted, it is derived from status: true only for SPAM, false for all other statuses."
+        "description": "后台评论审核请求体。未知 JSON 字段会被拒绝。省略 isSpam 时由 status 推导：仅 SPAM 为 true，其他状态均为 false。"
       },
       "MediaInput": {
         "type": "object",
@@ -762,30 +748,30 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 255,
-            "description": "Original or display filename."
+            "description": "原始文件名或展示文件名。"
           },
           "url": {
             "type": "string",
             "minLength": 1,
             "maxLength": 2048,
-            "description": "Public/application URL for the media file. The backend validates only that this is a non-empty string."
+            "description": "媒体文件的公开 URL 或应用内 URL。后端仅校验其为非空字符串。"
           },
           "key": {
             "type": "string",
             "minLength": 1,
             "maxLength": 512,
-            "description": "Unique storage key/reference. The backend validates uniqueness but does not verify the object exists in storage."
+            "description": "唯一存储键或引用。后端校验唯一性，但不会验证对象是否存在于存储中。"
           },
           "size": {
             "type": "integer",
             "minimum": 0,
-            "description": "File size in bytes. Must be >= 0."
+            "description": "文件大小，单位为字节，必须大于或等于 0。"
           },
           "mimeType": {
             "type": "string",
             "minLength": 1,
             "maxLength": 120,
-            "description": "MIME content type, such as image/webp."
+            "description": "MIME 内容类型，例如 image/webp。"
           },
           "width": {
             "type": [
@@ -793,7 +779,7 @@
               "null"
             ],
             "minimum": 1,
-            "description": "Optional image width in pixels. Must be positive when supplied."
+            "description": "可选图片宽度，单位为像素；传入时必须为正数。"
           },
           "height": {
             "type": [
@@ -801,11 +787,11 @@
               "null"
             ],
             "minimum": 1,
-            "description": "Optional image height in pixels. Must be positive when supplied."
+            "description": "可选图片高度，单位为像素；传入时必须为正数。"
           }
         },
         "additionalProperties": false,
-        "description": "Create media metadata request body. Unknown JSON properties are rejected. This creates a database metadata record only; it does not upload binary data."
+        "description": "创建媒体元数据请求体。未知 JSON 字段会被拒绝。该操作仅创建数据库元数据记录，不上传二进制数据。"
       },
       "SettingInput": {
         "type": "object",
@@ -833,57 +819,57 @@
                 "items": true
               }
             ],
-            "description": "Setting value. Non-string values are JSON-stringified on write. String values are stored raw and may deserialize as non-strings if they look like JSON literals."
+            "description": "设置值。非字符串值写入时会 JSON 序列化；字符串会原样保存，但若看起来像 JSON 字面量，读取时可能被反序列化为非字符串。"
           }
         },
         "additionalProperties": false,
-        "description": "Create/update site setting request body. Unknown JSON properties are rejected. The value can be a string, number, boolean, object, or array."
+        "description": "创建或更新站点设置请求体。未知 JSON 字段会被拒绝。value 可以是字符串、数字、布尔值、对象或数组。"
       },
       "CategoryUpdateInput": {
         "type": "object",
-        "description": "Patch category request body. Unknown JSON properties are rejected. Omitted fields are left unchanged. Updating name does not change slug unless slug is explicitly provided.",
+        "description": "更新分类请求体。未知 JSON 字段会被拒绝，省略字段保持不变。更新 name 不会修改 slug，除非显式传入 slug。",
         "properties": {
           "name": {
             "type": "string",
             "minLength": 1,
             "maxLength": 80,
-            "description": "Optional new category display name. Does not change slug unless slug is also provided."
+            "description": "可选的新分类显示名称。除非同时传入 slug，否则不会修改 slug。"
           },
           "slug": {
             "type": "string",
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
             "maxLength": 120,
-            "description": "Optional new URL slug. Must contain lowercase letters, numbers, and dashes only."
+            "description": "可选的新 URL slug。只能包含小写字母、数字和短横线。"
           },
           "description": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Optional category description. Empty string is normalized to null."
+            "description": "可选的分类描述。空字符串会规范化为 null。"
           },
           "sortOrder": {
             "type": "integer",
-            "description": "Optional manual ordering value. Omitted leaves the current sortOrder unchanged."
+            "description": "可选手动排序值。省略时保留当前 sortOrder。"
           }
         },
         "additionalProperties": false
       },
       "TagUpdateInput": {
         "type": "object",
-        "description": "Patch tag request body. Unknown JSON properties are rejected. Omitted fields are left unchanged. Updating name does not change slug unless slug is explicitly provided.",
+        "description": "更新标签请求体。未知 JSON 字段会被拒绝，省略字段保持不变。更新 name 不会修改 slug，除非显式传入 slug。",
         "properties": {
           "name": {
             "type": "string",
             "minLength": 1,
             "maxLength": 80,
-            "description": "Optional new tag display name. Does not change slug unless slug is also provided."
+            "description": "可选的新标签显示名称。除非同时传入 slug，否则不会修改 slug。"
           },
           "slug": {
             "type": "string",
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
             "maxLength": 120,
-            "description": "Optional new URL slug. Must contain lowercase letters, numbers, and dashes only."
+            "description": "可选的新 URL slug。只能包含小写字母、数字和短横线。"
           }
         },
         "additionalProperties": false
@@ -898,19 +884,19 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "Stable category identifier."
+            "description": "稳定的分类标识符。"
           },
           "name": {
             "type": "string",
-            "description": "Category display name."
+            "description": "分类显示名称。"
           },
           "slug": {
             "type": "string",
-            "description": "Category URL/filter slug."
+            "description": "分类 URL/筛选 slug。"
           }
         },
         "additionalProperties": false,
-        "description": "Compact category object embedded in article DTOs."
+        "description": "嵌入文章 DTO 的精简分类对象。"
       },
       "TagSummary": {
         "type": "object",
@@ -922,23 +908,23 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "Stable tag identifier."
+            "description": "稳定的标签标识符。"
           },
           "name": {
             "type": "string",
-            "description": "Tag display name."
+            "description": "标签显示名称。"
           },
           "slug": {
             "type": "string",
-            "description": "Tag URL/filter slug."
+            "description": "标签 URL/筛选 slug。"
           }
         },
         "additionalProperties": false,
-        "description": "Compact tag object embedded in article DTOs."
+        "description": "嵌入文章 DTO 的精简标签对象。"
       },
       "PublicArticleSummary": {
         "type": "object",
-        "description": "Slim article card for public listing/search pages. Does not include article body or admin-only fields.",
+        "description": "用于公开列表和搜索页的精简文章卡片，不包含文章正文或仅限后台的字段。",
         "required": [
           "id",
           "title",
@@ -948,33 +934,33 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "Stable article identifier. Use this for admin/editor APIs when available."
+            "description": "稳定的文章标识符。可用时应在后台/编辑器接口中使用。"
           },
           "title": {
             "type": "string",
-            "description": "Article title for cards and search results."
+            "description": "用于卡片和搜索结果的文章标题。"
           },
           "slug": {
             "type": "string",
-            "description": "Public article slug. Use this to request GET /api/articles/{slug}."
+            "description": "公开文章 slug。使用它请求 GET /api/articles/{slug}。"
           },
           "excerpt": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Article summary shown in cards/search results. Can be null."
+            "description": "在卡片和搜索结果中展示的文章摘要，可以为 null。"
           },
           "coverImage": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Optional cover image URL/path."
+            "description": "可选封面图片 URL/路径。"
           },
           "isPinned": {
             "type": "boolean",
-            "description": "Pinned articles are sorted before non-pinned articles in public lists."
+            "description": "公开列表中置顶文章会排在非置顶文章之前。"
           },
           "publishedAt": {
             "type": [
@@ -982,7 +968,7 @@
               "null"
             ],
             "format": "date-time",
-            "description": "Public publish timestamp. Public lists only include records where this is non-null."
+            "description": "公开发布时间。公开列表仅包含该字段非空的记录。"
           },
           "category": {
             "anyOf": [
@@ -993,28 +979,28 @@
                 "type": "null"
               }
             ],
-            "description": "Compact category object, or null when uncategorized."
+            "description": "精简分类对象；未分类时为 null。"
           },
           "tags": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/TagSummary"
             },
-            "description": "Compact tag objects attached to the article."
+            "description": "附加到文章的精简标签对象。"
           }
         },
         "additionalProperties": false,
         "example": {
           "id": "article-id",
-          "title": "Hello SeanBlog Frame",
+          "title": "SeanBlog Frame 初始文章",
           "slug": "hello-seanblog-frame",
-          "excerpt": "Initial seeded article for the blog CMS.",
+          "excerpt": "博客 CMS 的初始示例文章。",
           "coverImage": null,
           "isPinned": false,
           "publishedAt": "2026-07-23T00:00:00.000Z",
           "category": {
             "id": "category-id",
-            "name": "Engineering",
+            "name": "工程实践",
             "slug": "engineering"
           },
           "tags": [
@@ -1028,7 +1014,7 @@
       },
       "PublicComment": {
         "type": "object",
-        "description": "Public-safe approved comment payload. Email, IP address, user agent, spam flags, and moderation status are intentionally omitted.",
+        "description": "可安全公开的已审核评论对象。刻意省略邮箱、IP 地址、User-Agent、垃圾评论标记和审核状态。",
         "required": [
           "id",
           "content",
@@ -1037,44 +1023,44 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "Stable comment identifier."
+            "description": "稳定的评论标识符。"
           },
           "content": {
             "type": "string",
-            "description": "Approved comment body."
+            "description": "已审核评论正文。"
           },
           "guestName": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Guest display name, or null when omitted."
+            "description": "访客显示名称；省略时为 null。"
           },
           "createdAt": {
             "type": "string",
             "format": "date-time",
-            "description": "Comment creation timestamp."
+            "description": "评论创建时间。"
           },
           "parentId": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Parent comment ID for replies. Top-level public comments have null."
+            "description": "用于回复的父评论 ID。顶级公开评论为 null。"
           },
           "replies": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PublicComment"
             },
-            "description": "Approved replies ordered oldest first."
+            "description": "已审核回复，按创建时间从早到晚排列。"
           }
         },
         "additionalProperties": false
       },
       "PublicCommentReceipt": {
         "type": "object",
-        "description": "Minimal receipt returned after a guest submits a comment.",
+        "description": "访客提交评论后返回的最小回执对象。",
         "required": [
           "id",
           "content",
@@ -1085,31 +1071,31 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "Created comment identifier."
+            "description": "新建评论标识符。"
           },
           "content": {
             "type": "string",
-            "description": "Submitted comment body after trimming."
+            "description": "去除首尾空白后的提交评论正文。"
           },
           "status": {
             "$ref": "#/components/schemas/CommentStatus",
-            "description": "Initial moderation status. New public comments default to PENDING."
+            "description": "初始审核状态。新的公开评论默认是 PENDING。"
           },
           "createdAt": {
             "type": "string",
             "format": "date-time",
-            "description": "Comment creation timestamp."
+            "description": "评论创建时间。"
           },
           "articleId": {
             "type": "string",
-            "description": "Target article ID."
+            "description": "目标文章 ID。"
           },
           "parentId": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Parent comment ID for replies, or null."
+            "description": "用于回复的父评论 ID，或为 null。"
           }
         },
         "additionalProperties": false,
@@ -1124,7 +1110,7 @@
       },
       "PublicArticleDetail": {
         "type": "object",
-        "description": "Public article detail for the article page. Includes rendered HTML body and public-safe approved comments.",
+        "description": "文章页使用的公开文章详情。contentHtml 按需由文件化 Markdown 源文渲染。原始 Markdown、存储路径、生命周期状态、修订、邮箱、IP 地址、User-Agent 和审核标记会被刻意省略。",
         "required": [
           "id",
           "title",
@@ -1135,54 +1121,54 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "Stable article identifier."
+            "description": "稳定的文章标识符。"
           },
           "title": {
             "type": "string",
-            "description": "Article title."
+            "description": "文章标题。"
           },
           "slug": {
             "type": "string",
-            "description": "Public article slug."
+            "description": "公开文章 slug。"
           },
           "excerpt": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Article summary. Can be null."
+            "description": "文章摘要，可以为 null。"
           },
           "contentHtml": {
             "type": "string",
-            "description": "Rendered HTML body for public display. Markdown source is intentionally omitted from public responses."
+            "description": "按需从文章 Markdown 文件渲染的 HTML。公开响应会刻意省略原始 Markdown 和存储路径。"
           },
           "coverImage": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Optional cover image URL/path."
+            "description": "可选封面图片 URL/路径。"
           },
           "metaTitle": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Optional SEO title."
+            "description": "可选 SEO 标题。"
           },
           "metaDescription": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Optional SEO description."
+            "description": "可选 SEO 描述。"
           },
           "metaKeywords": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Optional SEO keywords string."
+            "description": "可选 SEO 关键词字符串。"
           },
           "publishedAt": {
             "type": [
@@ -1190,12 +1176,12 @@
               "null"
             ],
             "format": "date-time",
-            "description": "Public publish timestamp."
+            "description": "公开发布时间。"
           },
           "viewCount": {
             "type": "integer",
             "minimum": 0,
-            "description": "Stored view count. This endpoint currently reads the value but does not increment it."
+            "description": "已存储的浏览量。该接口当前只读取该值，不会递增。"
           },
           "category": {
             "anyOf": [
@@ -1206,28 +1192,28 @@
                 "type": "null"
               }
             ],
-            "description": "Compact category object, or null when uncategorized."
+            "description": "精简分类对象；未分类时为 null。"
           },
           "tags": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/TagSummary"
             },
-            "description": "Compact tag objects attached to the article."
+            "description": "附加到文章的精简标签对象。"
           },
           "comments": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PublicComment"
             },
-            "description": "Approved top-level comments with approved replies only. Ordered oldest first."
+            "description": "仅包含已审核的顶级评论及其已审核回复，按创建时间从早到晚排列。"
           }
         },
         "additionalProperties": false
       },
       "AdminArticleSummary": {
         "type": "object",
-        "description": "Slim article row for admin list pages. Does not include article body or revision bodies.",
+        "description": "用于后台列表页的精简文章行，不包含文章正文或修订正文。",
         "required": [
           "id",
           "title",
@@ -1241,37 +1227,37 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "Stable article identifier."
+            "description": "稳定的文章标识符。"
           },
           "title": {
             "type": "string",
-            "description": "Article title."
+            "description": "文章标题。"
           },
           "slug": {
             "type": "string",
-            "description": "Article slug."
+            "description": "文章 slug。"
           },
           "excerpt": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Article summary. Can be null."
+            "description": "文章摘要，可以为 null。"
           },
           "coverImage": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Optional cover image URL/path."
+            "description": "可选封面图片 URL/路径。"
           },
           "status": {
             "$ref": "#/components/schemas/ArticleStatus",
-            "description": "Current article lifecycle status."
+            "description": "当前文章生命周期状态。"
           },
           "isPinned": {
             "type": "boolean",
-            "description": "Whether this article is prioritized in public lists."
+            "description": "该文章是否在公开列表中优先展示。"
           },
           "publishedAt": {
             "type": [
@@ -1279,22 +1265,22 @@
               "null"
             ],
             "format": "date-time",
-            "description": "Publish timestamp, or null for non-published articles."
+            "description": "发布时间；非已发布文章时为 null。"
           },
           "viewCount": {
             "type": "integer",
             "minimum": 0,
-            "description": "Stored view count."
+            "description": "已存储的浏览量。"
           },
           "createdAt": {
             "type": "string",
             "format": "date-time",
-            "description": "Creation timestamp."
+            "description": "创建时间。"
           },
           "updatedAt": {
             "type": "string",
             "format": "date-time",
-            "description": "Last update timestamp. Admin article lists are sorted by this field descending."
+            "description": "最后更新时间。后台文章列表按此字段降序排列。"
           },
           "category": {
             "anyOf": [
@@ -1305,22 +1291,22 @@
                 "type": "null"
               }
             ],
-            "description": "Compact category object, or null when uncategorized."
+            "description": "精简分类对象；未分类时为 null。"
           },
           "tags": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/TagSummary"
             },
-            "description": "Compact tag objects attached to the article."
+            "description": "附加到文章的精简标签对象。"
           }
         },
         "additionalProperties": false,
         "example": {
           "id": "article-id",
-          "title": "Draft article",
+          "title": "草稿文章",
           "slug": "draft-article",
-          "excerpt": "Draft summary",
+          "excerpt": "草稿摘要",
           "coverImage": null,
           "status": "DRAFT",
           "isPinned": false,
@@ -1334,7 +1320,7 @@
       },
       "ArticleRevisionSummary": {
         "type": "object",
-        "description": "Revision metadata for admin article detail. Body snapshots are intentionally omitted from the default detail response.",
+        "description": "后台文章详情中的修订元数据。每个修订正文以 Markdown 快照保存于 content/articles/{articleId}/revisions/{revisionId}.md，但默认响应会刻意省略路径和正文。",
         "required": [
           "id",
           "version",
@@ -1344,35 +1330,35 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "Stable revision identifier."
+            "description": "稳定的修订标识符。"
           },
           "version": {
             "type": "integer",
             "minimum": 1,
-            "description": "Sequential revision number for this article. Admin detail sorts revisions by version descending."
+            "description": "该文章的连续修订版本号。后台详情按 version 降序排列修订记录。"
           },
           "title": {
             "type": "string",
-            "description": "Article title captured for this revision."
+            "description": "该修订记录时保存的文章标题。"
           },
           "changeNote": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Optional change note for this revision."
+            "description": "该修订的可选变更说明。"
           },
           "createdAt": {
             "type": "string",
             "format": "date-time",
-            "description": "Revision creation timestamp."
+            "description": "修订创建时间。"
           }
         },
         "additionalProperties": false
       },
       "AdminArticleDetail": {
         "type": "object",
-        "description": "Full editable article payload for admin create/update/detail pages. Revision bodies are not included by default.",
+        "description": "供已认证后台页面使用的完整可编辑文章对象。contentMarkdown 从 content/articles/{articleId}/index.md 的文件化源文读取；contentHtml 按需渲染。服务端存储路径不会暴露，默认也不包含修订正文。",
         "required": [
           "id",
           "title",
@@ -1388,66 +1374,66 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "Stable article identifier."
+            "description": "稳定的文章标识符。"
           },
           "title": {
             "type": "string",
-            "description": "Article title."
+            "description": "文章标题。"
           },
           "slug": {
             "type": "string",
-            "description": "Article slug used by public article routes when published."
+            "description": "文章已发布时供公开文章路由使用的 slug。"
           },
           "excerpt": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Article summary. Can be null."
+            "description": "文章摘要，可以为 null。"
           },
           "contentMarkdown": {
             "type": "string",
-            "description": "Editable Markdown source."
+            "description": "从文章文件读取的可编辑 Markdown。"
           },
           "contentHtml": {
             "type": "string",
-            "description": "Rendered HTML body used for public display."
+            "description": "按需从文章 Markdown 文件渲染的 HTML。这是派生输出，不是单独持久化的权威内容。"
           },
           "coverImage": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Optional cover image URL/path."
+            "description": "可选封面图片 URL/路径。"
           },
           "status": {
             "$ref": "#/components/schemas/ArticleStatus",
-            "description": "Current article lifecycle status."
+            "description": "当前文章生命周期状态。"
           },
           "metaTitle": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Optional SEO title."
+            "description": "可选 SEO 标题。"
           },
           "metaDescription": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Optional SEO description."
+            "description": "可选 SEO 描述。"
           },
           "metaKeywords": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Optional SEO keywords string."
+            "description": "可选 SEO 关键词字符串。"
           },
           "isPinned": {
             "type": "boolean",
-            "description": "Whether this article is prioritized in public lists."
+            "description": "该文章是否在公开列表中优先展示。"
           },
           "publishedAt": {
             "type": [
@@ -1455,29 +1441,29 @@
               "null"
             ],
             "format": "date-time",
-            "description": "Publish timestamp, or null for non-published articles."
+            "description": "发布时间；非已发布文章时为 null。"
           },
           "viewCount": {
             "type": "integer",
             "minimum": 0,
-            "description": "Stored view count."
+            "description": "已存储的浏览量。"
           },
           "createdAt": {
             "type": "string",
             "format": "date-time",
-            "description": "Creation timestamp."
+            "description": "创建时间。"
           },
           "updatedAt": {
             "type": "string",
             "format": "date-time",
-            "description": "Last update timestamp."
+            "description": "最后更新时间。"
           },
           "categoryId": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Attached category ID, or null when uncategorized."
+            "description": "关联分类 ID；未分类时为 null。"
           },
           "category": {
             "anyOf": [
@@ -1488,28 +1474,28 @@
                 "type": "null"
               }
             ],
-            "description": "Compact category object, or null when uncategorized."
+            "description": "精简分类对象；未分类时为 null。"
           },
           "tags": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/TagSummary"
             },
-            "description": "Compact tag objects attached to the article."
+            "description": "附加到文章的精简标签对象。"
           },
           "revisions": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ArticleRevisionSummary"
             },
-            "description": "Revision metadata only. Historical Markdown/HTML bodies are intentionally omitted from the default detail response."
+            "description": "仅返回修订元数据。默认详情响应会刻意省略历史 Markdown/HTML 正文。"
           }
         },
         "additionalProperties": false
       },
       "AdminComment": {
         "type": "object",
-        "description": "Comment payload for moderation UI. Technical request metadata such as IP address and user agent are omitted from default responses.",
+        "description": "供审核 UI 使用的评论对象。默认响应会省略 IP 地址、User-Agent 等技术请求元数据。",
         "required": [
           "id",
           "content",
@@ -1522,22 +1508,22 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "Stable comment identifier."
+            "description": "稳定的评论标识符。"
           },
           "content": {
             "type": "string",
-            "description": "Comment body."
+            "description": "评论正文。"
           },
           "status": {
             "$ref": "#/components/schemas/CommentStatus",
-            "description": "Current moderation status."
+            "description": "当前审核状态。"
           },
           "guestName": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Guest display name, or null when omitted."
+            "description": "访客显示名称；省略时为 null。"
           },
           "guestEmail": {
             "type": [
@@ -1545,51 +1531,51 @@
               "null"
             ],
             "format": "email",
-            "description": "Guest email, or null when omitted."
+            "description": "访客邮箱；省略时为 null。"
           },
           "isSpam": {
             "type": "boolean",
-            "description": "Spam moderation flag."
+            "description": "垃圾评论审核标记。"
           },
           "createdAt": {
             "type": "string",
             "format": "date-time",
-            "description": "Comment creation timestamp."
+            "description": "评论创建时间。"
           },
           "updatedAt": {
             "type": "string",
             "format": "date-time",
-            "description": "Last update timestamp."
+            "description": "最后更新时间。"
           },
           "articleId": {
             "type": "string",
-            "description": "Target article ID."
+            "description": "目标文章 ID。"
           },
           "parentId": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Parent comment ID for replies, or null."
+            "description": "用于回复的父评论 ID，或为 null。"
           },
           "article": {
             "type": "object",
             "properties": {
               "id": {
                 "type": "string",
-                "description": "Stable article identifier."
+                "description": "稳定的文章标识符。"
               },
               "title": {
                 "type": "string",
-                "description": "Article title shown in moderation context."
+                "description": "在审核上下文中展示的文章标题。"
               },
               "slug": {
                 "type": "string",
-                "description": "Article slug for linking from moderation UI."
+                "description": "用于审核 UI 跳转的文章 slug。"
               }
             },
             "additionalProperties": false,
-            "description": "Compact article object included in admin comment list responses. Patch/delete responses omit this property."
+            "description": "后台评论列表响应中包含的精简文章对象。PATCH/DELETE 响应会省略该属性。"
           }
         },
         "additionalProperties": false
@@ -1597,10 +1583,10 @@
     },
     "responses": {
       "NoContent": {
-        "description": "Deleted successfully."
+        "description": "删除成功。"
       },
       "Unauthorized": {
-        "description": "Administrator session is missing or invalid.",
+        "description": "管理员会话缺失或无效。",
         "content": {
           "application/json": {
             "schema": {
@@ -1610,7 +1596,7 @@
         }
       },
       "NotFound": {
-        "description": "Resource not found.",
+        "description": "资源不存在。",
         "content": {
           "application/json": {
             "schema": {
@@ -1620,7 +1606,7 @@
         }
       },
       "ValidationError": {
-        "description": "Request validation failed.",
+        "description": "请求校验失败。",
         "content": {
           "application/json": {
             "schema": {
@@ -1630,7 +1616,7 @@
         }
       },
       "Conflict": {
-        "description": "Unique constraint conflict.",
+        "description": "唯一约束冲突。",
         "content": {
           "application/json": {
             "schema": {
@@ -1640,7 +1626,7 @@
         }
       },
       "InternalServerError": {
-        "description": "Unexpected server error.",
+        "description": "未预期的服务器错误。",
         "content": {
           "application/json": {
             "schema": {
@@ -1657,11 +1643,11 @@
         "tags": [
           "Auth"
         ],
-        "summary": "Auth.js sign-in entry",
-        "description": "Auth.js managed sign-in endpoint/page for the single administrator account. Exact HTML/redirect behavior is managed by Auth.js.",
+        "summary": "Auth.js 登录入口",
+        "description": "由 Auth.js 管理的单管理员登录入口/页面。具体 HTML 和重定向行为由 Auth.js 管理。",
         "responses": {
           "200": {
-            "description": "Auth.js sign-in page or response. Content type is managed by Auth.js."
+            "description": "Auth.js 登录页面或响应，内容类型由 Auth.js 管理。"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -1675,11 +1661,11 @@
         "tags": [
           "Auth"
         ],
-        "summary": "List Auth.js providers",
-        "description": "Returns the Auth.js provider registry. This backend currently exposes only the Credentials provider for username=admin.",
+        "summary": "获取 Auth.js Provider 列表",
+        "description": "返回 Auth.js Provider 注册表。当前后端仅暴露 username=admin 使用的 Credentials Provider。",
         "responses": {
           "200": {
-            "description": "Provider registry response managed by Auth.js.",
+            "description": "由 Auth.js 管理的 Provider 注册表响应。",
             "content": {
               "application/json": {
                 "schema": {
@@ -1701,11 +1687,11 @@
         "tags": [
           "Auth"
         ],
-        "summary": "Auth.js error entry",
-        "description": "Auth.js managed error endpoint/page for authentication failures. Exact response shape is managed by Auth.js.",
+        "summary": "Auth.js 错误入口",
+        "description": "由 Auth.js 管理的认证失败错误入口/页面。具体响应结构由 Auth.js 管理。",
         "responses": {
           "200": {
-            "description": "Auth.js error page or response. Content type is managed by Auth.js."
+            "description": "Auth.js 错误页面或响应，内容类型由 Auth.js 管理。"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -1719,11 +1705,11 @@
         "tags": [
           "Auth"
         ],
-        "summary": "Get current Auth.js session",
-        "description": "Returns the current session when a valid Auth.js session cookie is present; unauthenticated requests return Auth.js empty/null session semantics.",
+        "summary": "获取当前 Auth.js 会话",
+        "description": "存在有效 Auth.js 会话 Cookie 时返回当前会话；未认证请求按 Auth.js 的空/null 会话语义返回。",
         "responses": {
           "200": {
-            "description": "Current session object or an empty/null session response managed by Auth.js.",
+            "description": "由 Auth.js 管理的当前会话对象或空/null 会话响应。",
             "content": {
               "application/json": {
                 "schema": {
@@ -1745,11 +1731,11 @@
         "tags": [
           "Auth"
         ],
-        "summary": "Get Auth.js CSRF token",
-        "description": "Returns a CSRF token used by Auth.js form POST requests.",
+        "summary": "获取 Auth.js CSRF token",
+        "description": "返回供 Auth.js 表单 POST 请求使用的 CSRF token。",
         "responses": {
           "200": {
-            "description": "CSRF token response managed by Auth.js.",
+            "description": "由 Auth.js 管理的 CSRF token 响应。",
             "content": {
               "application/json": {
                 "schema": {
@@ -1776,14 +1762,14 @@
         "tags": [
           "Auth"
         ],
-        "summary": "Auth.js sign-out",
-        "description": "Signs out the current administrator session. Auth.js may require CSRF form semantics and may return redirects depending on request mode.",
+        "summary": "Auth.js 退出登录",
+        "description": "退出当前管理员会话。Auth.js 可能要求 CSRF 表单语义，并会根据请求方式返回重定向。",
         "responses": {
           "200": {
-            "description": "Sign-out response managed by Auth.js."
+            "description": "由 Auth.js 管理的退出登录响应。"
           },
           "302": {
-            "description": "Redirect response managed by Auth.js."
+            "description": "由 Auth.js 管理的重定向响应。"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -1797,8 +1783,8 @@
         "tags": [
           "Auth"
         ],
-        "summary": "Credentials sign-in callback",
-        "description": "Auth.js Credentials Provider callback. Submit username=admin and password using Auth.js form semantics. Invalid credentials generally follow Auth.js callback/redirect behavior rather than this application error format.",
+        "summary": "Credentials 登录回调",
+        "description": "Auth.js Credentials Provider 回调。使用 Auth.js 表单语义提交 username=admin 和 password。无效凭据通常遵循 Auth.js 的回调/重定向行为，而非本应用错误响应格式。",
         "requestBody": {
           "required": true,
           "content": {
@@ -1832,10 +1818,10 @@
         },
         "responses": {
           "200": {
-            "description": "Credentials callback response managed by Auth.js."
+            "description": "由 Auth.js 管理的 Credentials 回调响应。"
           },
           "302": {
-            "description": "Redirect response managed by Auth.js."
+            "description": "由 Auth.js 管理的重定向响应。"
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
@@ -1852,10 +1838,10 @@
         "tags": [
           "Health"
         ],
-        "summary": "Health check",
+        "summary": "健康检查",
         "responses": {
           "200": {
-            "description": "Application liveness status.",
+            "description": "应用存活状态。",
             "content": {
               "application/json": {
                 "schema": {
@@ -1879,7 +1865,7 @@
           }
         },
         "operationId": "healthCheck",
-        "description": "Lightweight liveness check. Returns exactly { status: \"ok\" }."
+        "description": "轻量级存活检查。固定返回 { status: \"ok\" }。"
       }
     },
     "/api/articles": {
@@ -1887,7 +1873,7 @@
         "tags": [
           "Public Articles"
         ],
-        "summary": "List published article summaries",
+        "summary": "获取已发布文章摘要列表",
         "parameters": [
           {
             "$ref": "#/components/parameters/Page"
@@ -1902,7 +1888,7 @@
               "type": "string",
               "minLength": 1
             },
-            "description": "Category slug filter. Empty query value is treated as omitted.",
+            "description": "分类 slug 筛选条件。空查询值按未传处理。",
             "allowEmptyValue": true
           },
           {
@@ -1912,13 +1898,13 @@
               "type": "string",
               "minLength": 1
             },
-            "description": "Tag slug filter. Empty query value is treated as omitted.",
+            "description": "标签 slug 筛选条件。空查询值按未传处理。",
             "allowEmptyValue": true
           }
         ],
         "responses": {
           "200": {
-            "description": "Paginated public article summaries.",
+            "description": "分页公开文章摘要。",
             "content": {
               "application/json": {
                 "schema": {
@@ -1933,11 +1919,11 @@
                       "items": {
                         "$ref": "#/components/schemas/PublicArticleSummary"
                       },
-                      "description": "Page of result items."
+                      "description": "当前页结果项。"
                     },
                     "meta": {
                       "$ref": "#/components/schemas/PageMeta",
-                      "description": "Pagination metadata."
+                      "description": "分页元数据。"
                     }
                   },
                   "additionalProperties": false
@@ -1952,7 +1938,7 @@
             "$ref": "#/components/responses/InternalServerError"
           }
         },
-        "description": "Returns PUBLISHED articles with non-null publishedAt only. Results are sorted by isPinned descending, then publishedAt descending. category and tag filters are slugs; unknown slugs return an empty list, not 404. List items intentionally omit article body and admin-only fields.",
+        "description": "仅返回状态为 PUBLISHED 且 publishedAt 非空的文章。结果先按 isPinned 降序，再按 publishedAt 降序排列。category 和 tag 筛选使用 slug；未知 slug 返回空列表而非 404。列表项会刻意省略文章正文和仅限后台的字段。",
         "operationId": "listPublishedArticles"
       }
     },
@@ -1961,7 +1947,7 @@
         "tags": [
           "Public Articles"
         ],
-        "summary": "Get published article detail by slug",
+        "summary": "按 slug 获取已发布文章详情",
         "parameters": [
           {
             "$ref": "#/components/parameters/Slug"
@@ -1969,7 +1955,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Published article detail with rendered HTML body and public-safe comments.",
+            "description": "带渲染 HTML 正文和公开安全评论的已发布文章详情。",
             "content": {
               "application/json": {
                 "schema": {
@@ -1980,7 +1966,7 @@
                   "properties": {
                     "article": {
                       "$ref": "#/components/schemas/PublicArticleDetail",
-                      "description": "Article resource for this operation."
+                      "description": "本操作的文章资源。"
                     }
                   },
                   "additionalProperties": false
@@ -1996,7 +1982,7 @@
           }
         },
         "operationId": "getPublishedArticleBySlug",
-        "description": "Returns one public article detail by slug. Returns 404 unless the article is PUBLISHED and has a non-null publishedAt. Includes rendered HTML and approved public-safe comments only. Does not increment viewCount."
+        "description": "按 slug 返回一篇 PUBLISHED 文章。响应从文件化 Markdown 源文渲染 contentHtml，仅暴露公开安全的评论。"
       }
     },
     "/api/search": {
@@ -2004,7 +1990,7 @@
         "tags": [
           "Public Articles"
         ],
-        "summary": "Search published article summaries",
+        "summary": "搜索已发布文章摘要",
         "parameters": [
           {
             "name": "q",
@@ -2014,7 +2000,7 @@
               "type": "string",
               "minLength": 1
             },
-            "description": "Required search keyword. Empty value is invalid and returns 400.",
+            "description": "必填搜索关键词。空值非法并返回 400。",
             "allowEmptyValue": false
           },
           {
@@ -2026,7 +2012,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Paginated public article search results.",
+            "description": "分页公开文章搜索结果。",
             "content": {
               "application/json": {
                 "schema": {
@@ -2041,11 +2027,11 @@
                       "items": {
                         "$ref": "#/components/schemas/PublicArticleSummary"
                       },
-                      "description": "Page of result items."
+                      "description": "当前页结果项。"
                     },
                     "meta": {
                       "$ref": "#/components/schemas/PageMeta",
-                      "description": "Pagination metadata."
+                      "description": "分页元数据。"
                     }
                   },
                   "additionalProperties": false
@@ -2060,7 +2046,7 @@
             "$ref": "#/components/responses/InternalServerError"
           }
         },
-        "description": "Searches PUBLISHED articles with non-null publishedAt. The keyword is matched case-insensitively against title, excerpt, and contentMarkdown. Results are sorted by publishedAt descending and return the same summary DTO as public article lists.",
+        "description": "按标题、摘要和文件化 Markdown 源文搜索 PUBLISHED 文章。应用会先读取候选 Markdown 文件再筛选；结果按 publishedAt 降序排列，并返回公开摘要 DTO。",
         "operationId": "searchPublishedArticles"
       }
     },
@@ -2069,10 +2055,10 @@
         "tags": [
           "Public Taxonomy"
         ],
-        "summary": "List categories",
+        "summary": "获取分类列表",
         "responses": {
           "200": {
-            "description": "Category list.",
+            "description": "分类列表。",
             "content": {
               "application/json": {
                 "schema": {
@@ -2098,7 +2084,7 @@
           }
         },
         "operationId": "listPublicCategories",
-        "description": "Returns all categories sorted by sortOrder ascending, then name ascending. _count.articles counts all related articles, including drafts and archived articles."
+        "description": "返回全部分类，先按 sortOrder 升序，再按 name 升序排列。_count.articles 统计全部关联文章，包含草稿和已归档文章。"
       }
     },
     "/api/categories/{slug}": {
@@ -2106,7 +2092,7 @@
         "tags": [
           "Public Taxonomy"
         ],
-        "summary": "Get category by slug",
+        "summary": "按 slug 获取分类详情",
         "parameters": [
           {
             "$ref": "#/components/parameters/Slug"
@@ -2114,7 +2100,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Category detail.",
+            "description": "分类详情。",
             "content": {
               "application/json": {
                 "schema": {
@@ -2125,7 +2111,7 @@
                   "properties": {
                     "category": {
                       "$ref": "#/components/schemas/Category",
-                      "description": "Category resource for this operation."
+                      "description": "本操作的分类资源。"
                     }
                   },
                   "additionalProperties": false
@@ -2141,7 +2127,7 @@
           }
         },
         "operationId": "getCategoryBySlug",
-        "description": "Returns one category by slug. _count.articles counts all related articles, including drafts and archived articles."
+        "description": "按 slug 返回一个分类。_count.articles 统计全部关联文章，包含草稿和已归档文章。"
       }
     },
     "/api/tags": {
@@ -2149,10 +2135,10 @@
         "tags": [
           "Public Taxonomy"
         ],
-        "summary": "List tags",
+        "summary": "获取标签列表",
         "responses": {
           "200": {
-            "description": "Tag list.",
+            "description": "标签列表。",
             "content": {
               "application/json": {
                 "schema": {
@@ -2178,7 +2164,7 @@
           }
         },
         "operationId": "listPublicTags",
-        "description": "Returns all tags sorted by name ascending. _count.articles counts all related articles, including drafts and archived articles."
+        "description": "返回全部标签，按 name 升序排列。_count.articles 统计全部关联文章，包含草稿和已归档文章。"
       }
     },
     "/api/tags/{slug}": {
@@ -2186,7 +2172,7 @@
         "tags": [
           "Public Taxonomy"
         ],
-        "summary": "Get tag by slug",
+        "summary": "按 slug 获取标签详情",
         "parameters": [
           {
             "$ref": "#/components/parameters/Slug"
@@ -2194,7 +2180,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Tag detail.",
+            "description": "标签详情。",
             "content": {
               "application/json": {
                 "schema": {
@@ -2205,7 +2191,7 @@
                   "properties": {
                     "tag": {
                       "$ref": "#/components/schemas/Tag",
-                      "description": "Tag resource for this operation."
+                      "description": "本操作的标签资源。"
                     }
                   },
                   "additionalProperties": false
@@ -2221,7 +2207,7 @@
           }
         },
         "operationId": "getTagBySlug",
-        "description": "Returns one tag by slug. _count.articles counts all related articles, including drafts and archived articles."
+        "description": "按 slug 返回一个标签。_count.articles 统计全部关联文章，包含草稿和已归档文章。"
       }
     },
     "/api/comments": {
@@ -2229,7 +2215,7 @@
         "tags": [
           "Public Comments"
         ],
-        "summary": "Create guest comment",
+        "summary": "创建访客评论",
         "requestBody": {
           "required": true,
           "content": {
@@ -2242,7 +2228,7 @@
         },
         "responses": {
           "201": {
-            "description": "Created comment, pending moderation by default.",
+            "description": "已创建评论，默认等待审核。",
             "content": {
               "application/json": {
                 "schema": {
@@ -2253,7 +2239,7 @@
                   "properties": {
                     "comment": {
                       "$ref": "#/components/schemas/PublicCommentReceipt",
-                      "description": "Comment resource for this operation."
+                      "description": "本操作的评论资源。"
                     }
                   },
                   "additionalProperties": false
@@ -2272,7 +2258,7 @@
           }
         },
         "operationId": "createGuestComment",
-        "description": "Creates a guest comment for any existing article ID. New comments default to PENDING moderation. parentId must belong to the same article. The server records IP from x-forwarded-for first, then x-real-ip, and records user-agent; these values are not returned in public responses."
+        "description": "为任意已存在文章 ID 创建访客评论。新评论默认进入 PENDING 审核。parentId 必须属于同一篇文章。服务端优先从 x-forwarded-for 记录 IP，其次从 x-real-ip 记录，并保存 user-agent；这些值不会在公开响应中返回。"
       }
     },
     "/rss.xml": {
@@ -2280,10 +2266,10 @@
         "tags": [
           "Content Distribution"
         ],
-        "summary": "RSS 2.0 feed",
+        "summary": "RSS 2.0 订阅源",
         "responses": {
           "200": {
-            "description": "RSS feed XML.",
+            "description": "RSS 订阅 XML。",
             "content": {
               "application/rss+xml": {
                 "schema": {
@@ -2297,7 +2283,7 @@
           }
         },
         "operationId": "getRssFeed",
-        "description": "Returns RSS 2.0 XML for the latest 50 PUBLISHED articles with non-null publishedAt. Item fields are title, link, guid, description, and pubDate. XML values are escaped. Channel title/description/link come from siteName, siteDescription, and siteUrl settings with environment/default fallbacks."
+        "description": "为最新 50 篇状态为 PUBLISHED 且 publishedAt 非空的文章返回 RSS 2.0 XML。条目字段包括 title、link、guid、description 和 pubDate；XML 值会被转义。频道 title/description/link 来自 siteName、siteDescription 和 siteUrl 设置，并有环境变量/默认值回退。"
       }
     },
     "/sitemap.xml": {
@@ -2305,10 +2291,10 @@
         "tags": [
           "Content Distribution"
         ],
-        "summary": "Dynamic sitemap",
+        "summary": "动态站点地图",
         "responses": {
           "200": {
-            "description": "Sitemap XML.",
+            "description": "站点地图 XML。",
             "content": {
               "application/xml": {
                 "schema": {
@@ -2322,7 +2308,7 @@
           }
         },
         "operationId": "getSitemap",
-        "description": "Returns XML sitemap entries for the homepage, all PUBLISHED articles with non-null publishedAt, all categories, and all tags. Article priority is 0.8 weekly; category/tag priority is 0.5 weekly; homepage priority is 1 daily. Base URL comes from siteUrl setting or NEXT_PUBLIC_SITE_URL/default fallback."
+        "description": "返回首页、全部状态为 PUBLISHED 且 publishedAt 非空的文章、全部分类和全部标签的 XML 站点地图条目。文章优先级为 0.8、更新频率为每周；分类/标签优先级为 0.5、更新频率为每周；首页优先级为 1、更新频率为每天。基础 URL 来自 siteUrl 设置，或回退到 NEXT_PUBLIC_SITE_URL/默认值。"
       }
     },
     "/robots.txt": {
@@ -2330,10 +2316,10 @@
         "tags": [
           "Content Distribution"
         ],
-        "summary": "Robots.txt",
+        "summary": "获取 robots.txt",
         "responses": {
           "200": {
-            "description": "Robots text.",
+            "description": "robots.txt 文本。",
             "content": {
               "text/plain": {
                 "schema": {
@@ -2347,7 +2333,7 @@
           }
         },
         "operationId": "getRobotsTxt",
-        "description": "Returns robots.txt allowing /, disallowing /admin/, and pointing to /sitemap.xml. Base URL comes from NEXT_PUBLIC_SITE_URL or localhost fallback, not the database siteUrl setting."
+        "description": "返回 robots.txt：允许 /，禁止 /admin/，并指向 /sitemap.xml。基础 URL 来自 NEXT_PUBLIC_SITE_URL 或 localhost 回退值，而不是数据库中的 siteUrl 设置。"
       }
     },
     "/api/admin/articles": {
@@ -2355,7 +2341,7 @@
         "tags": [
           "Admin Articles"
         ],
-        "summary": "List articles for admin",
+        "summary": "后台获取文章列表",
         "security": [
           {
             "adminSession": []
@@ -2374,7 +2360,7 @@
             "schema": {
               "$ref": "#/components/schemas/ArticleStatus"
             },
-            "description": "Article status filter. Empty query value is treated as omitted.",
+            "description": "文章状态筛选条件。空查询值按未传处理。",
             "allowEmptyValue": true
           },
           {
@@ -2383,7 +2369,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "Category slug filter. Empty query value is treated as omitted.",
+            "description": "分类 slug 筛选条件。空查询值按未传处理。",
             "allowEmptyValue": true
           },
           {
@@ -2392,7 +2378,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "Tag slug filter. Empty query value is treated as omitted.",
+            "description": "标签 slug 筛选条件。空查询值按未传处理。",
             "allowEmptyValue": true
           },
           {
@@ -2401,13 +2387,13 @@
             "schema": {
               "type": "string"
             },
-            "description": "Search keyword. Empty query value is treated as omitted.",
+            "description": "搜索关键词。空查询值按未传处理。",
             "allowEmptyValue": true
           }
         ],
         "responses": {
           "200": {
-            "description": "Admin article list.",
+            "description": "后台文章列表。",
             "content": {
               "application/json": {
                 "schema": {
@@ -2422,11 +2408,11 @@
                       "items": {
                         "$ref": "#/components/schemas/AdminArticleSummary"
                       },
-                      "description": "Page of result items."
+                      "description": "当前页结果项。"
                     },
                     "meta": {
                       "$ref": "#/components/schemas/PageMeta",
-                      "description": "Pagination metadata."
+                      "description": "分页元数据。"
                     }
                   },
                   "additionalProperties": false
@@ -2444,14 +2430,14 @@
             "$ref": "#/components/responses/InternalServerError"
           }
         },
-        "description": "Authenticated endpoint returning paginated admin article summaries sorted by updatedAt descending. Filters: status enum, category slug, tag slug, q keyword. q matches title, excerpt, and contentMarkdown case-insensitively. Empty query values are treated as omitted.",
+        "description": "需要认证的分页文章摘要。q 会匹配标题、摘要和文件化 Markdown 内容；当前 Markdown 搜索由应用读取候选文件完成。空查询值按未传处理。",
         "operationId": "listAdminArticles"
       },
       "post": {
         "tags": [
           "Admin Articles"
         ],
-        "summary": "Create article",
+        "summary": "创建文章",
         "security": [
           {
             "adminSession": []
@@ -2469,7 +2455,7 @@
         },
         "responses": {
           "201": {
-            "description": "Created article.",
+            "description": "文章创建成功。",
             "content": {
               "application/json": {
                 "schema": {
@@ -2480,7 +2466,7 @@
                   "properties": {
                     "article": {
                       "$ref": "#/components/schemas/AdminArticleDetail",
-                      "description": "Article resource for this operation."
+                      "description": "本操作的文章资源。"
                     }
                   },
                   "additionalProperties": false
@@ -2502,7 +2488,7 @@
           }
         },
         "operationId": "createAdminArticle",
-        "description": "Authenticated endpoint that creates an article and returns the full editable admin detail. Server-derived fields: slug from title if omitted, contentHtml from contentMarkdown if omitted/null, excerpt from contentMarkdown if omitted, publishedAt set when status=PUBLISHED, tags synced from tagIds, and an initial revision is created."
+        "description": "在 PostgreSQL 创建文章元数据，并将 contentMarkdown 写入 content/articles/{articleId}/index.md。返回从新文件读取 Markdown 的可编辑详情 DTO。"
       }
     },
     "/api/admin/articles/{id}": {
@@ -2510,7 +2496,7 @@
         "tags": [
           "Admin Articles"
         ],
-        "summary": "Get admin article detail",
+        "summary": "获取后台文章详情",
         "security": [
           {
             "adminSession": []
@@ -2523,7 +2509,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Article detail with revisions.",
+            "description": "包含修订摘要的文章详情。",
             "content": {
               "application/json": {
                 "schema": {
@@ -2534,7 +2520,7 @@
                   "properties": {
                     "article": {
                       "$ref": "#/components/schemas/AdminArticleDetail",
-                      "description": "Article resource for this operation."
+                      "description": "本操作的文章资源。"
                     }
                   },
                   "additionalProperties": false
@@ -2553,13 +2539,13 @@
           }
         },
         "operationId": "getAdminArticle",
-        "description": "Authenticated endpoint returning full editable article detail by ID. Revisions are returned as metadata only and sorted by version descending."
+        "description": "从文章文件读取可编辑 Markdown，并连同文章元数据和修订摘要返回派生 HTML。"
       },
       "patch": {
         "tags": [
           "Admin Articles"
         ],
-        "summary": "Update article",
+        "summary": "更新文章",
         "security": [
           {
             "adminSession": []
@@ -2582,7 +2568,7 @@
         },
         "responses": {
           "200": {
-            "description": "Updated article.",
+            "description": "文章更新成功。",
             "content": {
               "application/json": {
                 "schema": {
@@ -2593,7 +2579,7 @@
                   "properties": {
                     "article": {
                       "$ref": "#/components/schemas/AdminArticleDetail",
-                      "description": "Article resource for this operation."
+                      "description": "本操作的文章资源。"
                     }
                   },
                   "additionalProperties": false
@@ -2618,13 +2604,13 @@
           }
         },
         "operationId": "updateAdminArticle",
-        "description": "Authenticated endpoint for partial article updates. Omitted fields remain unchanged. Updating title does not change slug unless slug is explicitly provided. Omitted tagIds leaves tags unchanged; [] clears all tags. Every successful update creates a revision."
+        "description": "更新文章元数据；传入 contentMarkdown 时替换 Markdown 文件。响应从当前文件读取 Markdown 并返回派生 HTML。"
       },
       "delete": {
         "tags": [
           "Admin Articles"
         ],
-        "summary": "Delete article",
+        "summary": "删除文章",
         "security": [
           {
             "adminSession": []
@@ -2650,7 +2636,7 @@
           }
         },
         "operationId": "deleteAdminArticle",
-        "description": "Authenticated endpoint that hard-deletes the article. Related article-tag joins, comments, and revisions are removed by cascading relations."
+        "description": "需要认证的硬删除文章接口。关联的文章-标签关系、评论和修订会通过级联关系一并删除。"
       }
     },
     "/api/admin/articles/{id}/publish": {
@@ -2658,7 +2644,7 @@
         "tags": [
           "Admin Articles"
         ],
-        "summary": "Publish article",
+        "summary": "发布文章",
         "security": [
           {
             "adminSession": []
@@ -2671,7 +2657,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Published article.",
+            "description": "文章已发布。",
             "content": {
               "application/json": {
                 "schema": {
@@ -2682,7 +2668,7 @@
                   "properties": {
                     "article": {
                       "$ref": "#/components/schemas/AdminArticleDetail",
-                      "description": "Article resource for this operation."
+                      "description": "本操作的文章资源。"
                     }
                   },
                   "additionalProperties": false
@@ -2701,7 +2687,7 @@
           }
         },
         "operationId": "publishAdminArticle",
-        "description": "Authenticated endpoint that sets status=PUBLISHED, sets publishedAt to the current server time, writes changeNote=\"Published article\", creates a revision, and returns admin article detail."
+        "description": "将文章标记为 PUBLISHED，不修改其 Markdown 源文。返回可编辑详情 DTO。"
       }
     },
     "/api/admin/articles/{id}/archive": {
@@ -2709,7 +2695,7 @@
         "tags": [
           "Admin Articles"
         ],
-        "summary": "Archive article",
+        "summary": "归档文章",
         "security": [
           {
             "adminSession": []
@@ -2722,7 +2708,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Archived article.",
+            "description": "文章已归档。",
             "content": {
               "application/json": {
                 "schema": {
@@ -2733,7 +2719,7 @@
                   "properties": {
                     "article": {
                       "$ref": "#/components/schemas/AdminArticleDetail",
-                      "description": "Article resource for this operation."
+                      "description": "本操作的文章资源。"
                     }
                   },
                   "additionalProperties": false
@@ -2752,7 +2738,7 @@
           }
         },
         "operationId": "archiveAdminArticle",
-        "description": "Authenticated endpoint that sets status=ARCHIVED, clears publishedAt, writes changeNote=\"Archived article\", creates a revision, and returns admin article detail."
+        "description": "将文章标记为 ARCHIVED，不修改其 Markdown 源文。返回可编辑详情 DTO。"
       }
     },
     "/api/admin/categories": {
@@ -2760,7 +2746,7 @@
         "tags": [
           "Admin Taxonomy"
         ],
-        "summary": "List categories for admin",
+        "summary": "后台获取分类列表",
         "security": [
           {
             "adminSession": []
@@ -2768,7 +2754,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Category list.",
+            "description": "分类列表。",
             "content": {
               "application/json": {
                 "schema": {
@@ -2797,13 +2783,13 @@
           }
         },
         "operationId": "listAdminCategories",
-        "description": "Authenticated endpoint returning all categories sorted by sortOrder ascending, then name ascending. _count.articles counts all related articles, including drafts and archived articles."
+        "description": "需要认证的全部分类查询接口，先按 sortOrder 升序，再按 name 升序排列。_count.articles 统计全部关联文章，包含草稿和已归档文章。"
       },
       "post": {
         "tags": [
           "Admin Taxonomy"
         ],
-        "summary": "Create category",
+        "summary": "创建分类",
         "security": [
           {
             "adminSession": []
@@ -2821,7 +2807,7 @@
         },
         "responses": {
           "201": {
-            "description": "Created category.",
+            "description": "分类创建成功。",
             "content": {
               "application/json": {
                 "schema": {
@@ -2832,7 +2818,7 @@
                   "properties": {
                     "category": {
                       "$ref": "#/components/schemas/Category",
-                      "description": "Category resource for this operation."
+                      "description": "本操作的分类资源。"
                     }
                   },
                   "additionalProperties": false
@@ -2854,7 +2840,7 @@
           }
         },
         "operationId": "createAdminCategory",
-        "description": "Authenticated endpoint that creates a category. If slug is omitted, it is generated from name. sortOrder defaults to 0. name and slug are unique."
+        "description": "需要认证的创建分类接口。省略 slug 时从 name 生成；sortOrder 默认 0。name 和 slug 都必须唯一。"
       }
     },
     "/api/admin/categories/{id}": {
@@ -2862,7 +2848,7 @@
         "tags": [
           "Admin Taxonomy"
         ],
-        "summary": "Update category",
+        "summary": "更新分类",
         "security": [
           {
             "adminSession": []
@@ -2885,7 +2871,7 @@
         },
         "responses": {
           "200": {
-            "description": "Updated category.",
+            "description": "分类更新成功。",
             "content": {
               "application/json": {
                 "schema": {
@@ -2896,7 +2882,7 @@
                   "properties": {
                     "category": {
                       "$ref": "#/components/schemas/Category",
-                      "description": "Category resource for this operation."
+                      "description": "本操作的分类资源。"
                     }
                   },
                   "additionalProperties": false
@@ -2921,13 +2907,13 @@
           }
         },
         "operationId": "updateAdminCategory",
-        "description": "Authenticated endpoint for partial category updates. Omitted fields remain unchanged. Updating name does not change slug unless slug is explicitly provided."
+        "description": "需要认证的分类局部更新接口。省略字段保持不变。更新 name 不会修改 slug，除非显式传入 slug。"
       },
       "delete": {
         "tags": [
           "Admin Taxonomy"
         ],
-        "summary": "Delete category",
+        "summary": "删除分类",
         "security": [
           {
             "adminSession": []
@@ -2953,7 +2939,7 @@
           }
         },
         "operationId": "deleteAdminCategory",
-        "description": "Authenticated endpoint that deletes the category record. Articles in the category are not deleted; their categoryId is set to null by the database relation."
+        "description": "需要认证的删除分类记录接口。该分类下文章不会被删除；数据库关系会将其 categoryId 设为 null。"
       }
     },
     "/api/admin/tags": {
@@ -2961,7 +2947,7 @@
         "tags": [
           "Admin Taxonomy"
         ],
-        "summary": "List tags for admin",
+        "summary": "后台获取标签列表",
         "security": [
           {
             "adminSession": []
@@ -2969,7 +2955,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Tag list.",
+            "description": "标签列表。",
             "content": {
               "application/json": {
                 "schema": {
@@ -2998,13 +2984,13 @@
           }
         },
         "operationId": "listAdminTags",
-        "description": "Authenticated endpoint returning all tags sorted by name ascending. _count.articles counts all related articles, including drafts and archived articles."
+        "description": "需要认证的全部标签查询接口，按 name 升序排列。_count.articles 统计全部关联文章，包含草稿和已归档文章。"
       },
       "post": {
         "tags": [
           "Admin Taxonomy"
         ],
-        "summary": "Create tag",
+        "summary": "创建标签",
         "security": [
           {
             "adminSession": []
@@ -3022,7 +3008,7 @@
         },
         "responses": {
           "201": {
-            "description": "Created tag.",
+            "description": "标签创建成功。",
             "content": {
               "application/json": {
                 "schema": {
@@ -3033,7 +3019,7 @@
                   "properties": {
                     "tag": {
                       "$ref": "#/components/schemas/Tag",
-                      "description": "Tag resource for this operation."
+                      "description": "本操作的标签资源。"
                     }
                   },
                   "additionalProperties": false
@@ -3055,7 +3041,7 @@
           }
         },
         "operationId": "createAdminTag",
-        "description": "Authenticated endpoint that creates a tag. If slug is omitted, it is generated from name. name and slug are unique."
+        "description": "需要认证的创建标签接口。省略 slug 时从 name 生成。name 和 slug 都必须唯一。"
       }
     },
     "/api/admin/tags/{id}": {
@@ -3063,7 +3049,7 @@
         "tags": [
           "Admin Taxonomy"
         ],
-        "summary": "Update tag",
+        "summary": "更新标签",
         "security": [
           {
             "adminSession": []
@@ -3086,7 +3072,7 @@
         },
         "responses": {
           "200": {
-            "description": "Updated tag.",
+            "description": "标签更新成功。",
             "content": {
               "application/json": {
                 "schema": {
@@ -3097,7 +3083,7 @@
                   "properties": {
                     "tag": {
                       "$ref": "#/components/schemas/Tag",
-                      "description": "Tag resource for this operation."
+                      "description": "本操作的标签资源。"
                     }
                   },
                   "additionalProperties": false
@@ -3122,13 +3108,13 @@
           }
         },
         "operationId": "updateAdminTag",
-        "description": "Authenticated endpoint for partial tag updates. Omitted fields remain unchanged. Updating name does not change slug unless slug is explicitly provided."
+        "description": "需要认证的标签局部更新接口。省略字段保持不变。更新 name 不会修改 slug，除非显式传入 slug。"
       },
       "delete": {
         "tags": [
           "Admin Taxonomy"
         ],
-        "summary": "Delete tag",
+        "summary": "删除标签",
         "security": [
           {
             "adminSession": []
@@ -3154,7 +3140,7 @@
           }
         },
         "operationId": "deleteAdminTag",
-        "description": "Authenticated endpoint that deletes the tag record and article-tag join rows. Articles themselves are not deleted."
+        "description": "需要认证的删除标签记录及文章-标签关联行接口。文章本身不会被删除。"
       }
     },
     "/api/admin/comments": {
@@ -3162,7 +3148,7 @@
         "tags": [
           "Admin Comments"
         ],
-        "summary": "List comments for moderation",
+        "summary": "获取评论审核列表",
         "security": [
           {
             "adminSession": []
@@ -3181,7 +3167,7 @@
             "schema": {
               "$ref": "#/components/schemas/CommentStatus"
             },
-            "description": "Comment status filter. Empty query value is treated as omitted.",
+            "description": "评论状态筛选条件。空查询值按未传处理。",
             "allowEmptyValue": true
           },
           {
@@ -3190,13 +3176,13 @@
             "schema": {
               "type": "string"
             },
-            "description": "Article ID filter. Empty query value is treated as omitted.",
+            "description": "文章 ID 筛选条件。空查询值按未传处理。",
             "allowEmptyValue": true
           }
         ],
         "responses": {
           "200": {
-            "description": "Comment list.",
+            "description": "评论列表。",
             "content": {
               "application/json": {
                 "schema": {
@@ -3211,11 +3197,11 @@
                       "items": {
                         "$ref": "#/components/schemas/AdminComment"
                       },
-                      "description": "Page of result items."
+                      "description": "当前页结果项。"
                     },
                     "meta": {
                       "$ref": "#/components/schemas/PageMeta",
-                      "description": "Pagination metadata."
+                      "description": "分页元数据。"
                     }
                   },
                   "additionalProperties": false
@@ -3233,7 +3219,7 @@
             "$ref": "#/components/responses/InternalServerError"
           }
         },
-        "description": "Authenticated endpoint returning paginated comments sorted by createdAt descending. Filters: status enum and articleId. List items include compact article { id, title, slug } and do not include nested replies, IP, or userAgent. Empty query values are treated as omitted.",
+        "description": "需要认证的分页评论查询接口，按 createdAt 降序排列。筛选条件为 status 枚举和 articleId。列表项包含精简文章对象 { id, title, slug }，不包含嵌套回复、IP 或 userAgent。空查询值按未传处理。",
         "operationId": "listAdminComments"
       }
     },
@@ -3242,7 +3228,7 @@
         "tags": [
           "Admin Comments"
         ],
-        "summary": "Moderate comment",
+        "summary": "审核评论",
         "security": [
           {
             "adminSession": []
@@ -3265,7 +3251,7 @@
         },
         "responses": {
           "200": {
-            "description": "Updated comment.",
+            "description": "评论更新成功。",
             "content": {
               "application/json": {
                 "schema": {
@@ -3276,7 +3262,7 @@
                   "properties": {
                     "comment": {
                       "$ref": "#/components/schemas/AdminComment",
-                      "description": "Comment resource for this operation."
+                      "description": "本操作的评论资源。"
                     }
                   },
                   "additionalProperties": false
@@ -3298,13 +3284,13 @@
           }
         },
         "operationId": "moderateAdminComment",
-        "description": "Authenticated endpoint that updates comment status and spam flag. If isSpam is omitted, it is derived from status: true only for SPAM, otherwise false."
+        "description": "需要认证的评论审核接口，更新评论状态和垃圾标记。省略 isSpam 时由 status 推导：仅 SPAM 为 true，其他状态为 false。"
       },
       "delete": {
         "tags": [
           "Admin Comments"
         ],
-        "summary": "Trash comment",
+        "summary": "将评论移入回收站",
         "security": [
           {
             "adminSession": []
@@ -3317,7 +3303,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Trashed comment.",
+            "description": "评论已移入回收站。",
             "content": {
               "application/json": {
                 "schema": {
@@ -3328,7 +3314,7 @@
                   "properties": {
                     "comment": {
                       "$ref": "#/components/schemas/AdminComment",
-                      "description": "Comment resource for this operation."
+                      "description": "本操作的评论资源。"
                     }
                   },
                   "additionalProperties": false
@@ -3347,7 +3333,7 @@
           }
         },
         "operationId": "trashAdminComment",
-        "description": "Authenticated soft-delete endpoint. Sets status=TRASHED and, because isSpam is omitted, sets isSpam=false. Returns the updated admin comment DTO."
+        "description": "需要认证的软删除接口。将 status 设为 TRASHED；由于省略 isSpam，会将 isSpam 设为 false。返回更新后的后台评论 DTO。"
       }
     },
     "/api/admin/media": {
@@ -3355,7 +3341,7 @@
         "tags": [
           "Admin Media"
         ],
-        "summary": "List media records",
+        "summary": "获取媒体记录列表",
         "security": [
           {
             "adminSession": []
@@ -3363,7 +3349,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Media list.",
+            "description": "媒体列表。",
             "content": {
               "application/json": {
                 "schema": {
@@ -3377,7 +3363,7 @@
                       "items": {
                         "$ref": "#/components/schemas/Media"
                       },
-                      "description": "Media metadata resource(s) for this operation."
+                      "description": "本操作的媒体元数据资源。"
                     }
                   },
                   "additionalProperties": false
@@ -3393,13 +3379,13 @@
           }
         },
         "operationId": "listAdminMedia",
-        "description": "Authenticated endpoint returning all media metadata records sorted by createdAt descending. This list is currently not paginated."
+        "description": "需要认证的全部媒体元数据查询接口，按 createdAt 降序排列。当前列表未分页。"
       },
       "post": {
         "tags": [
           "Admin Media"
         ],
-        "summary": "Create media metadata record",
+        "summary": "创建媒体元数据记录",
         "security": [
           {
             "adminSession": []
@@ -3417,7 +3403,7 @@
         },
         "responses": {
           "201": {
-            "description": "Created media record.",
+            "description": "媒体记录创建成功。",
             "content": {
               "application/json": {
                 "schema": {
@@ -3428,7 +3414,7 @@
                   "properties": {
                     "media": {
                       "$ref": "#/components/schemas/Media",
-                      "description": "Media metadata resource(s) for this operation."
+                      "description": "本操作的媒体元数据资源。"
                     }
                   },
                   "additionalProperties": false
@@ -3450,7 +3436,7 @@
           }
         },
         "operationId": "createAdminMedia",
-        "description": "Authenticated endpoint that creates a metadata record only. It does not upload binary data. key must be unique. url and key are plain strings and are not verified against storage."
+        "description": "需要认证的媒体元数据创建接口，仅创建元数据记录，不上传二进制数据。key 必须唯一；url 和 key 都是普通字符串，不会与存储系统进行存在性校验。"
       }
     },
     "/api/admin/media/{id}": {
@@ -3458,7 +3444,7 @@
         "tags": [
           "Admin Media"
         ],
-        "summary": "Delete media metadata record",
+        "summary": "删除媒体元数据记录",
         "security": [
           {
             "adminSession": []
@@ -3484,7 +3470,7 @@
           }
         },
         "operationId": "deleteAdminMedia",
-        "description": "Authenticated endpoint that deletes only the database media metadata record. It does not delete the underlying file/blob from storage."
+        "description": "需要认证的媒体删除接口，仅删除数据库媒体元数据记录，不删除存储中的底层文件/对象。"
       }
     },
     "/api/admin/settings": {
@@ -3492,7 +3478,7 @@
         "tags": [
           "Admin Settings"
         ],
-        "summary": "List site settings",
+        "summary": "获取站点设置列表",
         "security": [
           {
             "adminSession": []
@@ -3500,7 +3486,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Site settings list.",
+            "description": "站点设置列表。",
             "content": {
               "application/json": {
                 "schema": {
@@ -3514,7 +3500,7 @@
                       "items": {
                         "$ref": "#/components/schemas/SiteSetting"
                       },
-                      "description": "All site settings sorted by key ascending."
+                      "description": "全部站点设置，按 key 升序排列。"
                     }
                   },
                   "additionalProperties": false
@@ -3530,7 +3516,7 @@
           }
         },
         "operationId": "listAdminSettings",
-        "description": "Authenticated endpoint returning all site settings sorted by key ascending. Values are deserialized using JSON.parse when possible."
+        "description": "需要认证的全部站点设置查询接口，按 key 升序排列。值会在可能时通过 JSON.parse 反序列化。"
       }
     },
     "/api/admin/settings/{key}": {
@@ -3538,7 +3524,7 @@
         "tags": [
           "Admin Settings"
         ],
-        "summary": "Get site setting",
+        "summary": "获取单个站点设置",
         "security": [
           {
             "adminSession": []
@@ -3551,7 +3537,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Site setting or null.",
+            "description": "站点设置或 null。",
             "content": {
               "application/json": {
                 "schema": {
@@ -3569,7 +3555,7 @@
                           "type": "null"
                         }
                       ],
-                      "description": "Site setting resource, or null for missing keys on GET."
+                      "description": "站点设置资源；GET 查询不存在的键时为 null。"
                     }
                   },
                   "additionalProperties": false
@@ -3585,13 +3571,13 @@
           }
         },
         "operationId": "getAdminSetting",
-        "description": "Authenticated endpoint returning one setting by arbitrary key. Missing keys return { setting: null } with HTTP 200, not 404."
+        "description": "需要认证的按任意 key 查询单个设置接口。键不存在时返回 { setting: null } 和 HTTP 200，而非 404。"
       },
       "put": {
         "tags": [
           "Admin Settings"
         ],
-        "summary": "Create or update site setting",
+        "summary": "创建或更新站点设置",
         "security": [
           {
             "adminSession": []
@@ -3614,7 +3600,7 @@
         },
         "responses": {
           "200": {
-            "description": "Upserted site setting.",
+            "description": "站点设置已创建或更新。",
             "content": {
               "application/json": {
                 "schema": {
@@ -3625,7 +3611,7 @@
                   "properties": {
                     "setting": {
                       "$ref": "#/components/schemas/SiteSetting",
-                      "description": "Site setting resource, or null for missing keys on GET."
+                      "description": "站点设置资源；GET 查询不存在的键时为 null。"
                     }
                   },
                   "additionalProperties": false
@@ -3644,7 +3630,7 @@
           }
         },
         "operationId": "upsertAdminSetting",
-        "description": "Authenticated endpoint that upserts an arbitrary setting key. Non-string values are JSON-stringified on write. String values are stored raw and may deserialize as non-strings if they look like JSON literals."
+        "description": "需要认证的任意设置键创建或更新接口。非字符串值写入时会 JSON 序列化；字符串原样保存，但若看起来像 JSON 字面量，读取时可能反序列化为非字符串。"
       }
     }
   }
