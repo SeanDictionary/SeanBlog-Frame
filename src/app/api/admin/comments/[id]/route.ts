@@ -1,6 +1,6 @@
 import { handleApiError, json, parseJson } from '@/lib/api/response'
 import { requireAdmin } from '@/lib/auth.utils'
-import { deleteComment, moderateComment } from '@/lib/services/comment-service'
+import { moderateComment, trashComment } from '@/lib/services/comment-service'
 import { commentModerationSchema } from '@/lib/validations/cms'
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -22,7 +22,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     await requireAdmin()
 
     const { id } = await params
-    const comment = await deleteComment(id)
+    const comment = await trashComment(id)
 
     return json({ comment })
   } catch (error) {

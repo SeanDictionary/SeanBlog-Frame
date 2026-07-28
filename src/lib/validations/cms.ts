@@ -28,6 +28,9 @@ const slugSchema = z
   .optional()
 
 const tagIdsSchema = z.array(z.string().trim().min(1))
+const settingValueSchema = z
+  .union([z.string(), z.number(), z.boolean(), z.record(z.string(), z.unknown()), z.array(z.unknown())])
+  .refine((value) => JSON.stringify(value).length <= 100_000, 'Setting value must not exceed 100 KB when serialized.')
 
 export const paginationQuerySchema = z.object({
   page: queryPage,
@@ -141,13 +144,19 @@ export const mediaInputSchema = z
 
 export const settingInputSchema = z
   .object({
-    value: z.union([z.string(), z.number(), z.boolean(), z.record(z.string(), z.unknown()), z.array(z.unknown())]),
+    value: settingValueSchema,
   })
   .strict()
 
 export const searchQuerySchema = paginationQuerySchema.extend({
   q: requiredQueryString,
 })
+
+export const categoryListQuerySchema = paginationQuerySchema
+
+export const tagListQuerySchema = paginationQuerySchema
+
+export const mediaListQuerySchema = paginationQuerySchema
 
 export type ArticleInput = z.infer<typeof articleInputSchema>
 export type ArticleUpdateInput = z.infer<typeof articleUpdateSchema>

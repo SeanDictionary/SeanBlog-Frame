@@ -1,10 +1,12 @@
+import { unauthorized } from '@/lib/api/errors'
+
 import { auth } from '@/lib/auth'
 
 export async function requireAdmin() {
   const session = await auth()
 
   if (!session?.user?.id) {
-    throw new Error('Unauthorized')
+    throw unauthorized()
   }
 
   return session

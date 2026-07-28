@@ -1,3 +1,5 @@
+import { badRequest } from '@/lib/api/errors'
+
 const slugUnsafePattern = /[^a-z0-9\s-]/g
 const slugSeparatorPattern = /[\s_-]+/g
 const duplicateDashPattern = /-+/g
@@ -17,7 +19,7 @@ export function resolveSlug(input: { slug?: string | null; title?: string; name?
   const slug = slugify(rawSlug)
 
   if (!slug) {
-    throw new Error('A valid slug is required.')
+    throw badRequest('A valid slug is required.')
   }
 
   return slug

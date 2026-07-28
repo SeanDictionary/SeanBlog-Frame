@@ -21,6 +21,10 @@ export function unauthorized(message = 'Unauthorized') {
   return new ApiError(message, 401, 'UNAUTHORIZED')
 }
 
+export function badRequest(message = 'Bad request', code = 'BAD_REQUEST') {
+  return new ApiError(message, 400, code)
+}
+
 export function forbidden(message = 'Forbidden') {
   return new ApiError(message, 403, 'FORBIDDEN')
 }

@@ -41,18 +41,6 @@ export function handleApiError(error: unknown) {
     )
   }
 
-  if (error instanceof Error && error.message === 'Unauthorized') {
-    return json(
-      {
-        error: {
-          code: 'UNAUTHORIZED',
-          message: 'Unauthorized',
-        },
-      },
-      { status: 401 },
-    )
-  }
-
   console.error(error)
 
   return json(
@@ -70,6 +58,6 @@ export async function parseJson(request: Request) {
   try {
     return await request.json()
   } catch {
-    return {}
+    throw new ApiError('Request body must be valid JSON.', 400, 'INVALID_JSON')
   }
 }

@@ -1,6 +1,7 @@
 import { CommentStatus, Prisma } from '@prisma/client'
 
 import { notFound } from '@/lib/api/errors'
+import { checkCommentRateLimit, extractIp } from '@/lib/api/rate-limit'
 import { getPrisma } from '@/lib/prisma'
 import { pageMeta, paginate } from '@/lib/services/shared'
 import type { CommentInput } from '@/lib/validations/cms'
@@ -56,6 +57,9 @@ function toAdminComment(comment: {
 }
 
 export async function createComment(input: CommentInput, request?: Request) {
+  const ip = extractIp(request)
+  checkCommentRateLimit(ip)
+
   const prisma = getPrisma()
   const article = await prisma.article.findUnique({
     where: { id: input.articleId },
@@ -76,9 +80,6 @@ export async function createComment(input: CommentInput, request?: Request) {
       throw notFound('Parent comment not found.')
     }
   }
-
-  const forwardedFor = request?.headers.get('x-forwarded-for')
-  const ip = forwardedFor?.split(',')[0]?.trim() || request?.headers.get('x-real-ip') || null
 
   const comment = await prisma.comment.create({
     data: {
@@ -150,7 +151,7 @@ export async function moderateComment(id: string, input: { status: CommentStatus
   }
 }
 
-export async function deleteComment(id: string) {
+export async function trashComment(id: string) {
   return moderateComment(id, {
     status: CommentStatus.TRASHED,
   })

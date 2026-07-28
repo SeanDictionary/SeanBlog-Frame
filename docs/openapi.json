@@ -181,7 +181,7 @@
                   "type": "object",
                   "additionalProperties": true
                 },
-                "description": "来自 Zod 的校验问题详情，仅在 VALIDATION_ERROR 响应中出现。"
+                "description": "仅在 VALIDATION_ERROR 响应中出现的 Zod 校验问题详情。"
               }
             },
             "additionalProperties": false,
@@ -272,11 +272,11 @@
               "articles": {
                 "type": "integer",
                 "minimum": 0,
-                "description": "关联到该分类的全部文章数量，包含草稿、已发布和已归档文章。"
+                "description": "关联到该分类的文章数量。公开分类接口仅统计已发布文章；后台分类接口统计全部状态。"
               }
             },
             "additionalProperties": false,
-            "description": "Prisma 返回的关联计数。_count.articles 统计全部关联文章，包含草稿和已归档文章。"
+            "description": "Prisma 返回的关联计数。公开接口仅统计已发布文章；后台接口统计全部状态。"
           }
         },
         "additionalProperties": false,
@@ -320,11 +320,11 @@
               "articles": {
                 "type": "integer",
                 "minimum": 0,
-                "description": "关联到该标签的全部文章数量，包含草稿、已发布和已归档文章。"
+                "description": "关联到该标签的文章数量。公开标签接口仅统计已发布文章；后台标签接口统计全部状态。"
               }
             },
             "additionalProperties": false,
-            "description": "Prisma 返回的关联计数。_count.articles 统计全部关联文章，包含草稿和已归档文章。"
+            "description": "Prisma 返回的关联计数。公开接口仅统计已发布文章；后台接口统计全部状态。"
           }
         },
         "additionalProperties": false,
@@ -2056,22 +2056,34 @@
           "Public Taxonomy"
         ],
         "summary": "获取分类列表",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Page"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          }
+        ],
         "responses": {
           "200": {
-            "description": "分类列表。",
+            "description": "分页分类列表。",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "required": [
-                    "categories"
+                    "items",
+                    "meta"
                   ],
                   "properties": {
-                    "categories": {
+                    "items": {
                       "type": "array",
                       "items": {
                         "$ref": "#/components/schemas/Category"
                       }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PageMeta"
                     }
                   },
                   "additionalProperties": false
@@ -2079,12 +2091,15 @@
               }
             }
           },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
           }
         },
         "operationId": "listPublicCategories",
-        "description": "返回全部分类，先按 sortOrder 升序，再按 name 升序排列。_count.articles 统计全部关联文章，包含草稿和已归档文章。"
+        "description": "返回至少关联一篇已发布文章的分类，先按 sortOrder 升序，再按 name 升序排列。_count.articles 仅统计已发布文章。"
       }
     },
     "/api/categories/{slug}": {
@@ -2127,7 +2142,7 @@
           }
         },
         "operationId": "getCategoryBySlug",
-        "description": "按 slug 返回一个分类。_count.articles 统计全部关联文章，包含草稿和已归档文章。"
+        "description": "按 slug 返回一个至少关联一篇已发布文章的分类。_count.articles 仅统计已发布文章。"
       }
     },
     "/api/tags": {
@@ -2136,22 +2151,34 @@
           "Public Taxonomy"
         ],
         "summary": "获取标签列表",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Page"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          }
+        ],
         "responses": {
           "200": {
-            "description": "标签列表。",
+            "description": "分页标签列表。",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "required": [
-                    "tags"
+                    "items",
+                    "meta"
                   ],
                   "properties": {
-                    "tags": {
+                    "items": {
                       "type": "array",
                       "items": {
                         "$ref": "#/components/schemas/Tag"
                       }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PageMeta"
                     }
                   },
                   "additionalProperties": false
@@ -2159,12 +2186,15 @@
               }
             }
           },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
           }
         },
         "operationId": "listPublicTags",
-        "description": "返回全部标签，按 name 升序排列。_count.articles 统计全部关联文章，包含草稿和已归档文章。"
+        "description": "返回至少关联一篇已发布文章的标签，按 name 升序排列。_count.articles 仅统计已发布文章。"
       }
     },
     "/api/tags/{slug}": {
@@ -2207,7 +2237,7 @@
           }
         },
         "operationId": "getTagBySlug",
-        "description": "按 slug 返回一个标签。_count.articles 统计全部关联文章，包含草稿和已归档文章。"
+        "description": "按 slug 返回一个至少关联一篇已发布文章的标签。_count.articles 仅统计已发布文章。"
       }
     },
     "/api/comments": {
@@ -2253,12 +2283,15 @@
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
+          "429": {
+            "description": "当前 IP 在一分钟内的评论提交次数超过限制。"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
           }
         },
         "operationId": "createGuestComment",
-        "description": "为任意已存在文章 ID 创建访客评论。新评论默认进入 PENDING 审核。parentId 必须属于同一篇文章。服务端优先从 x-forwarded-for 记录 IP，其次从 x-real-ip 记录，并保存 user-agent；这些值不会在公开响应中返回。"
+        "description": "为任意已存在文章 ID 创建访客评论。新评论默认进入 PENDING 审核。parentId 必须属于同一篇文章。服务端要求 x-forwarded-for 或 x-real-ip 之一来记录客户端 IP，并保存 user-agent；这些值不会在公开响应中返回。同一 IP 在一分钟内最多可创建 5 条评论。"
       }
     },
     "/rss.xml": {
