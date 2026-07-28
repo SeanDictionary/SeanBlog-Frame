@@ -1,9 +1,51 @@
-import { Prisma } from '@prisma/client'
+import { ArticleStatus, Prisma } from '@prisma/client'
 
 import { conflict, notFound } from '@/lib/api/errors'
 import { resolveSlug } from '@/lib/content/slug'
 import { getPrisma } from '@/lib/prisma'
+import { pageMeta, paginate } from '@/lib/services/shared'
 import type { TagInput, TagUpdateInput } from '@/lib/validations/cms'
+
+const publicArticleWhere = {
+  status: ArticleStatus.PUBLISHED,
+  publishedAt: { not: null },
+} satisfies Prisma.ArticleWhereInput
+
+const publicArticleTagWhere = {
+  article: publicArticleWhere,
+} satisfies Prisma.ArticleTagWhereInput
+
+export async function listPublicTags(input: { page: number; pageSize: number }) {
+  const prisma = getPrisma()
+  const where: Prisma.TagWhereInput = {
+    articles: {
+      some: publicArticleTagWhere,
+    },
+  }
+
+  const [items, total] = await Promise.all([
+    prisma.tag.findMany({
+      where,
+      ...paginate(input.page, input.pageSize),
+      orderBy: { name: 'asc' },
+      include: {
+        _count: {
+          select: {
+            articles: {
+              where: publicArticleTagWhere,
+            },
+          },
+        },
+      },
+    }),
+    prisma.tag.count({ where }),
+  ])
+
+  return {
+    items,
+    meta: pageMeta(total, input.page, input.pageSize),
+  }
+}
 
 export async function listTags() {
   return getPrisma().tag.findMany({
@@ -16,6 +58,32 @@ export async function listTags() {
       },
     },
   })
+}
+
+export async function getPublicTagBySlug(slug: string) {
+  const tag = await getPrisma().tag.findFirst({
+    where: {
+      slug,
+      articles: {
+        some: publicArticleTagWhere,
+      },
+    },
+    include: {
+      _count: {
+        select: {
+          articles: {
+            where: publicArticleTagWhere,
+          },
+        },
+      },
+    },
+  })
+
+  if (!tag) {
+    throw notFound('Tag not found.')
+  }
+
+  return tag
 }
 
 export async function getTagBySlug(slug: string) {

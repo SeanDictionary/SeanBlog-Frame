@@ -1,9 +1,52 @@
-import { Prisma } from '@prisma/client'
+import { ArticleStatus, Prisma } from '@prisma/client'
 
 import { conflict, notFound } from '@/lib/api/errors'
 import { resolveSlug } from '@/lib/content/slug'
 import { getPrisma } from '@/lib/prisma'
+import { pageMeta, paginate } from '@/lib/services/shared'
 import type { CategoryInput, CategoryUpdateInput } from '@/lib/validations/cms'
+
+const publicArticleWhere = {
+  status: ArticleStatus.PUBLISHED,
+  publishedAt: { not: null },
+} satisfies Prisma.ArticleWhereInput
+
+const publishedArticleCount = {
+  where: publicArticleWhere,
+}
+
+export async function listPublicCategories(input: { page: number; pageSize: number }) {
+  const prisma = getPrisma()
+  const where: Prisma.CategoryWhereInput = {
+    articles: {
+      some: publicArticleWhere,
+    },
+  }
+
+  const [items, total] = await Promise.all([
+    prisma.category.findMany({
+      where,
+      ...paginate(input.page, input.pageSize),
+      orderBy: [
+        { sortOrder: 'asc' },
+        { name: 'asc' },
+      ],
+      include: {
+        _count: {
+          select: {
+            articles: publishedArticleCount,
+          },
+        },
+      },
+    }),
+    prisma.category.count({ where }),
+  ])
+
+  return {
+    items,
+    meta: pageMeta(total, input.page, input.pageSize),
+  }
+}
 
 export async function listCategories() {
   return getPrisma().category.findMany({
@@ -19,6 +62,30 @@ export async function listCategories() {
       },
     },
   })
+}
+
+export async function getPublicCategoryBySlug(slug: string) {
+  const category = await getPrisma().category.findFirst({
+    where: {
+      slug,
+      articles: {
+        some: publicArticleWhere,
+      },
+    },
+    include: {
+      _count: {
+        select: {
+          articles: publishedArticleCount,
+        },
+      },
+    },
+  })
+
+  if (!category) {
+    throw notFound('Category not found.')
+  }
+
+  return category
 }
 
 export async function getCategoryBySlug(slug: string) {

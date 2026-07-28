@@ -1,10 +1,10 @@
 import { handleApiError, json } from '@/lib/api/response'
-import { getCategoryBySlug } from '@/lib/services/category-service'
+import { getPublicCategoryBySlug } from '@/lib/services/category-service'
 
 export async function GET(_request: Request, { params }: { params: Promise<{ slug: string }> }) {
   try {
     const { slug } = await params
-    const category = await getCategoryBySlug(slug)
+    const category = await getPublicCategoryBySlug(slug)
 
     return json({ category })
   } catch (error) {

@@ -1,11 +1,14 @@
 import { handleApiError, json } from '@/lib/api/response'
-import { listTags } from '@/lib/services/tag-service'
+import { listPublicTags } from '@/lib/services/tag-service'
+import { tagListQuerySchema } from '@/lib/validations/cms'
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const tags = await listTags()
+    const { searchParams } = new URL(request.url)
+    const query = tagListQuerySchema.parse(Object.fromEntries(searchParams))
+    const result = await listPublicTags(query)
 
-    return json({ tags })
+    return json(result)
   } catch (error) {
     return handleApiError(error)
   }
