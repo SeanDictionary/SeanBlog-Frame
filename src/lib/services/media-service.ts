@@ -2,12 +2,26 @@ import { Prisma } from '@prisma/client'
 
 import { conflict, notFound } from '@/lib/api/errors'
 import { getPrisma } from '@/lib/prisma'
+import { pageMeta, paginate } from '@/lib/services/shared'
 import type { MediaInput } from '@/lib/validations/cms'
 
-export async function listMedia() {
-  return getPrisma().media.findMany({
-    orderBy: { createdAt: 'desc' },
-  })
+export async function listMedia(input: { page: number; pageSize: number }) {
+  const prisma = getPrisma()
+  const where: Prisma.MediaWhereInput = {}
+
+  const [items, total] = await Promise.all([
+    prisma.media.findMany({
+      where,
+      ...paginate(input.page, input.pageSize),
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.media.count({ where }),
+  ])
+
+  return {
+    items,
+    meta: pageMeta(total, input.page, input.pageSize),
+  }
 }
 
 export async function createMedia(input: MediaInput) {

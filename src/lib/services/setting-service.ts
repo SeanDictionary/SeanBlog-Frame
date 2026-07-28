@@ -1,3 +1,4 @@
+import { notFound } from '@/lib/api/errors'
 import { getPrisma } from '@/lib/prisma'
 
 function serializeValue(value: unknown) {
@@ -27,7 +28,7 @@ export async function getSetting(key: string) {
   const setting = await getPrisma().siteSetting.findUnique({ where: { key } })
 
   if (!setting) {
-    return null
+    throw notFound('Setting not found.')
   }
 
   return {
