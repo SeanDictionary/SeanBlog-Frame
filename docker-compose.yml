@@ -22,6 +22,7 @@ services:
       - "3000:3000"
     volumes:
       - seanblog_secrets:/run/secrets:ro
+      - seanblog_content:/app/content
     depends_on:
       secrets:
         condition: service_completed_successfully
@@ -51,3 +52,4 @@ services:
 volumes:
   seanblog_pgdata:
   seanblog_secrets:
+  seanblog_content:

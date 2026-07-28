@@ -1,10 +1,12 @@
 import { ArticleStatus, Prisma } from '@prisma/client'
 
-import { conflict, notFound } from '@/lib/api/errors'
+import { badRequest, conflict, notFound } from '@/lib/api/errors'
 import {
   deleteArticleContent,
   deleteArticleRevisionMarkdown,
+  getArticleContentPath,
   readArticleMarkdown,
+  replaceArticleMarkdown,
   writeArticleMarkdown,
   writeArticleRevisionMarkdown,
 } from '@/lib/content/article-content'
@@ -116,7 +118,7 @@ async function readMarkdownFromStorage(article: ArticleContentSource) {
     return article.legacyContentMarkdown
   }
 
-  throw new Error('Article content is unavailable.')
+  throw badRequest('Article content is unavailable.')
 }
 
 function withoutContentSource<T extends ArticleContentSource & { tags?: Array<{ tag: unknown }> }>(article: T) {
@@ -205,16 +207,32 @@ async function deleteRevisionContent(revision: { id: string; contentPath: string
 }
 
 async function syncArticleTags(articleId: string, tagIds: string[], client: PrismaExecutor = getPrisma()) {
-  await client.articleTag.deleteMany({ where: { articleId } })
+  const uniqueTagIds = [...new Set(tagIds)]
 
-  if (!tagIds.length) {
-    return
+  const existing = await client.articleTag.findMany({
+    where: { articleId },
+    select: { tagId: true },
+  })
+  const existingTagIds = new Set(existing.map((row) => row.tagId))
+  const desiredTagIds = new Set(uniqueTagIds)
+
+  const toRemove = [...existingTagIds].filter((tagId) => !desiredTagIds.has(tagId))
+  const toAdd = uniqueTagIds.filter((tagId) => !existingTagIds.has(tagId))
+
+  if (toRemove.length) {
+    await client.articleTag.deleteMany({
+      where: { articleId, tagId: { in: [...toRemove] } },
+    })
   }
 
-  await client.articleTag.createMany({
-    data: [...new Set(tagIds)].map((tagId) => ({ articleId, tagId })),
-  })
+  if (toAdd.length) {
+    await client.articleTag.createMany({
+      data: toAdd.map((tagId) => ({ articleId, tagId })),
+    })
+  }
 }
+
+const SEARCH_CANDIDATE_LIMIT = 200
 
 async function articleMatchesQuery(
   article: ArticleContentSource & { title: string; excerpt: string | null },
@@ -306,6 +324,7 @@ export async function listAdminArticles(input: {
   const candidates = await prisma.article.findMany({
     where,
     orderBy: { updatedAt: 'desc' },
+    take: SEARCH_CANDIDATE_LIMIT,
     select: adminArticleSearchSelect,
   })
   const matching = (
@@ -328,7 +347,18 @@ export async function getPublicArticleBySlug(slug: string) {
     throw notFound('Article not found.')
   }
 
-  return withPublicArticleContent(article)
+  const detail = await withPublicArticleContent(article)
+
+  try {
+    await getPrisma().article.update({
+      where: { id: article.id },
+      data: { viewCount: { increment: 1 } },
+    })
+  } catch (error) {
+    console.error(`Unable to increment the view count for article ${article.id}.`, error)
+  }
+
+  return detail
 }
 
 export async function getAdminArticleById(id: string) {
@@ -400,21 +430,25 @@ export async function updateArticle(id: string, input: ArticleUpdateInput) {
     throw notFound('Article not found.')
   }
 
-  const previousMarkdown = await readMarkdownFromStorage(existing)
-  const markdown = input.contentMarkdown ?? previousMarkdown
   const data = buildArticleData(input)
-  const contentPath = await writeArticleMarkdown(id, markdown)
+  const contentChanged = input.contentMarkdown !== undefined
+  const previousMarkdown = contentChanged ? await readMarkdownFromStorage(existing) : ''
+  const markdown = input.contentMarkdown ?? previousMarkdown
+  let contentPath: string | null = null
   let revision: { id: string; contentPath: string | null } | null = null
 
   try {
-    revision = await createRevision(id, input.title ?? existing.title, markdown, input.changeNote)
+    if (contentChanged) {
+      contentPath = await replaceArticleMarkdown(existing.contentPath ?? getArticleContentPath(id), markdown)
+      revision = await createRevision(id, input.title ?? existing.title, markdown, input.changeNote)
+    }
 
     await prisma.$transaction(async (tx) => {
       await tx.article.update({
         where: { id },
         data: {
           ...data,
-          contentPath,
+          ...(contentPath ? { contentPath } : {}),
         },
       })
 
@@ -429,10 +463,12 @@ export async function updateArticle(id: string, input: ArticleUpdateInput) {
       await deleteRevisionContent(revision)
     }
 
-    if (existing.contentPath) {
-      await writeArticleMarkdown(id, previousMarkdown).catch(() => undefined)
-    } else {
-      await deleteArticleContent(contentPath).catch(() => undefined)
+    if (contentChanged && contentPath) {
+      if (existing.contentPath) {
+        await replaceArticleMarkdown(existing.contentPath, previousMarkdown).catch(() => undefined)
+      } else {
+        await deleteArticleContent(contentPath).catch(() => undefined)
+      }
     }
 
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -492,6 +528,7 @@ export async function searchArticles(input: { q: string; page: number; pageSize:
   const candidates = await getPrisma().article.findMany({
     where: publicArticleWhere,
     orderBy: { publishedAt: 'desc' },
+    take: SEARCH_CANDIDATE_LIMIT,
     select: publicArticleSearchSelect,
   })
   const matching = (

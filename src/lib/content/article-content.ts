@@ -1,4 +1,4 @@
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
 const articleContentRoot = path.join(process.cwd(), 'content', 'articles')
@@ -46,6 +46,29 @@ async function writeMarkdown(contentPath: string, markdown: string) {
 
   await mkdir(path.dirname(absolutePath), { recursive: true })
   await writeFile(absolutePath, markdown, 'utf8')
+
+  return contentPath
+}
+
+async function writeTemporaryMarkdown(contentPath: string, markdown: string) {
+  const absolutePath = resolveArticleContentPath(contentPath)
+  const temporaryPath = `${absolutePath}.tmp`
+
+  await mkdir(path.dirname(absolutePath), { recursive: true })
+  await writeFile(temporaryPath, markdown, 'utf8')
+
+  return normalizeContentPath(`${contentPath}.tmp`)
+}
+
+export async function replaceArticleMarkdown(contentPath: string, markdown: string) {
+  const temporaryContentPath = await writeTemporaryMarkdown(contentPath, markdown)
+
+  try {
+    await rename(resolveArticleContentPath(temporaryContentPath), resolveArticleContentPath(contentPath))
+  } catch (error) {
+    await rm(resolveArticleContentPath(temporaryContentPath), { force: true }).catch(() => undefined)
+    throw error
+  }
 
   return contentPath
 }
