@@ -11,11 +11,18 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'),
   title: {
     default: 'SeanBlog',
     template: '%s | SeanBlog',
   },
   description: 'Personal blog powered by SeanBlog Frame.',
+  openGraph: {
+    type: 'website',
+    siteName: 'SeanBlog',
+    title: 'SeanBlog',
+    description: 'Personal blog powered by SeanBlog Frame.',
+  },
 }
 
 type RootLayoutProps = {

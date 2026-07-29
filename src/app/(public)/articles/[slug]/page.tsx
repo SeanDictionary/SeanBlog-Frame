@@ -48,11 +48,21 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
 
   try {
     const article = await getPublicArticleBySlug(slug)
+    const title = article.metaTitle ?? article.title
+    const description = article.metaDescription ?? article.excerpt ?? undefined
 
     return {
-      title: article.metaTitle ?? article.title,
-      description: article.metaDescription ?? article.excerpt ?? undefined,
+      title,
+      description,
       keywords: article.metaKeywords?.split(',').map((keyword) => keyword.trim()).filter(Boolean),
+      openGraph: {
+        type: 'article',
+        title,
+        description,
+        publishedTime: article.publishedAt?.toISOString(),
+        tags: article.tags.map((tag) => tag.name),
+        images: article.coverImage ? [{ url: article.coverImage }] : undefined,
+      },
     }
   } catch {
     return {}
