@@ -23,6 +23,7 @@ services:
     volumes:
       - seanblog_secrets:/run/secrets:ro
       - seanblog_content:/app/content
+      - seanblog_themes:/app/themes
     depends_on:
       secrets:
         condition: service_completed_successfully
@@ -53,3 +54,4 @@ volumes:
   seanblog_pgdata:
   seanblog_secrets:
   seanblog_content:
+  seanblog_themes:
