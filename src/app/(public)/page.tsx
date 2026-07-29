@@ -1,111 +1,71 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 
+import { ArticleCard } from '@/components/article/article-card'
+import { Pagination } from '@/components/pagination'
 import { listPublicArticles } from '@/lib/services/article-service'
 import { getSiteSettingsMap } from '@/lib/services/setting-service'
+
+type HomePageProps = {
+  searchParams: Promise<{ page?: string }>
+}
 
 export const metadata: Metadata = {
   title: '首页',
 }
 
-export default async function HomePage() {
+function parsePage(value: string | undefined) {
+  const page = Number.parseInt(value ?? '1', 10)
+  return Number.isSafeInteger(page) && page > 0 ? page : 1
+}
+
+function pageHref(page: number) {
+  return page === 1 ? '/' : `/?page=${page}`
+}
+
+export default async function HomePage({ searchParams }: HomePageProps) {
+  const { page: pageParam } = await searchParams
+  const page = parsePage(pageParam)
   const [settings, result] = await Promise.all([
     getSiteSettingsMap(),
-    listPublicArticles({ page: 1, pageSize: 10 }),
+    listPublicArticles({ page, pageSize: 12 }),
   ])
 
   const siteName = typeof settings.siteName === 'string' ? settings.siteName : 'SeanBlog'
   const siteDescription = typeof settings.siteDescription === 'string' ? settings.siteDescription : ''
-
-  const pinned = result.items.filter((article) => article.isPinned)
-  const latest = result.items.filter((article) => !article.isPinned)
+  const pinned = page === 1 ? result.items.filter((article) => article.isPinned) : []
+  const latest = page === 1 ? result.items.filter((article) => !article.isPinned) : result.items
 
   return (
-    <div className="mx-auto max-w-[var(--content-max-width)] px-[var(--content-padding)] py-12">
-      {/* Hero */}
-      <section className="mb-16">
-        <h1 className="text-3xl font-bold tracking-tight">{siteName}</h1>
-        {siteDescription && (
-          <p className="mt-2 text-text-secondary">{siteDescription}</p>
-        )}
-      </section>
+    <div className="mx-auto max-w-(--content-max-width) px-(--content-padding) py-12 sm:py-18">
+      <header className="mb-14 border-b border-border pb-10">
+        <p className="mb-3 font-mono text-xs uppercase tracking-[0.18em] text-text-tertiary">个人博客</p>
+        <h1 className="text-4xl font-semibold tracking-[-0.045em] sm:text-5xl">{siteName}</h1>
+        {siteDescription && <p className="mt-4 max-w-2xl text-lg leading-8 text-text-secondary">{siteDescription}</p>}
+      </header>
 
-      {/* Pinned articles */}
       {pinned.length > 0 && (
         <section className="mb-12">
-          <h2 className="mb-6 text-sm font-medium uppercase tracking-wider text-text-tertiary">
-            置顶
-          </h2>
-          <div className="space-y-4">
-            {pinned.map((article) => (
-              <ArticleItem key={article.id} article={article} pinned />
-            ))}
-          </div>
+          <p className="mb-2 font-mono text-xs uppercase tracking-[0.18em] text-accent">置顶内容</p>
+          <div>{pinned.map((article) => <ArticleCard key={article.id} article={article} pinned priority />)}</div>
         </section>
       )}
 
-      {/* Latest articles */}
-      <section>
-        <h2 className="mb-6 text-sm font-medium uppercase tracking-wider text-text-tertiary">
-          最新文章
-        </h2>
+      <section aria-labelledby="latest-articles-heading">
+        <div className="mb-2 flex items-baseline justify-between">
+          <h2 id="latest-articles-heading" className="font-mono text-xs uppercase tracking-[0.18em] text-text-tertiary">
+            {page === 1 ? '最新文章' : `第 ${page} 页`}
+          </h2>
+          <span className="text-xs text-text-tertiary">共 {result.meta.total} 篇</span>
+        </div>
+
         {latest.length > 0 ? (
-          <div className="space-y-4">
-            {latest.map((article) => (
-              <ArticleItem key={article.id} article={article} />
-            ))}
-          </div>
+          <div>{latest.map((article) => <ArticleCard key={article.id} article={article} priority={page === 1} />)}</div>
         ) : (
-          <p className="text-text-tertiary">暂无文章。</p>
+          <div className="border-t border-border py-12 text-text-secondary">这里还没有文章。</div>
         )}
+
+        <Pagination currentPage={result.meta.page} pageCount={result.meta.pageCount} hrefForPage={pageHref} />
       </section>
-
-      {/* Pagination hint */}
-      {result.meta.pageCount > 1 && (
-        <div className="mt-8 text-center text-sm text-text-tertiary">
-          第 {result.meta.page} / {result.meta.pageCount} 页
-        </div>
-      )}
     </div>
-  )
-}
-
-function ArticleItem({
-  article,
-  pinned = false,
-}: {
-  article: Awaited<ReturnType<typeof listPublicArticles>>['items'][number]
-  pinned?: boolean
-}) {
-  return (
-    <article className="group rounded-lg border border-border p-5 transition-colors hover:border-border-hover">
-      <Link href={`/articles/${article.slug}`}>
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0 flex-1">
-            <h3 className="text-lg font-semibold leading-snug transition-colors group-hover:text-accent">
-              {pinned && (
-                <i className="fa-solid fa-thumbtack mr-2 text-xs text-accent" />
-              )}
-              {article.title}
-            </h3>
-            {article.excerpt && (
-              <p className="mt-1.5 line-clamp-2 text-sm text-text-secondary">
-                {article.excerpt}
-              </p>
-            )}
-            <div className="mt-2 flex items-center gap-3 text-xs text-text-tertiary">
-              {article.publishedAt && (
-                <time dateTime={article.publishedAt.toISOString()}>
-                  {article.publishedAt.toLocaleDateString('zh-CN')}
-                </time>
-              )}
-              {article.category && (
-                <span>{article.category.name}</span>
-              )}
-            </div>
-          </div>
-        </div>
-      </Link>
-    </article>
   )
 }
