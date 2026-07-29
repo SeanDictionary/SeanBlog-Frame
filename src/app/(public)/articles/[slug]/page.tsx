@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { ArticleContent } from '@/components/article/article-content'
 import { ArticleMeta } from '@/components/article/article-meta'
 import { ArticleToc } from '@/components/article/article-toc'
+import { CommentList } from '@/components/comment/comment-list'
 import { getPublicArticleBySlug } from '@/lib/services/article-service'
 
 type ArticlePageProps = {
@@ -83,6 +84,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
             </header>
 
             <ArticleContent html={contentHtml} />
+            <CommentList articleId={article.id} comments={article.comments} />
           </article>
 
           <ArticleToc headings={headings} />
