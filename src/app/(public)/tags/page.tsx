@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import type { Route } from 'next'
 import Link from 'next/link'
 
 import { Pagination } from '@/components/pagination'
@@ -17,8 +18,8 @@ function parsePage(value: string | undefined) {
   return Number.isSafeInteger(page) && page > 0 ? page : 1
 }
 
-function pageHref(page: number) {
-  return page === 1 ? '/tags' : `/tags?page=${page}`
+function pageHref(page: number): Route {
+  return (page === 1 ? '/tags' : `/tags?page=${page}`) as Route
 }
 
 export default async function TagsPage({ searchParams }: TagsPageProps) {

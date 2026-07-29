@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import type { Route } from 'next'
 
 import { ArticleCard } from '@/components/article/article-card'
 import { Pagination } from '@/components/pagination'
@@ -33,7 +34,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   }
 
   const result = await searchArticles({ q: query, page, pageSize: 12 })
-  const pageHref = (nextPage: number) => `/search?q=${encodeURIComponent(query)}&page=${nextPage}`
+  const pageHref = (nextPage: number): Route => `/search?q=${encodeURIComponent(query)}&page=${nextPage}` as Route
 
   return (
     <div className="mx-auto max-w-(--content-max-width) px-(--content-padding) py-12 sm:py-18">

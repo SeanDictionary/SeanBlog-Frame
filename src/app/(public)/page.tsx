@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import type { Route } from 'next'
 
 import { ArticleCard } from '@/components/article/article-card'
 import { Pagination } from '@/components/pagination'
@@ -18,8 +19,8 @@ function parsePage(value: string | undefined) {
   return Number.isSafeInteger(page) && page > 0 ? page : 1
 }
 
-function pageHref(page: number) {
-  return page === 1 ? '/' : `/?page=${page}`
+function pageHref(page: number): Route {
+  return (page === 1 ? '/' : `/?page=${page}`) as Route
 }
 
 export default async function HomePage({ searchParams }: HomePageProps) {

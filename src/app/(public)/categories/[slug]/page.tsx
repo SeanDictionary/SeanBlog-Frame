@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+import type { Route } from 'next'
 
 import { ArticleCard } from '@/components/article/article-card'
 import { Pagination } from '@/components/pagination'
@@ -25,7 +26,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
       listPublicArticles({ page, pageSize: 12, category: slug }),
     ])
 
-    const pageHref = (nextPage: number) => nextPage === 1 ? `/categories/${slug}` : `/categories/${slug}?page=${nextPage}`
+    const pageHref = (nextPage: number): Route => (nextPage === 1 ? `/categories/${slug}` : `/categories/${slug}?page=${nextPage}`) as Route
 
     return (
       <div className="mx-auto max-w-(--content-max-width) px-(--content-padding) py-12 sm:py-18">

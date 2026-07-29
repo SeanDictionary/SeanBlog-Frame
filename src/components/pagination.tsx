@@ -1,9 +1,10 @@
 import Link from 'next/link'
+import type { Route } from 'next'
 
 type PaginationProps = {
   currentPage: number
   pageCount: number
-  hrefForPage: (page: number) => string
+  hrefForPage: (page: number) => Route
 }
 
 function getVisiblePages(currentPage: number, pageCount: number) {
@@ -49,7 +50,7 @@ export function Pagination({ currentPage, pageCount, hrefForPage }: PaginationPr
               <Link
                 href={hrefForPage(page)}
                 aria-current={page === currentPage ? 'page' : undefined}
-                className={`grid size-8 place-items-center rounded-[var(--radius-sm)] text-sm transition-colors ${
+                className={`grid size-8 place-items-center rounded-sm text-sm transition-colors ${
                   page === currentPage
                     ? 'bg-accent text-white'
                     : 'text-text-secondary hover:bg-bg-secondary hover:text-text'
