@@ -6,6 +6,12 @@ export const categorySummarySelect = {
   slug: true,
 } satisfies Prisma.CategorySelect
 
+export type TagSummary = {
+  id: string
+  name: string
+  slug: string
+}
+
 export const tagSummarySelect = {
   id: true,
   name: true,
@@ -166,7 +172,7 @@ export const adminArticleDetailSelect = {
   },
 } satisfies Prisma.ArticleSelect
 
-export function serializeArticleTags<T extends { tags?: Array<{ tag: unknown }> }>(article: T) {
+export function serializeArticleTags<T extends { tags?: Array<{ tag: TagSummary }> }>(article: T) {
   if (!article.tags) {
     return article
   }

@@ -10,7 +10,7 @@ type Comment = {
   guestEmail: string | null
   isSpam: boolean
   createdAt: Date
-  article: { id: string; title: string; slug: string } | null
+  article?: { id: string; title: string; slug: string }
 }
 
 type CommentModerationProps = {

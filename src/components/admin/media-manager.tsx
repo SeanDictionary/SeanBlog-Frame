@@ -44,7 +44,10 @@ export function MediaManager({ initialMedia }: MediaManagerProps) {
         if (!response.ok || !data.media) throw new Error(data.error?.message ?? '登记失败。')
         setMedia((previous) => [data.media!, ...previous])
         setMessage('媒体信息已登记。')
-        document.getElementById('media-form')?.reset()
+        const form = document.getElementById('media-form')
+        if (form instanceof HTMLFormElement) {
+          form.reset()
+        }
       } catch (error) { setMessage(error instanceof Error ? error.message : '登记失败。') }
     })
   }

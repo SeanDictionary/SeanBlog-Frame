@@ -39,6 +39,10 @@ type ArticleContentSource = {
   legacyContentMarkdown: string | null
 }
 
+type ArticleWithTags<T> = T & {
+  tags: Array<{ tag: { id: string; name: string; slug: string } }>
+}
+
 function buildArticleData(input: ArticleInput | ArticleUpdateInput, options: { generateSlugFromTitle?: boolean } = {}) {
   const data: Prisma.ArticleUncheckedUpdateInput = {}
 
@@ -121,9 +125,15 @@ async function readMarkdownFromStorage(article: ArticleContentSource) {
   throw badRequest('Article content is unavailable.')
 }
 
-function withoutContentSource<T extends ArticleContentSource & { tags?: Array<{ tag: unknown }> }>(article: T) {
-  const { contentPath: _contentPath, legacyContentMarkdown: _legacyContentMarkdown, ...rest } = article
-  return serializeArticleTags(rest)
+function withoutContentSource<
+  T extends ArticleContentSource & ArticleWithTags<Record<string, unknown>>
+>(article: T): Omit<T, keyof ArticleContentSource | 'tags'> & { tags: Array<{ id: string; name: string; slug: string }> } {
+  const { contentPath: _contentPath, legacyContentMarkdown: _legacyContentMarkdown, tags, ...rest } = article
+
+  return {
+    ...rest,
+    tags: tags.map((item) => item.tag),
+  }
 }
 
 async function getPublicArticleRecord(slug: string) {
@@ -148,7 +158,7 @@ async function withPublicArticleContent(article: NonNullable<Awaited<ReturnType<
 
   return {
     ...withoutContentSource(article),
-    contentHtml: markdownToHtml(markdown),
+    contentHtml: await markdownToHtml(markdown),
   }
 }
 

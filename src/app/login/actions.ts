@@ -14,7 +14,7 @@ export async function authenticate(formData: FormData) {
     })
   } catch (error) {
     if (error instanceof AuthError) {
-      redirect(`/login?error=${error.type}`)
+      redirect('/login?error=CredentialsSignin')
     }
 
     throw error

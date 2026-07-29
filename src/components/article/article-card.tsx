@@ -2,7 +2,17 @@ import Link from 'next/link'
 
 import type { listPublicArticles } from '@/lib/services/article-service'
 
-type Article = Awaited<ReturnType<typeof listPublicArticles>>['items'][number]
+type Article = {
+  id: string
+  title: string
+  slug: string
+  excerpt: string | null
+  coverImage: string | null
+  isPinned: boolean
+  publishedAt: Date | null
+  category: { id: string; name: string; slug: string } | null
+  tags: Array<{ id: string; name: string; slug: string } | { tag: { id: string; name: string; slug: string } }>
+}
 
 type ArticleCardProps = {
   article: Article
@@ -61,7 +71,7 @@ export function ArticleCard({ article, pinned = false, priority = false }: Artic
             <img
               src={article.coverImage}
               alt=""
-              className="hidden size-20 shrink-0 rounded-[var(--radius)] border border-border object-cover sm:block"
+              className="hidden size-20 shrink-0 rounded-(--radius) border border-border object-cover sm:block"
             />
           )}
         </div>
@@ -75,15 +85,19 @@ export function ArticleCard({ article, pinned = false, priority = false }: Artic
               {article.category.name}
             </Link>
           )}
-          {article.tags.map((tag) => (
-            <Link
-              key={tag.id}
-              href={`/tags/${tag.slug}`}
-              className="transition-colors hover:text-accent"
-            >
-              #{tag.name}
-            </Link>
-          ))}
+          {article.tags.map((tag) => {
+            const normalizedTag = 'tag' in tag ? tag.tag : tag
+
+            return (
+              <Link
+                key={normalizedTag.id}
+                href={`/tags/${normalizedTag.slug}`}
+                className="transition-colors hover:text-accent"
+              >
+                #{normalizedTag.name}
+              </Link>
+            )
+          })}
         </footer>
       </div>
     </article>
