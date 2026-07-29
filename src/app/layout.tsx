@@ -1,12 +1,21 @@
 import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
 import type { ReactNode } from 'react'
+
+import './globals.css'
+
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+})
 
 export const metadata: Metadata = {
   title: {
-    default: 'SeanBlog Frame',
-    template: '%s | SeanBlog Frame',
+    default: 'SeanBlog',
+    template: '%s | SeanBlog',
   },
-  description: 'Personal blog CMS built with Next.js, PostgreSQL, and Prisma.',
+  description: 'Personal blog powered by SeanBlog Frame.',
 }
 
 type RootLayoutProps = {
@@ -15,8 +24,17 @@ type RootLayoutProps = {
 
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
-    <html lang="zh-CN">
-      <body>{children}</body>
+    <html lang="zh-CN" suppressHydrationWarning>
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css"
+          crossOrigin="anonymous"
+        />
+      </head>
+      <body className={`${inter.variable} font-sans antialiased`}>
+        {children}
+      </body>
     </html>
   )
 }
