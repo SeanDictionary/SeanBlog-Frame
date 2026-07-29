@@ -1,8 +1,9 @@
 import Link from 'next/link'
+import type { Route } from 'next'
 
 import { auth } from '@/lib/auth'
 
-const adminNavigation = [
+const adminNavigation: Array<{ href: Route; label: string; icon: string }> = [
   { href: '/admin', label: '概览', icon: 'fa-solid fa-chart-line' },
   { href: '/admin/articles', label: '文章', icon: 'fa-regular fa-file-lines' },
   { href: '/admin/categories', label: '分类', icon: 'fa-solid fa-folder-tree' },
