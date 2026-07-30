@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import type { Route } from 'next'
+import type { Session } from 'next-auth'
 
-import { auth } from '@/lib/auth'
+import { signOut } from '@/lib/auth'
 
 const adminNavigation: Array<{ href: Route; label: string; icon: string }> = [
   { href: '/admin', label: '概览', icon: 'fa-solid fa-chart-line' },
@@ -13,9 +14,11 @@ const adminNavigation: Array<{ href: Route; label: string; icon: string }> = [
   { href: '/admin/settings', label: '设置', icon: 'fa-solid fa-sliders' },
 ]
 
-export async function AdminSidebar() {
-  const session = await auth()
+type AdminSidebarProps = {
+  session: Session
+}
 
+export function AdminSidebar({ session }: AdminSidebarProps) {
   return (
     <aside className="flex min-h-screen w-64 shrink-0 flex-col border-r border-neutral-200 bg-white px-4 py-5 dark:border-neutral-800 dark:bg-neutral-950">
       <Link href="/admin" className="px-3 text-lg font-semibold tracking-tight text-neutral-950 dark:text-neutral-50">
@@ -36,11 +39,23 @@ export async function AdminSidebar() {
       </nav>
 
       <div className="mt-auto border-t border-neutral-200 px-3 pt-5 text-sm dark:border-neutral-800">
-        <p className="truncate font-medium text-neutral-800 dark:text-neutral-200">{session?.user?.name ?? '管理员'}</p>
+        <p className="truncate font-medium text-neutral-800 dark:text-neutral-200">{session.user.name ?? '管理员'}</p>
         <Link href="/" className="mt-3 inline-flex items-center gap-2 text-neutral-500 transition-colors hover:text-neutral-900 dark:hover:text-neutral-100">
           <i className="fa-solid fa-arrow-up-right-from-square text-xs" aria-hidden="true" />
           查看网站
         </Link>
+        <form
+          action={async () => {
+            'use server'
+            await signOut({ redirectTo: '/' })
+          }}
+          className="mt-4"
+        >
+          <button type="submit" className="inline-flex items-center gap-2 text-neutral-500 transition-colors hover:text-red-600 dark:hover:text-red-400">
+            <i className="fa-solid fa-arrow-right-from-bracket text-xs" aria-hidden="true" />
+            退出登录
+          </button>
+        </form>
       </div>
     </aside>
   )
