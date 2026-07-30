@@ -13,7 +13,7 @@ function emptyQueryParamToUndefined(value: unknown) {
 }
 
 const optionalQueryString = z.preprocess(emptyQueryParamToUndefined, z.string().trim().min(1).optional())
-const requiredQueryString = z.preprocess(emptyQueryParamToUndefined, z.string().trim().min(1))
+const requiredQueryString = z.preprocess(emptyQueryParamToUndefined, z.string().trim().min(1).max(120))
 const queryPage = z.preprocess(emptyQueryParamToUndefined, z.coerce.number().int().min(1).default(1))
 const queryPageSize = z.preprocess(emptyQueryParamToUndefined, z.coerce.number().int().min(1).max(100).default(20))
 const optionalArticleStatusQuery = z.preprocess(emptyQueryParamToUndefined, z.nativeEnum(ArticleStatus).optional())
