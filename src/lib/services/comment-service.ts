@@ -1,7 +1,7 @@
 import { CommentStatus, Prisma } from '@prisma/client'
 
-import { notFound } from '@/lib/api/errors'
-import { checkCommentRateLimit, extractIp } from '@/lib/api/rate-limit'
+import { notFound, tooManyRequests } from '@/lib/api/errors'
+import { checkCommentRateLimit, extractIp, getClientRateLimitIdentifier } from '@/lib/api/rate-limit'
 import { getPrisma } from '@/lib/prisma'
 import { pageMeta, paginate } from '@/lib/services/shared'
 import type { CommentInput } from '@/lib/validations/cms'
@@ -58,7 +58,10 @@ function toAdminComment(comment: {
 
 export async function createComment(input: CommentInput, request?: Request) {
   const ip = extractIp(request)
-  checkCommentRateLimit(ip)
+
+  if (!checkCommentRateLimit(getClientRateLimitIdentifier(request))) {
+    throw tooManyRequests('Too many comments. Please try again later.')
+  }
 
   const prisma = getPrisma()
   const article = await prisma.article.findUnique({

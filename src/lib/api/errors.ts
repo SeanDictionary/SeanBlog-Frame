@@ -28,3 +28,7 @@ export function badRequest(message = 'Bad request', code = 'BAD_REQUEST') {
 export function forbidden(message = 'Forbidden') {
   return new ApiError(message, 403, 'FORBIDDEN')
 }
+
+export function tooManyRequests(message = 'Too many requests') {
+  return new ApiError(message, 429, 'RATE_LIMITED')
+}
