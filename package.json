@@ -19,18 +19,18 @@
   "author": "",
   "license": "AGPL-3.0-only",
   "dependencies": {
-    "@prisma/adapter-pg": "^7.8.0",
-    "@prisma/client": "^7.8.0",
+    "@prisma/adapter-pg": "^7.9.1",
+    "@prisma/client": "^7.9.1",
     "@tailwindcss/postcss": "^4.3.3",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^17.3.1",
     "lucide-react": "^1.27.0",
-    "next": "^16.2.10",
+    "next": "^16.2.12",
     "next-auth": "^5.0.0-beta.32",
     "pg": "^8.16.3",
-    "postcss": "^8.5.24",
+    "postcss": "^8.5.25",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "rehype-sanitize": "^6.0.0",
@@ -47,8 +47,12 @@
     "@types/pg": "^8.16.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "prisma": "^7.8.0",
+    "prisma": "^7.9.1",
     "tsx": "^4.20.6",
     "typescript": "^6.0.3"
+  },
+  "overrides": {
+    "postcss": "^8.5.25",
+    "sharp": "^0.35.3"
   }
 }
