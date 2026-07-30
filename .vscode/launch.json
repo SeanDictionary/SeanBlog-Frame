@@ -8,6 +8,16 @@
       "command": "npm run dev",
       "cwd": "${workspaceFolder}",
       "envFile": "${workspaceFolder}/.env.local"
+    },
+    {
+      "name": "Admin: reset password",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/reset-admin-password.mjs",
+      "cwd": "${workspaceFolder}",
+      "envFile": "${workspaceFolder}/.env.local",
+      "console": "internalConsole",
+      "internalConsoleOptions": "openOnSessionStart"
     }
   ]
 }
