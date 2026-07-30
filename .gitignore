@@ -55,3 +55,6 @@ Thumbs.db
 *.swp
 *.swo
 *~
+
+# Local browser test artifacts
+.playwright-mcp/
