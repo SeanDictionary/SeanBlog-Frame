@@ -1,4 +1,5 @@
 import { created, handleApiError, json, parseJson } from '@/lib/api/response'
+import { requireSameOriginRequest } from '@/lib/api/request-guard'
 import { requireAdmin } from '@/lib/auth.utils'
 import { createArticle, listAdminArticles } from '@/lib/services/article-service'
 import { articleInputSchema, articleListQuerySchema } from '@/lib/validations/cms'
@@ -20,6 +21,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     await requireAdmin()
+    requireSameOriginRequest(request)
 
     const body = await parseJson(request)
     const input = articleInputSchema.parse(body)

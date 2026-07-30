@@ -2,6 +2,7 @@ import { revalidatePath } from 'next/cache'
 import { NextResponse } from 'next/server'
 
 import { handleApiError, json } from '@/lib/api/response'
+import { requireSameOriginRequest } from '@/lib/api/request-guard'
 import { requireAdmin } from '@/lib/auth.utils'
 import { listThemes, writeThemeCss } from '@/lib/theme'
 import { assertThemeName } from '@/lib/validations/theme'
@@ -20,6 +21,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     await requireAdmin()
+    requireSameOriginRequest(request)
 
     const formData = await request.formData()
     const name = assertThemeName(formData.get('name'))

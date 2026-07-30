@@ -2,6 +2,7 @@ import { revalidatePath } from 'next/cache'
 
 import { handleApiError, noContent } from '@/lib/api/response'
 import { conflict } from '@/lib/api/errors'
+import { requireSameOriginRequest } from '@/lib/api/request-guard'
 import { requireAdmin } from '@/lib/auth.utils'
 import { getSiteSettingsMap } from '@/lib/services/setting-service'
 import { deleteTheme, readThemeCss } from '@/lib/theme'
@@ -31,9 +32,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ nam
   }
 }
 
-export async function DELETE(_request: Request, { params }: { params: Promise<{ name: string }> }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ name: string }> }) {
   try {
     await requireAdmin()
+    requireSameOriginRequest(request)
 
     const { name: rawName } = await params
     const name = assertThemeName(rawName)
