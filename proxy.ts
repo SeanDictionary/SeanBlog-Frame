@@ -1,11 +1,15 @@
+import NextAuth from 'next-auth'
 import { NextResponse } from 'next/server'
 
-import { auth } from '@/lib/auth'
+import { authConfig } from '@/lib/auth.config'
+
+const { auth } = NextAuth(authConfig)
 
 export default auth((request) => {
   if (!request.auth?.user?.id) {
-    const loginUrl = new URL('/api/auth/signin', request.url)
-    loginUrl.searchParams.set('callbackUrl', request.nextUrl.pathname)
+    const loginUrl = new URL('/login', request.url)
+    const callbackUrl = `${request.nextUrl.pathname}${request.nextUrl.search}`
+    loginUrl.searchParams.set('callbackUrl', callbackUrl)
     return NextResponse.redirect(loginUrl)
   }
 
