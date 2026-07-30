@@ -52,7 +52,7 @@ export function CommentForm({ articleId, parentId, onCancel }: CommentFormProps)
           <input name="guestName" maxLength={120} className="h-10 rounded-sm border border-border bg-bg px-3 text-text outline-none transition-colors focus:border-accent" />
         </label>
         <label className="grid gap-1.5 text-sm text-text-secondary">
-          邮箱 <span className="text-text-tertiary">（不公开）</span>
+          <span>邮箱 <span className="text-text-tertiary">（不公开）</span></span>
           <input name="guestEmail" type="email" maxLength={320} className="h-10 rounded-sm border border-border bg-bg px-3 text-text outline-none transition-colors focus:border-accent" />
         </label>
       </div>
@@ -63,7 +63,7 @@ export function CommentForm({ articleId, parentId, onCancel }: CommentFormProps)
       </label>
 
       <div className="flex items-center gap-3">
-        <button type="submit" disabled={isPending} className="rounded-[var(--radius-sm)] bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60">
+        <button type="submit" disabled={isPending} className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60">
           {isPending ? '正在提交…' : '提交评论'}
         </button>
         {onCancel && <button type="button" onClick={onCancel} className="text-sm text-text-secondary transition-colors hover:text-text">取消</button>}

@@ -39,23 +39,25 @@ export function AdminSidebar({ session }: AdminSidebarProps) {
       </nav>
 
       <div className="mt-auto border-t border-neutral-200 px-3 pt-5 text-sm dark:border-neutral-800">
-        <p className="truncate font-medium text-neutral-800 dark:text-neutral-200">{session.user.name ?? '管理员'}</p>
+        <div className="flex items-center justify-between gap-3">
+          <p className="truncate font-medium text-neutral-800 dark:text-neutral-200">{session.user.name ?? '管理员'}</p>
+          <form
+            action={async () => {
+              'use server'
+              await signOut({ redirectTo: '/' })
+            }}
+            className="shrink-0"
+          >
+            <button type="submit" className="inline-flex items-center gap-1.5 text-neutral-500 transition-colors hover:text-red-600 dark:hover:text-red-400">
+              <i className="fa-solid fa-arrow-right-from-bracket text-xs" aria-hidden="true" />
+              退出
+            </button>
+          </form>
+        </div>
         <Link href="/" className="mt-3 inline-flex items-center gap-2 text-neutral-500 transition-colors hover:text-neutral-900 dark:hover:text-neutral-100">
           <i className="fa-solid fa-arrow-up-right-from-square text-xs" aria-hidden="true" />
           查看网站
         </Link>
-        <form
-          action={async () => {
-            'use server'
-            await signOut({ redirectTo: '/' })
-          }}
-          className="mt-4"
-        >
-          <button type="submit" className="inline-flex items-center gap-2 text-neutral-500 transition-colors hover:text-red-600 dark:hover:text-red-400">
-            <i className="fa-solid fa-arrow-right-from-bracket text-xs" aria-hidden="true" />
-            退出登录
-          </button>
-        </form>
       </div>
     </aside>
   )
