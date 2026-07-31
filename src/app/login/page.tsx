@@ -3,20 +3,11 @@ import Link from 'next/link'
 import { authenticate } from '@/app/login/actions'
 
 type LoginPageProps = {
-  searchParams: Promise<{ callbackUrl?: string; error?: string }>
-}
-
-function getSafeCallbackUrl(value: string | undefined) {
-  if (!value || !value.startsWith('/') || value.startsWith('//')) {
-    return '/admin'
-  }
-
-  return value
+  searchParams: Promise<{ error?: string }>
 }
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const { error, callbackUrl: rawCallbackUrl } = await searchParams
-  const callbackUrl = getSafeCallbackUrl(rawCallbackUrl)
+  const { error } = await searchParams
 
   return (
     <main className="grid min-h-screen place-items-center bg-neutral-50 px-5 py-10 dark:bg-neutral-950">
@@ -32,7 +23,6 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         </div>
 
         <form action={authenticate} className="mt-7 space-y-5">
-          <input type="hidden" name="callbackUrl" value={callbackUrl} />
           <label className="grid gap-1.5 text-sm text-neutral-700 dark:text-neutral-300">
             用户名
             <input name="username" defaultValue="admin" required autoComplete="username" className="h-10 rounded-md border border-neutral-300 bg-white px-3 text-neutral-950 outline-none transition-colors focus:border-blue-600 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-50 dark:focus:border-blue-400" />

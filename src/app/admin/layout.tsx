@@ -11,7 +11,7 @@ export default async function AdminLayout({
   const session = await getAdminSession()
 
   if (!session) {
-    redirect('/login?callbackUrl=/admin')
+    redirect('/login')
   }
 
   return (
