@@ -37,6 +37,11 @@
   --header-height: 4rem;
   --content-max-width: 48rem;
   --content-padding: 1.5rem;
+
+  --scrollbar-size: 0.625rem;
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #c7c7c7;
+  --scrollbar-thumb-hover: #a3a3a3;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -56,5 +61,7 @@
     --color-success: #22c55e;
     --color-warning: #f59e0b;
     --color-error: #ef4444;
+    --scrollbar-thumb: #404040;
+    --scrollbar-thumb-hover: #525252;
   }
 }

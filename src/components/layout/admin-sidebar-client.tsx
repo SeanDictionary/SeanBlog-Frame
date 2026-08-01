@@ -22,13 +22,14 @@ export function AdminSidebarClient({ navigation, userName, signOutAction }: Admi
   const [isCollapsed, setIsCollapsed] = useState(false)
 
   return (
-    <aside className={`sticky top-0 flex h-screen shrink-0 flex-col overflow-y-auto border-r border-neutral-200 bg-white px-4 py-5 transition-[width] duration-200 dark:border-neutral-800 dark:bg-neutral-950 ${isCollapsed ? 'w-20' : 'w-64'}`}>
-      <div className="flex items-center justify-between gap-2">
+    <aside className={`sticky top-0 flex h-screen shrink-0 flex-col overflow-hidden border-r border-neutral-200 bg-white px-4 py-5 transition-[width] duration-200 dark:border-neutral-800 dark:bg-neutral-950 ${isCollapsed ? 'w-20' : 'w-64'}`}>
+      <div className="flex shrink-0 items-start justify-between gap-2">
         <Link
           href="/admin"
-          className={`min-w-0 text-lg font-semibold tracking-tight text-neutral-950 transition-opacity dark:text-neutral-50 ${isCollapsed ? 'sr-only' : 'px-3'}`}
+          className={`min-w-0 text-neutral-950 transition-opacity dark:text-neutral-50 ${isCollapsed ? 'sr-only' : 'px-3'}`}
         >
-          SeanBlog <span className="font-normal text-neutral-400">Admin</span>
+          <span className="block text-lg font-semibold leading-tight tracking-tight">SeanBlog</span>
+          <span className="mt-0.5 block text-sm font-normal tracking-wide text-neutral-400">Admin</span>
         </Link>
         <button
           type="button"
@@ -42,7 +43,8 @@ export function AdminSidebarClient({ navigation, userName, signOutAction }: Admi
         </button>
       </div>
 
-      <nav className="mt-10 space-y-1" aria-label="后台导航">
+      <nav className="scrollbar-themed -mx-1 mt-10 min-h-0 flex-1 overflow-y-auto px-1" aria-label="后台导航">
+        <div className="space-y-1">
         {navigation.map((item) => {
           const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(`${item.href}/`))
 
@@ -59,24 +61,17 @@ export function AdminSidebarClient({ navigation, userName, signOutAction }: Admi
                   : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-950 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-neutral-50'
               }`}
             >
-              <i className={`${item.icon} w-4 text-center`} aria-hidden="true" />
+              <i className={`${item.icon} w-4 text-center ${isCollapsed ? 'text-base' : ''}`} aria-hidden="true" />
               {!isCollapsed && <span>{item.label}</span>}
             </Link>
           )
         })}
+        </div>
       </nav>
 
-      <div className={`mt-auto border-t border-neutral-200 pt-5 text-sm dark:border-neutral-800 ${isCollapsed ? 'px-0' : 'px-3'}`}>
+      <div className={`shrink-0 border-t border-neutral-200 pt-5 text-sm dark:border-neutral-800 ${isCollapsed ? 'px-0' : 'px-3'}`}>
         {isCollapsed ? (
           <div className="grid gap-2">
-            <Link
-              href="/"
-              aria-label="查看网站"
-              title="查看网站"
-              className="grid size-10 place-items-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 dark:hover:bg-neutral-900 dark:hover:text-neutral-100"
-            >
-              <i className="fa-solid fa-arrow-up-right-from-square text-xs" aria-hidden="true" />
-            </Link>
             <form action={signOutAction}>
               <button
                 type="submit"
@@ -84,9 +79,17 @@ export function AdminSidebarClient({ navigation, userName, signOutAction }: Admi
                 title="退出登录"
                 className="grid size-10 place-items-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-red-600 dark:hover:bg-neutral-900 dark:hover:text-red-400"
               >
-                <i className="fa-solid fa-arrow-right-from-bracket text-xs" aria-hidden="true" />
+                <i className="fa-solid fa-arrow-right-from-bracket text-sm" aria-hidden="true" />
               </button>
             </form>
+            <Link
+              href="/"
+              aria-label="查看网站"
+              title="查看网站"
+              className="grid size-10 place-items-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 dark:hover:bg-neutral-900 dark:hover:text-neutral-100"
+            >
+              <i className="fa-solid fa-arrow-up-right-from-square text-sm" aria-hidden="true" />
+            </Link>
           </div>
         ) : (
           <>
