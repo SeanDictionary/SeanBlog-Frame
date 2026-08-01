@@ -43,7 +43,7 @@ export function AdminSidebarClient({ navigation, userName, signOutAction }: Admi
         </button>
       </div>
 
-      <nav className="scrollbar-themed -mx-1 mt-10 min-h-0 flex-1 overflow-y-auto px-1" aria-label="后台导航">
+      <nav className="scrollbar-themed -mx-1 mt-10 min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-1" aria-label="后台导航">
         <div className="space-y-1">
         {navigation.map((item) => {
           const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(`${item.href}/`))
@@ -55,59 +55,44 @@ export function AdminSidebarClient({ navigation, userName, signOutAction }: Admi
               title={isCollapsed ? item.label : undefined}
               aria-label={isCollapsed ? item.label : undefined}
               aria-current={isActive ? 'page' : undefined}
-              className={`flex items-center rounded-md py-2 text-sm transition-colors ${isCollapsed ? 'justify-center px-0' : 'gap-3 px-3'} ${
+              className={`flex min-w-0 items-center overflow-hidden rounded-md py-2 text-sm transition-colors ${isCollapsed ? 'justify-center px-0' : 'gap-3 px-3'} ${
                 isActive
                   ? 'bg-neutral-100 text-neutral-950 dark:bg-neutral-900 dark:text-neutral-50'
                   : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-950 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-neutral-50'
               }`}
             >
-              <i className={`${item.icon} w-4 text-center ${isCollapsed ? 'text-base' : ''}`} aria-hidden="true" />
-              {!isCollapsed && <span>{item.label}</span>}
+              <i className={`${item.icon} w-4 shrink-0 text-center ${isCollapsed ? 'text-base' : ''}`} aria-hidden="true" />
+              {!isCollapsed && <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{item.label}</span>}
             </Link>
           )
         })}
         </div>
       </nav>
 
-      <div className={`shrink-0 border-t border-neutral-200 pt-5 text-sm dark:border-neutral-800 ${isCollapsed ? 'px-0' : 'px-3'}`}>
-        {isCollapsed ? (
-          <div className="grid gap-2">
-            <form action={signOutAction}>
-              <button
-                type="submit"
-                aria-label="退出登录"
-                title="退出登录"
-                className="grid size-10 place-items-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-red-600 dark:hover:bg-neutral-900 dark:hover:text-red-400"
-              >
-                <i className="fa-solid fa-arrow-right-from-bracket text-sm" aria-hidden="true" />
-              </button>
-            </form>
-            <Link
-              href="/"
-              aria-label="查看网站"
-              title="查看网站"
-              className="grid size-10 place-items-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 dark:hover:bg-neutral-900 dark:hover:text-neutral-100"
+      <div className="shrink-0 border-t border-neutral-200 pt-5 text-sm dark:border-neutral-800">
+        {!isCollapsed && <p className="mb-2 truncate px-3 font-medium text-neutral-800 dark:text-neutral-200">{userName}</p>}
+        <div className="grid gap-2">
+          <form action={signOutAction}>
+            <button
+              type="submit"
+              aria-label={isCollapsed ? '退出登录' : undefined}
+              title={isCollapsed ? '退出登录' : undefined}
+              className={`grid h-10 w-full grid-cols-[2.5rem_minmax(0,1fr)] items-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-red-600 dark:hover:bg-neutral-900 dark:hover:text-red-400 ${isCollapsed ? 'justify-items-center' : 'pr-3'}`}
             >
-              <i className="fa-solid fa-arrow-up-right-from-square text-sm" aria-hidden="true" />
-            </Link>
-          </div>
-        ) : (
-          <>
-            <div className="flex items-center justify-between gap-3">
-              <p className="truncate font-medium text-neutral-800 dark:text-neutral-200">{userName}</p>
-              <form action={signOutAction} className="shrink-0">
-                <button type="submit" className="inline-flex items-center gap-1.5 text-neutral-500 transition-colors hover:text-red-600 dark:hover:text-red-400">
-                  <i className="fa-solid fa-arrow-right-from-bracket text-xs" aria-hidden="true" />
-                  退出
-                </button>
-              </form>
-            </div>
-            <Link href="/" className="mt-3 inline-flex items-center gap-2 text-neutral-500 transition-colors hover:text-neutral-900 dark:hover:text-neutral-100">
-              <i className="fa-solid fa-arrow-up-right-from-square text-xs" aria-hidden="true" />
-              查看网站
-            </Link>
-          </>
-        )}
+              <i className="fa-solid fa-arrow-right-from-bracket justify-self-center text-sm" aria-hidden="true" />
+              {!isCollapsed && <span className="whitespace-nowrap text-left">退出</span>}
+            </button>
+          </form>
+          <Link
+            href="/"
+            aria-label={isCollapsed ? '查看网站' : undefined}
+            title={isCollapsed ? '查看网站' : undefined}
+            className={`grid h-10 w-full grid-cols-[2.5rem_minmax(0,1fr)] items-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 dark:hover:bg-neutral-900 dark:hover:text-neutral-100 ${isCollapsed ? 'justify-items-center' : 'pr-3'}`}
+          >
+            <i className="fa-solid fa-arrow-up-right-from-square justify-self-center text-sm" aria-hidden="true" />
+            {!isCollapsed && <span className="whitespace-nowrap text-left">查看网站</span>}
+          </Link>
+        </div>
       </div>
     </aside>
   )
