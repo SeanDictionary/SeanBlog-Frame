@@ -3,6 +3,7 @@ import type { Route } from 'next'
 
 import { ArticleCard } from '@/components/article/article-card'
 import { Pagination } from '@/components/pagination'
+import { HighlightedText } from '@/components/search/highlighted-text'
 import { searchArticles } from '@/lib/services/article-service'
 
 type SearchPageProps = {
@@ -45,7 +46,16 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       </header>
 
       {result.items.length > 0 ? (
-        <div>{result.items.map((article) => <ArticleCard key={article.id} article={article} />)}</div>
+        <div>
+          {result.items.map((article) => (
+            <ArticleCard
+              key={article.id}
+              article={article}
+              renderTitle={(title) => <HighlightedText text={title} query={query} />}
+              renderExcerpt={(excerpt) => <HighlightedText text={excerpt} query={query} />}
+            />
+          ))}
+        </div>
       ) : (
         <p className="border-t border-border py-12 text-text-secondary">没有找到相关文章，试试换一个关键词。</p>
       )}

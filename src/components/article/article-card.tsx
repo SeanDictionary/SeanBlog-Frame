@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import type { ReactNode } from 'react'
 
 import type { listPublicArticles } from '@/lib/services/article-service'
 
@@ -18,6 +19,8 @@ type ArticleCardProps = {
   article: Article
   pinned?: boolean
   priority?: boolean
+  renderTitle?: (title: string) => ReactNode
+  renderExcerpt?: (excerpt: string) => ReactNode
 }
 
 function formatPublishedDate(date: Date | null) {
@@ -32,7 +35,7 @@ function formatPublishedDate(date: Date | null) {
   }).format(date)
 }
 
-export function ArticleCard({ article, pinned = false, priority = false }: ArticleCardProps) {
+export function ArticleCard({ article, pinned = false, priority = false, renderTitle, renderExcerpt }: ArticleCardProps) {
   const publishedDate = formatPublishedDate(article.publishedAt)
 
   return (
@@ -58,12 +61,12 @@ export function ArticleCard({ article, pinned = false, priority = false }: Artic
                 className="decoration-accent/50 underline-offset-4 transition-colors hover:text-accent hover:underline"
                 prefetch={priority}
               >
-                {article.title}
+                {renderTitle ? renderTitle(article.title) : article.title}
               </Link>
             </h2>
 
             {article.excerpt && (
-              <p className="mt-2 leading-7 text-text-secondary">{article.excerpt}</p>
+              <p className="mt-2 leading-7 text-text-secondary">{renderExcerpt ? renderExcerpt(article.excerpt) : article.excerpt}</p>
             )}
           </div>
 

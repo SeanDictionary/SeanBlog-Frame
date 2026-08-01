@@ -173,7 +173,7 @@ src/
 
 ### 7.2 搜索引擎
 
-`searchService` 是搜索的统一入口。MVP 使用 PostgreSQL 原生的 `tsvector` + `websearch_to_tsquery` 实现全文搜索。后续切换到 Meilisearch 或 Typesense 时只需替换 `searchService` 内部实现，不影响前端路由和组件。
+`searchService` 是搜索的统一入口。MVP 使用 PostgreSQL 原生的 `tsvector` + `websearch_to_tsquery` 实现全文搜索。当前内置搜索交互支持用空格或 `+` 拆分多个关键词，并按“全部关键词命中”返回结果；搜索弹窗和搜索结果页都应高亮命中的标题/摘要关键词。后续切换到 Meilisearch 或 Typesense 时只需替换 `searchService` 内部实现，不影响前端路由和组件。
 
 ### 7.3 图片存储
 

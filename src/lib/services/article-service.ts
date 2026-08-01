@@ -13,6 +13,7 @@ import {
 import { createExcerpt, markdownToHtml } from '@/lib/content/markdown'
 import { resolveSlug } from '@/lib/content/slug'
 import { getPrisma } from '@/lib/prisma'
+import { parseSearchTerms, textIncludesAllSearchTerms } from '@/lib/search'
 import {
   adminArticleDetailSelect,
   adminArticleSearchSelect,
@@ -246,13 +247,13 @@ const SEARCH_CANDIDATE_LIMIT = 200
 
 async function articleMatchesQuery(
   article: ArticleContentSource & { title: string; excerpt: string | null },
-  normalizedQuery: string,
+  searchTerms: string[],
 ) {
-  if (article.title.toLocaleLowerCase().includes(normalizedQuery) || article.excerpt?.toLocaleLowerCase().includes(normalizedQuery)) {
+  if (textIncludesAllSearchTerms(article.title, searchTerms) || (article.excerpt && textIncludesAllSearchTerms(article.excerpt, searchTerms))) {
     return true
   }
 
-  return (await readMarkdownFromStorage(article)).toLocaleLowerCase().includes(normalizedQuery)
+  return textIncludesAllSearchTerms(await readMarkdownFromStorage(article), searchTerms)
 }
 
 export async function listPublicArticles(input: { page: number; pageSize: number; category?: string; tag?: string }) {
@@ -330,7 +331,7 @@ export async function listAdminArticles(input: {
     }
   }
 
-  const normalizedQuery = input.q.toLocaleLowerCase()
+  const searchTerms = parseSearchTerms(input.q)
   const candidates = await prisma.article.findMany({
     where,
     orderBy: { updatedAt: 'desc' },
@@ -339,7 +340,7 @@ export async function listAdminArticles(input: {
   })
   const matching = (
     await Promise.all(
-      candidates.map(async (article) => ((await articleMatchesQuery(article, normalizedQuery)) ? article : null)),
+      candidates.map(async (article) => ((await articleMatchesQuery(article, searchTerms)) ? article : null)),
     )
   ).filter((article): article is NonNullable<typeof article> => article !== null)
   const start = (input.page - 1) * input.pageSize
@@ -534,7 +535,7 @@ export async function archiveArticle(id: string) {
 }
 
 export async function searchArticles(input: { q: string; page: number; pageSize: number }) {
-  const normalizedQuery = input.q.toLocaleLowerCase()
+  const searchTerms = parseSearchTerms(input.q)
   const candidates = await getPrisma().article.findMany({
     where: publicArticleWhere,
     orderBy: { publishedAt: 'desc' },
@@ -543,7 +544,7 @@ export async function searchArticles(input: { q: string; page: number; pageSize:
   })
   const matching = (
     await Promise.all(
-      candidates.map(async (article) => ((await articleMatchesQuery(article, normalizedQuery)) ? article : null)),
+      candidates.map(async (article) => ((await articleMatchesQuery(article, searchTerms)) ? article : null)),
     )
   ).filter((article): article is NonNullable<typeof article> => article !== null)
   const start = (input.page - 1) * input.pageSize

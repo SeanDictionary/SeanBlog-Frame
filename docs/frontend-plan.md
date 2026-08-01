@@ -173,8 +173,8 @@ themes/
 | 2.9 | 文章详情页集成评论区 | src/app/(public)/articles/[slug]/page.tsx |
 | 2.10 | 分类页 | src/app/(public)/categories/[slug]/page.tsx |
 | 2.11 | 标签页 | src/app/(public)/tags/[slug]/page.tsx |
-| 2.12 | 搜索弹窗组件 | src/components/search/search-dialog.tsx |
-| 2.13 | 搜索结果页 | src/app/(public)/search/page.tsx |
+| 2.12 | 搜索弹窗组件：搜索按钮保持常驻、弹窗居中、支持空格/`+` 多关键词实时搜索和关键词高亮 | src/components/search/search-dialog.tsx |
+| 2.13 | 搜索结果页：SSR 搜索结果、分页、标题/摘要关键词高亮 | src/app/(public)/search/page.tsx |
 
 **提交**：按功能分 2-3 次提交
 
