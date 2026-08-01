@@ -78,8 +78,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
 
     return (
       <div className="mx-auto max-w-6xl px-(--content-padding) py-12 sm:py-18">
-        <div className="xl:grid xl:grid-cols-[minmax(0,48rem)_13rem] xl:justify-center xl:gap-16">
-          <article className="min-w-0">
+        <div className={headings.length > 0 ? 'xl:grid xl:grid-cols-[minmax(0,48rem)_13rem] xl:justify-center xl:gap-16' : undefined}>
+          <article className="mx-auto w-full max-w-(--content-max-width) min-w-0">
             <header className="mb-10 border-b border-border pb-9">
               <div className="mb-5 font-mono text-xs uppercase tracking-[0.18em] text-text-tertiary">文章</div>
               <h1 className="text-4xl font-semibold leading-[1.15] tracking-[-0.045em] sm:text-5xl">{article.title}</h1>
