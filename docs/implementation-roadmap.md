@@ -23,7 +23,7 @@
 - [ ] `npx create-next-app@latest` 初始化项目（TypeScript + App Router + Tailwind CSS + `src/` 目录）
 - [ ] Prisma 初始化：安装依赖，创建 `prisma/schema.prisma`（核心表：User, Article, Category, Tag, ArticleTag）
 - [ ] 首次数据库迁移：`npx prisma migrate dev`
-- [ ] 生产启动脚本确保唯一管理员账户存在，不再维护默认内容种子脚本
+- [ ] 生产启动脚本确保唯一管理员账户存在，并在文章表为空时初始化一篇欢迎文章
 - [ ] `docker-compose.yml`（生产环境的 Next.js + PostgreSQL + 密钥初始化服务）可跑通
 - [ ] `.gitignore` 配置
 - [ ] `.env.example` 模板文件
