@@ -23,6 +23,8 @@ export const publicArticleSummarySelect = {
   title: true,
   slug: true,
   excerpt: true,
+  contentPath: true,
+  legacyContentMarkdown: true,
   coverImage: true,
   isPinned: true,
   publishedAt: true,
@@ -40,8 +42,6 @@ export const publicArticleSummarySelect = {
 
 export const publicArticleSearchSelect = {
   ...publicArticleSummarySelect,
-  contentPath: true,
-  legacyContentMarkdown: true,
 } satisfies Prisma.ArticleSelect
 
 const publicCommentBaseSelect = {

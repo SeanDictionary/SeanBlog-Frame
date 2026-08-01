@@ -57,11 +57,11 @@ function buildArticleData(input: ArticleInput | ArticleUpdateInput, options: { g
     data.slug = resolveSlug({ title: input.title })
   }
 
-  if (input.contentMarkdown !== undefined && input.excerpt === undefined) {
-    data.excerpt = createExcerpt(input.contentMarkdown)
+  if (input.contentMarkdown !== undefined && (input.excerpt === undefined || input.excerpt === null)) {
+    data.excerpt = createExcerpt(input.contentMarkdown, 200)
   }
 
-  if (input.excerpt !== undefined) {
+  if (input.excerpt !== undefined && input.excerpt !== null) {
     data.excerpt = input.excerpt
   }
 
@@ -134,6 +134,19 @@ function withoutContentSource<
   return {
     ...rest,
     tags: tags.map((item) => item.tag),
+  }
+}
+
+async function withPublicArticleListExcerpt<T extends ArticleContentSource & ArticleWithTags<Record<string, unknown>> & { excerpt: string | null }>(article: T) {
+  const serialized = withoutContentSource(article)
+
+  if (serialized.excerpt) {
+    return serialized
+  }
+
+  return {
+    ...serialized,
+    excerpt: createExcerpt(await readMarkdownFromStorage(article), 200),
   }
 }
 
@@ -293,8 +306,10 @@ export async function listPublicArticles(input: { page: number; pageSize: number
     prisma.article.count({ where }),
   ])
 
+  const serializedItems = await Promise.all(items.map(withPublicArticleListExcerpt))
+
   return {
-    items: items.map(serializeArticleTags),
+    items: serializedItems,
     meta: pageMeta(total, input.page, input.pageSize),
   }
 }
