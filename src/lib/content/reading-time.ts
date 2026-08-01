@@ -17,6 +17,18 @@ export function plainTextFromHtml(html: string) {
     .trim()
 }
 
+export function countContentWords(text: string) {
+  const cjkCharacters = text.match(CJK_CHARACTER_PATTERN)?.length ?? 0
+  const textWithoutCjk = text.replace(CJK_CHARACTER_PATTERN, ' ')
+  const words = textWithoutCjk.match(WORD_PATTERN)?.length ?? 0
+
+  return cjkCharacters + words
+}
+
+export function countContentWordsFromHtml(html: string) {
+  return countContentWords(plainTextFromHtml(html))
+}
+
 export function estimateReadingMinutes(text: string) {
   const cjkCharacters = text.match(CJK_CHARACTER_PATTERN)?.length ?? 0
   const textWithoutCjk = text.replace(CJK_CHARACTER_PATTERN, ' ')

@@ -6,6 +6,7 @@ export type ArticleMetaProps = {
   tags: Array<{ id: string; name: string; slug: string }>
   viewCount: number
   readingMinutes?: number
+  wordCount?: number
 }
 
 function formatPublishedDate(date: Date | null) {
@@ -20,7 +21,7 @@ function formatPublishedDate(date: Date | null) {
   }).format(date)
 }
 
-export function ArticleMeta({ publishedAt, category, tags, viewCount, readingMinutes }: ArticleMetaProps) {
+export function ArticleMeta({ publishedAt, category, tags, viewCount, readingMinutes, wordCount }: ArticleMetaProps) {
   const publishedDate = formatPublishedDate(publishedAt)
 
   return (
@@ -39,6 +40,12 @@ export function ArticleMeta({ publishedAt, category, tags, viewCount, readingMin
         <span className="inline-flex items-center gap-2">
           <i className="fa-regular fa-clock" aria-hidden="true" />
           约 {readingMinutes} 分钟阅读
+        </span>
+      )}
+      {wordCount !== undefined && (
+        <span className="inline-flex items-center gap-2">
+          <i className="fa-regular fa-file-lines" aria-hidden="true" />
+          {wordCount.toLocaleString('zh-CN')} 字
         </span>
       )}
       {category && (

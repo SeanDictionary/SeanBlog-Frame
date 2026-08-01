@@ -5,7 +5,7 @@ import { ArticleContent } from '@/components/article/article-content'
 import { ArticleMeta } from '@/components/article/article-meta'
 import { ArticleToc } from '@/components/article/article-toc'
 import { CommentList } from '@/components/comment/comment-list'
-import { estimateReadingMinutesFromHtml } from '@/lib/content/reading-time'
+import { countContentWordsFromHtml, estimateReadingMinutesFromHtml } from '@/lib/content/reading-time'
 import { getPublicArticleBySlug } from '@/lib/services/article-service'
 import { getSiteSettingsMap } from '@/lib/services/setting-service'
 
@@ -81,7 +81,9 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     ])
     const { contentHtml, headings } = getHeadings(article.contentHtml)
     const showReadingTime = settings.articleMetaShowReadingTime !== false
+    const showWordCount = settings.articleMetaShowWordCount !== false
     const readingMinutes = estimateReadingMinutesFromHtml(contentHtml)
+    const wordCount = countContentWordsFromHtml(contentHtml)
 
     return (
       <div className="mx-auto max-w-6xl px-(--content-padding) py-12 sm:py-18">
@@ -97,6 +99,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                   tags={article.tags}
                   viewCount={article.viewCount}
                   readingMinutes={showReadingTime ? readingMinutes : undefined}
+                  wordCount={showWordCount ? wordCount : undefined}
                 />
               </div>
             </header>
