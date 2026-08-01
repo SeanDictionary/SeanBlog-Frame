@@ -69,7 +69,7 @@
 ### 1.4 博客前台
 
 - [ ] 首页：已发布文章列表（分页 + 置顶 + 排序；支持发布时间、更新时间、浏览量、已通过评论数）
-- [ ] 文章详情页：`/articles/[slug]`
+- [ ] 文章详情页：`/articles/[slug]`，展示可由后台设置控制的文章元信息（如预估阅读时间）
 - [ ] 分类归档页：`/categories/[slug]`
 - [ ] 标签归档页：`/tags/[slug]`
 - [ ] Markdown → HTML 渲染（`dangerouslySetInnerHTML` + prose 样式）

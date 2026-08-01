@@ -44,6 +44,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ key:
       revalidatePath('/(public)', 'layout')
     }
 
+    if (key.startsWith('articleMeta')) {
+      revalidatePath('/articles/[slug]', 'page')
+    }
+
     return json({ setting })
   } catch (error) {
     return handleApiError(error)

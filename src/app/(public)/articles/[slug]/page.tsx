@@ -5,7 +5,9 @@ import { ArticleContent } from '@/components/article/article-content'
 import { ArticleMeta } from '@/components/article/article-meta'
 import { ArticleToc } from '@/components/article/article-toc'
 import { CommentList } from '@/components/comment/comment-list'
+import { estimateReadingMinutesFromHtml } from '@/lib/content/reading-time'
 import { getPublicArticleBySlug } from '@/lib/services/article-service'
+import { getSiteSettingsMap } from '@/lib/services/setting-service'
 
 type ArticlePageProps = {
   params: Promise<{ slug: string }>
@@ -73,8 +75,13 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   const { slug } = await params
 
   try {
-    const article = await getPublicArticleBySlug(slug)
+    const [article, settings] = await Promise.all([
+      getPublicArticleBySlug(slug),
+      getSiteSettingsMap(),
+    ])
     const { contentHtml, headings } = getHeadings(article.contentHtml)
+    const showReadingTime = settings.articleMetaShowReadingTime !== false
+    const readingMinutes = estimateReadingMinutesFromHtml(contentHtml)
 
     return (
       <div className="mx-auto max-w-6xl px-(--content-padding) py-12 sm:py-18">
@@ -89,6 +96,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                   category={article.category}
                   tags={article.tags}
                   viewCount={article.viewCount}
+                  readingMinutes={showReadingTime ? readingMinutes : undefined}
                 />
               </div>
             </header>

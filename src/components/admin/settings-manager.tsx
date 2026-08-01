@@ -30,6 +30,7 @@ export function SettingsManager({ initialSettings, availableThemes }: SettingsMa
   const [message, setMessage] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const activeTheme = String(settings.find((setting) => setting.key === 'activeTheme')?.value ?? 'default')
+  const showReadingTime = settings.find((setting) => setting.key === 'articleMetaShowReadingTime')?.value !== false
 
   function reportError(error: unknown, fallback: string) {
     setMessage(error instanceof Error ? error.message : fallback)
@@ -157,8 +158,20 @@ export function SettingsManager({ initialSettings, availableThemes }: SettingsMa
       </section>
 
       <section className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-950">
+        <h2 className="font-semibold">文章详情</h2>
+        <p className="mt-1 text-sm text-neutral-500">控制文章详情页展示的元数据信息。</p>
+        <form action={(formData) => save('articleMetaShowReadingTime', formData.get('showReadingTime') === 'on' ? 'true' : 'false')} className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-md border border-neutral-200 p-4 dark:border-neutral-800">
+          <label className="inline-flex items-center gap-2 text-sm font-medium">
+            <input name="showReadingTime" type="checkbox" defaultChecked={showReadingTime} />
+            显示预估阅读时间
+          </label>
+          <button disabled={isPending} className="text-sm text-blue-600">保存</button>
+        </form>
+      </section>
+
+      <section className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-950">
         <h2 className="font-semibold">其他设置</h2>
-        <div className="mt-5 space-y-4">{settings.filter((setting) => !['activeTheme', 'siteName', 'siteDescription', 'siteUrl'].includes(setting.key)).map((setting) => <form key={setting.id} action={(formData) => save(setting.key, String(formData.get('value') ?? ''))} className="grid gap-2 sm:grid-cols-[12rem_1fr_auto]"><label className="font-mono text-sm sm:pt-2.5">{setting.key}</label><textarea name="value" defaultValue={stringifyValue(setting.value)} rows={2} className="rounded-md border border-neutral-300 bg-white p-3 font-mono text-xs outline-none dark:border-neutral-700 dark:bg-neutral-900" /><button disabled={isPending} className="text-sm text-blue-600">保存</button></form>)}</div>
+        <div className="mt-5 space-y-4">{settings.filter((setting) => !['activeTheme', 'siteName', 'siteDescription', 'siteUrl', 'articleMetaShowReadingTime'].includes(setting.key)).map((setting) => <form key={setting.id} action={(formData) => save(setting.key, String(formData.get('value') ?? ''))} className="grid gap-2 sm:grid-cols-[12rem_1fr_auto]"><label className="font-mono text-sm sm:pt-2.5">{setting.key}</label><textarea name="value" defaultValue={stringifyValue(setting.value)} rows={2} className="rounded-md border border-neutral-300 bg-white p-3 font-mono text-xs outline-none dark:border-neutral-700 dark:bg-neutral-900" /><button disabled={isPending} className="text-sm text-blue-600">保存</button></form>)}</div>
       </section>
 
       {message && <p className="text-sm text-neutral-500" role="status">{message}</p>}
