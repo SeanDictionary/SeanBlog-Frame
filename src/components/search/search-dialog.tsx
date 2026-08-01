@@ -110,7 +110,7 @@ export function SearchDialog() {
   return (
     <div className="fixed inset-0 z-50 grid place-items-start bg-black/40 px-4 pt-[12vh] backdrop-blur-[2px] sm:pt-[18vh]" role="presentation" onMouseDown={close}>
       <section
-        className="w-full max-w-2xl overflow-hidden rounded-[var(--radius-lg)] border border-border bg-bg shadow-2xl"
+        className="w-full max-w-2xl overflow-hidden rounded-lg border border-border bg-bg shadow-2xl"
         role="dialog"
         aria-modal="true"
         aria-label="搜索文章"
@@ -139,7 +139,7 @@ export function SearchDialog() {
             <ul>
               {results.map((result) => (
                 <li key={result.id}>
-                  <Link href={`/articles/${result.slug}`} onClick={close} className="block rounded-[var(--radius)] px-3 py-3 transition-colors hover:bg-bg-secondary">
+                  <Link href={`/articles/${result.slug}`} onClick={close} className="block rounded-(--radius) px-3 py-3 transition-colors hover:bg-bg-secondary">
                     <p className="font-medium">{result.title}</p>
                     {result.excerpt && <p className="mt-1 line-clamp-2 text-sm leading-6 text-text-secondary">{result.excerpt}</p>}
                     {result.category && <p className="mt-2 text-xs text-text-tertiary">{result.category.name}</p>}
