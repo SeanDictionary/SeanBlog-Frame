@@ -168,7 +168,7 @@ themes/
 | 2.4 | 文章元信息组件：发布时间、浏览量、分类标签，以及可由后台开关控制的预估阅读时间和文章字数 | src/components/article/article-meta.tsx |
 | 2.5 | 文章正文组件 | src/components/article/article-content.tsx |
 | 2.6 | 文章目录组件：有目录时在桌面端悬浮右侧，不占用正文排版空间 | src/components/article/article-toc.tsx |
-| 2.7 | 文章详情页 | src/app/(public)/articles/[slug]/page.tsx |
+| 2.7 | 文章详情页：正文、元信息、悬浮目录、上一篇/下一篇导航 | src/app/(public)/articles/[slug]/page.tsx |
 | 2.8 | 评论组件（列表 + 表单 + 单条） | src/components/comment/* |
 | 2.9 | 文章详情页集成评论区 | src/app/(public)/articles/[slug]/page.tsx |
 | 2.10 | 分类页 | src/app/(public)/categories/[slug]/page.tsx |

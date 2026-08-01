@@ -3,10 +3,11 @@ import { notFound } from 'next/navigation'
 
 import { ArticleContent } from '@/components/article/article-content'
 import { ArticleMeta } from '@/components/article/article-meta'
+import { ArticleNavigation } from '@/components/article/article-navigation'
 import { ArticleToc } from '@/components/article/article-toc'
 import { CommentList } from '@/components/comment/comment-list'
 import { countContentWordsFromHtml, estimateReadingMinutesFromHtml } from '@/lib/content/reading-time'
-import { getPublicArticleBySlug } from '@/lib/services/article-service'
+import { getPublicArticleBySlug, getPublicArticleNavigation } from '@/lib/services/article-service'
 import { getSiteSettingsMap } from '@/lib/services/setting-service'
 
 type ArticlePageProps = {
@@ -75,9 +76,10 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   const { slug } = await params
 
   try {
-    const [article, settings] = await Promise.all([
+    const [article, settings, navigation] = await Promise.all([
       getPublicArticleBySlug(slug),
       getSiteSettingsMap(),
+      getPublicArticleNavigation(slug),
     ])
     const { contentHtml, headings } = getHeadings(article.contentHtml)
     const showReadingTime = settings.articleMetaShowReadingTime !== false
@@ -105,6 +107,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
             </header>
 
             <ArticleContent html={contentHtml} />
+            <ArticleNavigation previous={navigation.previous} next={navigation.next} />
             <CommentList articleId={article.id} comments={article.comments} />
           </article>
 

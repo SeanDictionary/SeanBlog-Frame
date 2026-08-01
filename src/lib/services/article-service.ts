@@ -411,6 +411,27 @@ export async function listAdminArticles(input: {
   }
 }
 
+export async function getPublicArticleNavigation(slug: string) {
+  const articles = await getPrisma().article.findMany({
+    where: publicArticleWhere,
+    orderBy: [{ publishedAt: 'desc' }, { title: 'asc' }],
+    select: {
+      title: true,
+      slug: true,
+    },
+  })
+  const currentIndex = articles.findIndex((article) => article.slug === slug)
+
+  if (currentIndex === -1) {
+    throw notFound('Article not found.')
+  }
+
+  return {
+    previous: articles[currentIndex - 1] ?? null,
+    next: articles[currentIndex + 1] ?? null,
+  }
+}
+
 export async function getPublicArticleBySlug(slug: string) {
   const article = await getPublicArticleRecord(slug)
 
