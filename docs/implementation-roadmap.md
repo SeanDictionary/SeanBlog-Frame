@@ -47,7 +47,7 @@
 - [ ] `/admin/login` 登录页
 - [ ] `proxy.ts` / middleware 保护 `/admin/*` 路径
 - [ ] 单管理员鉴权工具函数（`requireAdmin` / `isAdminAuthenticated`）
-- [ ] Admin 共享 layout（可展开/缩小的侧栏导航 + 鉴权，缩小时仅显示图标）
+- [ ] Admin 共享 layout（可展开/缩小且固定左侧的侧栏导航 + 鉴权，缩小时仅显示图标）
 
 ### 1.2 文章系统
 

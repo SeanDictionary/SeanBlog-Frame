@@ -22,7 +22,7 @@ export function AdminSidebarClient({ navigation, userName, signOutAction }: Admi
   const [isCollapsed, setIsCollapsed] = useState(false)
 
   return (
-    <aside className={`flex min-h-screen shrink-0 flex-col border-r border-neutral-200 bg-white px-4 py-5 transition-[width] duration-200 dark:border-neutral-800 dark:bg-neutral-950 ${isCollapsed ? 'w-20' : 'w-64'}`}>
+    <aside className={`sticky top-0 flex h-screen shrink-0 flex-col overflow-y-auto border-r border-neutral-200 bg-white px-4 py-5 transition-[width] duration-200 dark:border-neutral-800 dark:bg-neutral-950 ${isCollapsed ? 'w-20' : 'w-64'}`}>
       <div className="flex items-center justify-between gap-2">
         <Link
           href="/admin"
