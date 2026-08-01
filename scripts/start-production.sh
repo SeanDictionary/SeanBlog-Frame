@@ -13,4 +13,5 @@ fi
 
 npx prisma migrate deploy
 node scripts/initialize-admin.mjs
+node scripts/initialize-content.mjs
 exec node server.js

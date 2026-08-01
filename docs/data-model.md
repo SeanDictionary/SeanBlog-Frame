@@ -50,7 +50,7 @@ model User {
 - `username` 固定使用 `admin`
 - `passwordHash` 必填，密码使用 `bcryptjs` hash 存储
 - 不保存邮箱、头像、角色、禁言状态或 OAuth 账户信息
-- 管理员密码通过 `prisma/seed.ts` 初始化，必要时通过重置脚本更新
+- 管理员密码通过 `scripts/initialize-admin.mjs` 初始化，必要时通过重置脚本更新
 
 ### 3.2 Category（一对多）
 
@@ -285,5 +285,6 @@ model SiteSetting {
 - `prisma/schema.prisma` 是数据模型的唯一真实来源
 - 所有迁移通过 `npx prisma migrate dev --name <描述>` 生成
 - `prisma/migrations/` 目录必须纳入版本控制
-- `prisma/seed.ts` 用于初始化唯一管理员账户和示例数据
+- 管理员账号通过 `scripts/initialize-admin.mjs` 在生产启动时确保存在，不再维护 Prisma seed 脚本
+- 生产首次部署时，`scripts/initialize-content.mjs` 会在文章表为空时创建一篇欢迎文章；已有文章时不会重复创建或覆盖内容
 - Prisma Client 类型在 `prisma generate` 后自动生成，由 `node_modules/` 忽略规则覆盖
