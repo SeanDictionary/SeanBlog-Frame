@@ -11,6 +11,9 @@ type Article = {
   coverImage: string | null
   isPinned: boolean
   publishedAt: Date | null
+  updatedAt?: Date
+  viewCount?: number
+  _count?: { comments: number }
   category: { id: string; name: string; slug: string } | null
   tags: Array<{ id: string; name: string; slug: string } | { tag: { id: string; name: string; slug: string } }>
 }

@@ -164,7 +164,7 @@ themes/
 |---|---|---|
 | 2.1 | 文章卡片组件 | src/components/article/article-card.tsx |
 | 2.2 | 分页组件 | src/components/pagination.tsx |
-| 2.3 | 首页完善（置顶 + 列表 + 分页） | src/app/(public)/page.tsx |
+| 2.3 | 首页完善（置顶 + 列表 + 分页 + 排序；默认发布时间排序保留置顶区，切换更新时间/浏览量/评论数时按字段混排） | src/app/(public)/page.tsx |
 | 2.4 | 文章元信息组件 | src/components/article/article-meta.tsx |
 | 2.5 | 文章正文组件 | src/components/article/article-content.tsx |
 | 2.6 | 文章目录组件 | src/components/article/article-toc.tsx |

@@ -25,7 +25,7 @@ import {
   publicArticleSummarySelect,
   serializeArticleTags,
 } from '@/lib/services/shared'
-import type { ArticleInput, ArticleUpdateInput } from '@/lib/validations/cms'
+import type { ArticleInput, ArticleUpdateInput, PublicArticleSort } from '@/lib/validations/cms'
 
 const publicArticleWhere = {
   status: ArticleStatus.PUBLISHED,
@@ -42,6 +42,15 @@ type ArticleContentSource = {
 
 type ArticleWithTags<T> = T & {
   tags: Array<{ tag: { id: string; name: string; slug: string } }>
+}
+
+type PublicArticleSummaryRecord = Prisma.ArticleGetPayload<{ select: typeof publicArticleSummarySelect }>
+type PublicArticleListItem = Omit<PublicArticleSummaryRecord, keyof ArticleContentSource | 'tags'> & {
+  tags: Array<{ id: string; name: string; slug: string }>
+}
+type PaginatedPublicArticles = {
+  items: PublicArticleListItem[]
+  meta: ReturnType<typeof pageMeta>
 }
 
 function buildArticleData(input: ArticleInput | ArticleUpdateInput, options: { generateSlugFromTitle?: boolean } = {}) {
@@ -127,7 +136,7 @@ async function readMarkdownFromStorage(article: ArticleContentSource) {
 }
 
 function withoutContentSource<
-  T extends ArticleContentSource & ArticleWithTags<Record<string, unknown>>
+  T extends ArticleContentSource & { tags: Array<{ tag: { id: string; name: string; slug: string } }> }
 >(article: T): Omit<T, keyof ArticleContentSource | 'tags'> & { tags: Array<{ id: string; name: string; slug: string }> } {
   const { contentPath: _contentPath, legacyContentMarkdown: _legacyContentMarkdown, tags, ...rest } = article
 
@@ -137,7 +146,7 @@ function withoutContentSource<
   }
 }
 
-async function withPublicArticleListExcerpt<T extends ArticleContentSource & ArticleWithTags<Record<string, unknown>> & { excerpt: string | null }>(article: T) {
+async function withPublicArticleListExcerpt(article: PublicArticleSummaryRecord): Promise<PublicArticleListItem> {
   const serialized = withoutContentSource(article)
 
   if (serialized.excerpt) {
@@ -258,6 +267,18 @@ async function syncArticleTags(articleId: string, tagIds: string[], client: Pris
 
 const SEARCH_CANDIDATE_LIMIT = 200
 
+function getPublicArticleOrderBy(sort: Exclude<PublicArticleSort, 'commentCount'>): Prisma.ArticleOrderByWithRelationInput[] {
+  if (sort === 'updatedAt') {
+    return [{ updatedAt: 'desc' }, { publishedAt: 'desc' }]
+  }
+
+  if (sort === 'viewCount') {
+    return [{ viewCount: 'desc' }, { publishedAt: 'desc' }]
+  }
+
+  return [{ isPinned: 'desc' }, { publishedAt: 'desc' }]
+}
+
 async function articleMatchesQuery(
   article: ArticleContentSource & { title: string; excerpt: string | null },
   searchTerms: string[],
@@ -269,8 +290,9 @@ async function articleMatchesQuery(
   return textIncludesAllSearchTerms(await readMarkdownFromStorage(article), searchTerms)
 }
 
-export async function listPublicArticles(input: { page: number; pageSize: number; category?: string; tag?: string }) {
+export async function listPublicArticles(input: { page: number; pageSize: number; category?: string; tag?: string; sort?: PublicArticleSort }): Promise<PaginatedPublicArticles> {
   const prisma = getPrisma()
+  const sort = input.sort ?? 'publishedAt'
   const where: Prisma.ArticleWhereInput = {
     ...publicArticleWhere,
     ...(input.category
@@ -293,14 +315,37 @@ export async function listPublicArticles(input: { page: number; pageSize: number
       : {}),
   }
 
+  if (sort === 'commentCount') {
+    const [allItems, total] = await Promise.all([
+      prisma.article.findMany({
+        where,
+        select: publicArticleSummarySelect,
+      }),
+      prisma.article.count({ where }),
+    ])
+    const sortedItems = [...allItems].sort((left, right) => {
+      const commentDifference = right._count.comments - left._count.comments
+
+      if (commentDifference !== 0) {
+        return commentDifference
+      }
+
+      return (right.publishedAt?.getTime() ?? 0) - (left.publishedAt?.getTime() ?? 0)
+    })
+    const start = (input.page - 1) * input.pageSize
+    const serializedItems = await Promise.all(sortedItems.slice(start, start + input.pageSize).map(withPublicArticleListExcerpt))
+
+    return {
+      items: serializedItems,
+      meta: pageMeta(total, input.page, input.pageSize),
+    }
+  }
+
   const [items, total] = await Promise.all([
     prisma.article.findMany({
       where,
       ...paginate(input.page, input.pageSize),
-      orderBy: [
-        { isPinned: 'desc' },
-        { publishedAt: 'desc' },
-      ],
+      orderBy: getPublicArticleOrderBy(sort),
       select: publicArticleSummarySelect,
     }),
     prisma.article.count({ where }),

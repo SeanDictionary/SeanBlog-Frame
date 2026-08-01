@@ -18,6 +18,8 @@ const queryPage = z.preprocess(emptyQueryParamToUndefined, z.coerce.number().int
 const queryPageSize = z.preprocess(emptyQueryParamToUndefined, z.coerce.number().int().min(1).max(100).default(20))
 const optionalArticleStatusQuery = z.preprocess(emptyQueryParamToUndefined, z.nativeEnum(ArticleStatus).optional())
 const optionalCommentStatusQuery = z.preprocess(emptyQueryParamToUndefined, z.nativeEnum(CommentStatus).optional())
+export const publicArticleSortSchema = z.enum(['publishedAt', 'updatedAt', 'viewCount', 'commentCount'])
+const publicArticleSortQuery = z.preprocess(emptyQueryParamToUndefined, publicArticleSortSchema.default('publishedAt'))
 
 const slugSchema = z
   .string()
@@ -47,6 +49,7 @@ export const articleListQuerySchema = paginationQuerySchema.extend({
 export const publicArticleListQuerySchema = paginationQuerySchema.extend({
   category: optionalQueryString,
   tag: optionalQueryString,
+  sort: publicArticleSortQuery,
 })
 
 export const articleInputSchema = z
@@ -158,6 +161,7 @@ export const tagListQuerySchema = paginationQuerySchema
 
 export const mediaListQuerySchema = paginationQuerySchema
 
+export type PublicArticleSort = z.infer<typeof publicArticleSortSchema>
 export type ArticleInput = z.infer<typeof articleInputSchema>
 export type ArticleUpdateInput = z.infer<typeof articleUpdateSchema>
 export type CategoryInput = z.infer<typeof categoryInputSchema>

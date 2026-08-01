@@ -28,6 +28,17 @@ export const publicArticleSummarySelect = {
   coverImage: true,
   isPinned: true,
   publishedAt: true,
+  updatedAt: true,
+  viewCount: true,
+  _count: {
+    select: {
+      comments: {
+        where: {
+          status: 'APPROVED',
+        },
+      },
+    },
+  },
   category: {
     select: categorySummarySelect,
   },
