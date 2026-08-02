@@ -1,7 +1,6 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
-import { useMemo, useState, useTransition } from 'react'
+import { useMemo, useRef, useState, useTransition } from 'react'
 
 type DashboardCard = {
   key: string
@@ -40,24 +39,29 @@ function normalizeLayout(cards: DashboardCard[], value: unknown): DashboardCardL
   return [...configured, ...missing]
 }
 
-function moveItem(items: DashboardCardLayout[], index: number, direction: -1 | 1) {
-  const target = index + direction
+function reorderItem(items: DashboardCardLayout[], sourceKey: string, targetKey: string) {
+  if (sourceKey === targetKey) {
+    return items
+  }
 
-  if (target < 0 || target >= items.length) {
+  const sourceIndex = items.findIndex((item) => item.key === sourceKey)
+  const targetIndex = items.findIndex((item) => item.key === targetKey)
+
+  if (sourceIndex === -1 || targetIndex === -1) {
     return items
   }
 
   const next = [...items]
-  const current = next[index]
-  next[index] = next[target]
-  next[target] = current
+  const [source] = next.splice(sourceIndex, 1)
+  next.splice(targetIndex, 0, source)
   return next
 }
 
 export function DashboardManager({ cards, initialLayout }: DashboardManagerProps) {
-  const router = useRouter()
   const [layout, setLayout] = useState(() => normalizeLayout(cards, initialLayout))
   const [isManaging, setIsManaging] = useState(false)
+  const [draggingKey, setDraggingKey] = useState<string | null>(null)
+  const draggingKeyRef = useRef<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const cardMap = useMemo(() => new Map(cards.map((card) => [card.key, card])), [cards])
@@ -66,36 +70,40 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
     .map((item) => cardMap.get(item.key))
     .filter((card): card is DashboardCard => Boolean(card))
 
-  function toggleCard(key: string) {
-    setLayout((current) => current.map((item) => item.key === key ? { ...item, visible: !item.visible } : item))
-  }
-
-  function moveCard(index: number, direction: -1 | 1) {
-    setLayout((current) => moveItem(current, index, direction))
-  }
-
-  function saveLayout() {
+  function persistLayout(nextLayout: DashboardCardLayout[]) {
     startTransition(async () => {
-      setMessage(null)
+      setMessage('正在自动保存…')
 
       try {
         const response = await fetch('/api/admin/settings/adminDashboardCards', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ value: layout }),
+          body: JSON.stringify({ value: nextLayout }),
         })
         const data = (await response.json()) as ApiResponse
 
         if (!response.ok || !data.setting) {
-          throw new Error(data.error?.message ?? '保存失败。')
+          throw new Error(data.error?.message ?? '自动保存失败。')
         }
 
-        setMessage('仪表盘卡片布局已保存。')
-        router.refresh()
+        setMessage('已自动保存。')
       } catch (error) {
-        setMessage(error instanceof Error ? error.message : '保存失败。')
+        setMessage(error instanceof Error ? error.message : '自动保存失败。')
       }
     })
+  }
+
+  function applyLayout(nextLayout: DashboardCardLayout[]) {
+    setLayout(nextLayout)
+    persistLayout(nextLayout)
+  }
+
+  function toggleCard(key: string) {
+    applyLayout(layout.map((item) => item.key === key ? { ...item, visible: !item.visible } : item))
+  }
+
+  function moveCard(sourceKey: string, targetKey: string) {
+    applyLayout(reorderItem(layout, sourceKey, targetKey))
   }
 
   return (
@@ -118,20 +126,13 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="font-semibold">管理概览卡片</h2>
-              <p className="mt-1 text-sm text-neutral-500">勾选控制显示，上下移动控制排序。</p>
+              <p className="mt-1 text-sm text-neutral-500">拖动卡片调整排序，勾选控制显示；修改后会自动保存。</p>
             </div>
-            <button
-              type="button"
-              onClick={saveLayout}
-              disabled={isPending}
-              className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950"
-            >
-              {isPending ? '保存中…' : '保存布局'}
-            </button>
+            <span className="text-sm text-neutral-500" aria-live="polite">{isPending ? '正在自动保存…' : message}</span>
           </div>
 
           <ul className="divide-y divide-neutral-100 dark:divide-neutral-900">
-            {layout.map((item, index) => {
+            {layout.map((item) => {
               const card = cardMap.get(item.key)
 
               if (!card) {
@@ -139,16 +140,43 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
               }
 
               return (
-                <li key={item.key} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
+                <li
+                  key={item.key}
+                  draggable
+                  onDragStart={(event) => {
+                    draggingKeyRef.current = item.key
+                    setDraggingKey(item.key)
+                    event.dataTransfer.effectAllowed = 'move'
+                    event.dataTransfer.setData('text/plain', item.key)
+                  }}
+                  onDragOver={(event) => {
+                    event.preventDefault()
+                    event.dataTransfer.dropEffect = 'move'
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault()
+                    const sourceKey = event.dataTransfer.getData('text/plain') || draggingKeyRef.current
+                    if (sourceKey) {
+                      moveCard(sourceKey, item.key)
+                    }
+                    draggingKeyRef.current = null
+                    setDraggingKey(null)
+                  }}
+                  onDragEnd={() => {
+                    draggingKeyRef.current = null
+                    setDraggingKey(null)
+                  }}
+                  className={`flex cursor-grab flex-wrap items-center justify-between gap-3 py-3 text-sm active:cursor-grabbing ${draggingKey === item.key ? 'opacity-50' : ''}`}
+                >
                   <label className="inline-flex min-w-0 items-center gap-3 font-medium">
                     <input type="checkbox" checked={item.visible} onChange={() => toggleCard(item.key)} />
                     <i className={`${card.icon} w-4 text-center text-neutral-400`} aria-hidden="true" />
                     <span>{card.label}</span>
                   </label>
-                  <div className="flex items-center gap-2">
-                    <button type="button" onClick={() => moveCard(index, -1)} disabled={index === 0} className="rounded border border-neutral-300 px-2 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-40 dark:border-neutral-700">上移</button>
-                    <button type="button" onClick={() => moveCard(index, 1)} disabled={index === layout.length - 1} className="rounded border border-neutral-300 px-2 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-40 dark:border-neutral-700">下移</button>
-                  </div>
+                  <span className="inline-flex items-center gap-2 text-xs text-neutral-400" aria-hidden="true">
+                    <i className="fa-solid fa-grip-vertical" />
+                    拖动排序
+                  </span>
                 </li>
               )
             })}
