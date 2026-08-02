@@ -31,9 +31,9 @@ const DASHBOARD_CARD_SIZES = ['1x1', '1x2', '2x2'] as const
 type DashboardCardSize = (typeof DASHBOARD_CARD_SIZES)[number]
 
 const DASHBOARD_CARD_SIZE_LABELS: Record<DashboardCardSize, string> = {
-  '1x1': '1 × 1',
-  '1x2': '1 × 2',
-  '2x2': '2 × 2',
+  '1x1': '1×1',
+  '1x2': '1×2',
+  '2x2': '2×2',
 }
 
 const DASHBOARD_CARD_SIZE_CLASSES: Record<DashboardCardSize, string> = {
@@ -373,13 +373,6 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
           </button>
         </div>
       </div>
-
-      {isManaging && (
-        <section className="mb-5 rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-950" aria-label="管理仪表盘卡片">
-          <h2 className="font-semibold">管理概览卡片</h2>
-          <p className="mt-1 text-sm text-neutral-500">拖动显示中的卡片调整排序；右上角可选择尺寸或移除卡片。未显示卡片仅可重新添加；未接入内容的卡片会保留占位说明。</p>
-        </section>
-      )}
 
       {orderedCards.length > 0 ? (
         <div className="grid auto-rows-40 gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label={isManaging ? '当前显示卡片' : undefined}>
