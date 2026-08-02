@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { Route } from 'next'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 type AdminNavigationItem = {
   href: Route
@@ -21,8 +21,18 @@ export function AdminSidebarClient({ navigation, userName, signOutAction }: Admi
   const pathname = usePathname()
   const [isCollapsed, setIsCollapsed] = useState(false)
 
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 767px)')
+    const syncCollapsedState = () => setIsCollapsed(mediaQuery.matches)
+
+    syncCollapsedState()
+    mediaQuery.addEventListener('change', syncCollapsedState)
+
+    return () => mediaQuery.removeEventListener('change', syncCollapsedState)
+  }, [])
+
   return (
-    <aside className={`sticky top-0 flex h-screen shrink-0 flex-col overflow-hidden border-r border-neutral-200 bg-white px-4 py-5 dark:border-neutral-800 dark:bg-neutral-950 ${isCollapsed ? 'w-20' : 'w-52 md:w-64'}`}>
+    <aside className={`sticky top-0 flex h-screen shrink-0 flex-col overflow-hidden border-r border-neutral-200 bg-white px-4 py-5 dark:border-neutral-800 dark:bg-neutral-950 ${isCollapsed ? 'w-20' : 'w-64'}`}>
       <div className="flex shrink-0 items-start justify-between gap-2">
         <Link
           href="/admin"
