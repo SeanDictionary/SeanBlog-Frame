@@ -2,16 +2,41 @@
 
 import { useMemo, useRef, useState, useTransition } from 'react'
 
+type DashboardCardDetail = {
+  label: string
+  value: string
+}
+
 type DashboardCard = {
   key: string
   label: string
   value: number
   icon: string
+  status: string
+  description: string
+  details: DashboardCardDetail[]
+}
+
+const DASHBOARD_CARD_SIZES = ['1x1', '1x2', '2x2'] as const
+
+type DashboardCardSize = (typeof DASHBOARD_CARD_SIZES)[number]
+
+const DASHBOARD_CARD_SIZE_LABELS: Record<DashboardCardSize, string> = {
+  '1x1': '1 × 1',
+  '1x2': '1 × 2',
+  '2x2': '2 × 2',
+}
+
+const DASHBOARD_CARD_SIZE_CLASSES: Record<DashboardCardSize, string> = {
+  '1x1': '',
+  '1x2': 'sm:col-span-2',
+  '2x2': 'min-h-[22rem] sm:col-span-2 sm:row-span-2 sm:min-h-0',
 }
 
 type DashboardCardLayout = {
   key: string
   visible: boolean
+  size: DashboardCardSize
 }
 
 type DashboardManagerProps = {
@@ -24,17 +49,25 @@ type ApiResponse = {
   setting?: { value: unknown }
 }
 
+function isDashboardCardSize(value: unknown): value is DashboardCardSize {
+  return typeof value === 'string' && DASHBOARD_CARD_SIZES.includes(value as DashboardCardSize)
+}
+
 function normalizeLayout(cards: DashboardCard[], value: unknown): DashboardCardLayout[] {
   const cardKeys = new Set(cards.map((card) => card.key))
   const rawItems = Array.isArray(value) ? value : []
   const configured = rawItems
-    .filter((item): item is { key: string; visible?: unknown } => typeof item === 'object' && item !== null && 'key' in item && typeof item.key === 'string')
+    .filter((item): item is { key: string; visible?: unknown; size?: unknown } => typeof item === 'object' && item !== null && 'key' in item && typeof item.key === 'string')
     .filter((item) => cardKeys.has(item.key))
-    .map((item) => ({ key: item.key, visible: item.visible !== false }))
+    .map((item) => ({
+      key: item.key,
+      visible: item.visible !== false,
+      size: isDashboardCardSize(item.size) ? item.size : '1x1',
+    }))
   const configuredKeys = new Set(configured.map((item) => item.key))
   const missing = cards
     .filter((card) => !configuredKeys.has(card.key))
-    .map((card) => ({ key: card.key, visible: true }))
+    .map((card) => ({ key: card.key, visible: true, size: '1x1' as const }))
 
   return [...configured, ...missing]
 }
@@ -59,6 +92,7 @@ function reorderItem(items: DashboardCardLayout[], sourceKey: string, targetKey:
 
 function DashboardStatCard({
   card,
+  size = '1x1',
   action,
   dragging,
   draggable = false,
@@ -67,8 +101,10 @@ function DashboardStatCard({
   onDrop,
   onDragEnd,
   onAction,
+  onSizeChange,
 }: {
   card: DashboardCard
+  size?: DashboardCardSize
   action?: 'add' | 'remove'
   dragging?: boolean
   draggable?: boolean
@@ -77,9 +113,11 @@ function DashboardStatCard({
   onDrop?: React.DragEventHandler<HTMLElement>
   onDragEnd?: React.DragEventHandler<HTMLElement>
   onAction?: () => void
+  onSizeChange?: (size: DashboardCardSize) => void
 }) {
   const actionLabel = action === 'add' ? '添加卡片' : '移除卡片'
   const actionIcon = action === 'add' ? 'fa-plus' : 'fa-xmark'
+  const hasTopRightControls = action || onSizeChange
 
   return (
     <section
@@ -88,27 +126,89 @@ function DashboardStatCard({
       onDragOver={onDragOver}
       onDrop={onDrop}
       onDragEnd={onDragEnd}
-      className={`relative rounded-lg border border-neutral-200 bg-white p-5 transition-colors dark:border-neutral-800 dark:bg-neutral-950 ${
-        draggable ? 'cursor-grab active:cursor-grabbing' : ''
-      } ${dragging ? 'opacity-50' : ''}`}
+      className={`relative h-full rounded-lg border border-neutral-200 bg-white p-5 transition-colors dark:border-neutral-800 dark:bg-neutral-950 ${
+        DASHBOARD_CARD_SIZE_CLASSES[size]
+      } ${draggable ? 'cursor-grab active:cursor-grabbing' : ''} ${dragging ? 'opacity-50' : ''}`}
     >
-      {action && (
-        <button
-          type="button"
-          aria-label={`${actionLabel}：${card.label}`}
-          title={actionLabel}
-          onClick={(event) => {
-            event.stopPropagation()
-            onAction?.()
-          }}
-          className="absolute right-3 top-3 grid size-8 place-items-center rounded-md text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-950 dark:hover:bg-neutral-900 dark:hover:text-neutral-50"
-        >
-          <i className={`fa-solid ${actionIcon} text-xs`} aria-hidden="true" />
-        </button>
+      {hasTopRightControls && (
+        <div className="absolute right-3 top-3 flex items-center gap-1">
+          {onSizeChange && (
+            <label className="relative" onPointerDown={(event) => event.stopPropagation()}>
+              <span className="sr-only">选择“{card.label}”的卡片尺寸</span>
+              <select
+                value={size}
+                aria-label={`选择“${card.label}”的卡片尺寸`}
+                onChange={(event) => onSizeChange(event.target.value as DashboardCardSize)}
+                className="h-8 rounded-md border border-neutral-200 bg-white px-2 text-xs font-medium text-neutral-600 outline-none transition-colors hover:border-neutral-300 focus:border-neutral-500 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-300 dark:hover:border-neutral-600 dark:focus:border-neutral-400 dark:focus:ring-neutral-800"
+              >
+                {DASHBOARD_CARD_SIZES.map((option) => (
+                  <option key={option} value={option}>{DASHBOARD_CARD_SIZE_LABELS[option]}</option>
+                ))}
+              </select>
+            </label>
+          )}
+          {action && (
+            <button
+              type="button"
+              aria-label={`${actionLabel}：${card.label}`}
+              title={actionLabel}
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation()
+                onAction?.()
+              }}
+              className="grid size-8 place-items-center rounded-md text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-950 dark:hover:bg-neutral-900 dark:hover:text-neutral-50"
+            >
+              <i className={`fa-solid ${actionIcon} text-xs`} aria-hidden="true" />
+            </button>
+          )}
+        </div>
       )}
-      <i className={`${card.icon} text-neutral-400`} aria-hidden="true" />
-      <p className="mt-5 text-3xl font-semibold">{card.value}</p>
-      <p className="mt-1 text-sm text-neutral-500">{card.label}</p>
+
+      {size === '1x1' && (
+        <>
+          <i className={`${card.icon} text-neutral-400`} aria-hidden="true" />
+          <p className="mt-5 text-3xl font-semibold">{card.value}</p>
+          <p className="mt-1 text-sm text-neutral-500">{card.label}</p>
+          <p className="mt-4 text-xs text-neutral-400">{card.status}</p>
+        </>
+      )}
+
+      {size === '1x2' && (
+        <div className="flex h-full items-end justify-between gap-5">
+          <div>
+            <i className={`${card.icon} text-neutral-400`} aria-hidden="true" />
+            <p className="mt-5 text-3xl font-semibold">{card.value}</p>
+            <p className="mt-1 text-sm text-neutral-500">{card.label}</p>
+          </div>
+          <div className="mb-1 max-w-48 border-l border-neutral-200 pl-4 text-right dark:border-neutral-800">
+            <p className="text-xs font-medium text-neutral-400">概览</p>
+            <p className="mt-1 text-sm leading-5 text-neutral-600 dark:text-neutral-300">{card.description}</p>
+          </div>
+        </div>
+      )}
+
+      {size === '2x2' && (
+        <div className="flex h-full flex-col">
+          <div className="flex items-start justify-between gap-4 pr-24">
+            <div>
+              <i className={`${card.icon} text-neutral-400`} aria-hidden="true" />
+              <p className="mt-5 text-4xl font-semibold">{card.value}</p>
+              <p className="mt-1 text-sm text-neutral-500">{card.label}</p>
+            </div>
+            <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-500 dark:bg-neutral-900 dark:text-neutral-400">{card.status}</span>
+          </div>
+          <p className="mt-6 border-t border-neutral-200 pt-4 text-sm leading-6 text-neutral-600 dark:border-neutral-800 dark:text-neutral-300">{card.description}</p>
+          <dl className="mt-auto grid grid-cols-2 gap-3 pt-6">
+            {card.details.map((detail) => (
+              <div key={detail.label} className="rounded-md bg-neutral-50 px-3 py-2.5 dark:bg-neutral-900">
+                <dt className="text-xs text-neutral-500">{detail.label}</dt>
+                <dd className="mt-1 text-sm font-medium text-neutral-800 dark:text-neutral-100">{detail.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      )}
     </section>
   )
 }
@@ -159,18 +259,26 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
     applyLayout(layout.map((item) => item.key === key ? { ...item, visible } : item))
   }
 
+  function setCardSize(key: string, size: DashboardCardSize) {
+    applyLayout(layout.map((item) => item.key === key ? { ...item, size } : item))
+  }
+
   function moveCard(sourceKey: string, targetKey: string) {
     applyLayout(reorderItem(layout, sourceKey, targetKey))
   }
 
   function renderVisibleCard(card: DashboardCard) {
+    const item = layout.find((layoutItem) => layoutItem.key === card.key)
+
     return (
       <DashboardStatCard
         key={card.key}
         card={card}
+        size={item?.size ?? '1x1'}
         action={isManaging ? 'remove' : undefined}
         dragging={draggingKey === card.key}
         draggable={isManaging}
+        onSizeChange={isManaging && item ? (size) => setCardSize(card.key, size) : undefined}
         onDragStart={(event) => {
           draggingKeyRef.current = card.key
           setDraggingKey(card.key)
@@ -228,12 +336,12 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
       {isManaging && (
         <section className="mb-5 rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-950" aria-label="管理仪表盘卡片">
           <h2 className="font-semibold">管理概览卡片</h2>
-          <p className="mt-1 text-sm text-neutral-500">拖动上方卡片调整排序；右上角按钮用于移除或添加，修改后会自动保存。</p>
+          <p className="mt-1 text-sm text-neutral-500">拖动上方卡片调整排序；仅显示中的卡片可在右上角选择尺寸（1 × 1、1 × 2 或 2 × 2），修改后会自动保存。</p>
         </section>
       )}
 
       {orderedCards.length > 0 ? (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label={isManaging ? '当前显示卡片' : undefined}>
+        <div className="grid auto-rows-40 gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label={isManaging ? '当前显示卡片' : undefined}>
           {orderedCards.map(renderVisibleCard)}
         </div>
       ) : (
