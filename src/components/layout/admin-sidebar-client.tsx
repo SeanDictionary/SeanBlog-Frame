@@ -54,7 +54,7 @@ export function AdminSidebarClient({ navigation, userName, signOutAction }: Admi
               title={isCollapsed ? item.label : undefined}
               aria-label={isCollapsed ? item.label : undefined}
               aria-current={isActive ? 'page' : undefined}
-              className={`grid min-w-0 grid-cols-[2.5rem_minmax(0,1fr)] items-center overflow-hidden rounded-md py-2 text-sm transition-colors ${isCollapsed ? 'justify-items-center' : 'pr-3'} ${
+              className={`grid h-9 min-w-0 grid-cols-[2.5rem_minmax(0,1fr)] items-center overflow-hidden rounded-md text-sm transition-colors ${isCollapsed ? 'justify-items-center' : 'pr-3'} ${
                 isActive
                   ? 'bg-neutral-100 text-neutral-950 dark:bg-neutral-900 dark:text-neutral-50'
                   : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-950 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-neutral-50'
