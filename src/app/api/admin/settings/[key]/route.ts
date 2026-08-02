@@ -48,6 +48,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ key:
       revalidatePath('/articles/[slug]', 'page')
     }
 
+    if (key === 'adminDashboardCards') {
+      revalidatePath('/admin')
+    }
+
     return json({ setting })
   } catch (error) {
     return handleApiError(error)
