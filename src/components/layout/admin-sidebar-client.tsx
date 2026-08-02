@@ -22,7 +22,7 @@ export function AdminSidebarClient({ navigation, userName, signOutAction }: Admi
   const [isCollapsed, setIsCollapsed] = useState(false)
 
   return (
-    <aside className={`sticky top-0 flex h-screen shrink-0 flex-col overflow-hidden border-r border-neutral-200 bg-white px-4 py-5 dark:border-neutral-800 dark:bg-neutral-950 ${isCollapsed ? 'w-20' : 'w-64'}`}>
+    <aside className={`sticky top-0 flex h-screen shrink-0 flex-col overflow-hidden border-r border-neutral-200 bg-white px-4 py-5 dark:border-neutral-800 dark:bg-neutral-950 ${isCollapsed ? 'w-20' : 'w-52 md:w-64'}`}>
       <div className="flex shrink-0 items-start justify-between gap-2">
         <Link
           href="/admin"
@@ -76,7 +76,7 @@ export function AdminSidebarClient({ navigation, userName, signOutAction }: Admi
               type="submit"
               aria-label={isCollapsed ? '退出登录' : undefined}
               title={isCollapsed ? '退出登录' : undefined}
-              className={`grid h-10 w-full grid-cols-[2.5rem_minmax(0,1fr)] items-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-red-600 dark:hover:bg-neutral-900 dark:hover:text-red-400 ${isCollapsed ? 'justify-items-center' : 'pr-3'}`}
+              className={`grid h-6 w-full grid-cols-[2.5rem_minmax(0,1fr)] items-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-red-600 dark:hover:bg-neutral-900 dark:hover:text-red-400 ${isCollapsed ? 'justify-items-center' : 'pr-3'}`}
             >
               <i className="fa-solid fa-arrow-right-from-bracket justify-self-center text-sm" aria-hidden="true" />
               {!isCollapsed && <span className="whitespace-nowrap text-left">退出</span>}
@@ -86,7 +86,7 @@ export function AdminSidebarClient({ navigation, userName, signOutAction }: Admi
             href="/"
             aria-label={isCollapsed ? '查看网站' : undefined}
             title={isCollapsed ? '查看网站' : undefined}
-            className={`grid h-10 w-full grid-cols-[2.5rem_minmax(0,1fr)] items-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 dark:hover:bg-neutral-900 dark:hover:text-neutral-100 ${isCollapsed ? 'justify-items-center' : 'pr-3'}`}
+            className={`grid h-6 w-full grid-cols-[2.5rem_minmax(0,1fr)] items-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 dark:hover:bg-neutral-900 dark:hover:text-neutral-100 ${isCollapsed ? 'justify-items-center' : 'pr-3'}`}
           >
             <i className="fa-solid fa-arrow-up-right-from-square justify-self-center text-sm" aria-hidden="true" />
             {!isCollapsed && <span className="whitespace-nowrap text-left">查看网站</span>}
