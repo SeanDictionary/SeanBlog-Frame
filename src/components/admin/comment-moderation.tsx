@@ -15,9 +15,10 @@ type Comment = {
 
 type CommentModerationProps = {
   initialComments: Comment[]
+  emptyMessage?: string
 }
 
-export function CommentModeration({ initialComments }: CommentModerationProps) {
+export function CommentModeration({ initialComments, emptyMessage = '当前没有评论。' }: CommentModerationProps) {
   const [comments, setComments] = useState(initialComments)
   const [message, setMessage] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -59,7 +60,7 @@ export function CommentModeration({ initialComments }: CommentModerationProps) {
           <p className="mt-4 whitespace-pre-wrap leading-7 text-neutral-700 dark:text-neutral-300">{comment.content}</p>
           <footer className="mt-5 flex flex-wrap gap-3 text-sm"><button type="button" disabled={isPending} onClick={() => update(comment.id, 'APPROVED')} className="text-green-700 dark:text-green-400">通过</button><button type="button" disabled={isPending} onClick={() => update(comment.id, 'SPAM')} className="text-amber-700 dark:text-amber-400">标记垃圾</button><button type="button" disabled={isPending} onClick={() => update(comment.id, 'TRASHED')} className="text-neutral-500">移至回收站</button><button type="button" disabled={isPending} onClick={() => purge(comment.id)} className="text-red-600">彻底删除</button></footer>
         </article>
-      )) : <div className="rounded-lg border border-dashed border-neutral-300 px-5 py-16 text-center text-sm text-neutral-500 dark:border-neutral-700">当前没有评论。</div>}
+      )) : <div className="rounded-lg border border-dashed border-neutral-300 px-5 py-16 text-center text-sm text-neutral-500 dark:border-neutral-700">{emptyMessage}</div>}
       {message && <p className="text-sm text-red-600" role="status">{message}</p>}
     </div>
   )

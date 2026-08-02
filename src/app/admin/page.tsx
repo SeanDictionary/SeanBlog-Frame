@@ -23,6 +23,7 @@ export default async function AdminDashboardPage() {
         { label: '草稿', value: `${drafts} 篇` },
         { label: '非草稿', value: `${articles - drafts} 篇` },
       ],
+      href: '/admin/articles' as const,
     },
     {
       key: 'drafts',
@@ -35,6 +36,7 @@ export default async function AdminDashboardPage() {
         { label: '全部文章', value: `${articles} 篇` },
         { label: '草稿占比', value: articles > 0 ? `${Math.round((drafts / articles) * 100)}%` : '0%' },
       ],
+      href: '/admin/articles?status=DRAFT' as const,
     },
     {
       key: 'pendingComments',
@@ -47,6 +49,7 @@ export default async function AdminDashboardPage() {
         { label: '待审核', value: `${pendingComments} 条` },
         { label: '处理状态', value: pendingComments > 0 ? '待处理' : '已清零' },
       ],
+      href: '/admin/comments?status=PENDING' as const,
     },
     {
       key: 'media',
@@ -59,6 +62,7 @@ export default async function AdminDashboardPage() {
         { label: '文件总数', value: `${media} 个` },
         { label: '媒体库状态', value: media > 0 ? '已有内容' : '空' },
       ],
+      href: '/admin/media' as const,
     },
   ]
 

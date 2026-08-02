@@ -1,5 +1,7 @@
 'use client'
 
+import type { Route } from 'next'
+import Link from 'next/link'
 import { useMemo, useRef, useState, useTransition } from 'react'
 
 type DashboardCardDetail = {
@@ -15,6 +17,7 @@ type DashboardCard = {
   status: string
   description: string
   details: DashboardCardDetail[]
+  href: Route
 }
 
 const DASHBOARD_CARD_SIZES = ['1x1', '1x2', '2x2'] as const
@@ -118,20 +121,10 @@ function DashboardStatCard({
   const actionLabel = action === 'add' ? '添加卡片' : '移除卡片'
   const actionIcon = action === 'add' ? 'fa-plus' : 'fa-xmark'
   const hasTopRightControls = action || onSizeChange
-
-  return (
-    <section
-      draggable={draggable}
-      onDragStart={onDragStart}
-      onDragOver={onDragOver}
-      onDrop={onDrop}
-      onDragEnd={onDragEnd}
-      className={`relative h-full rounded-lg border border-neutral-200 bg-white p-5 transition-colors dark:border-neutral-800 dark:bg-neutral-950 ${
-        DASHBOARD_CARD_SIZE_CLASSES[size]
-      } ${draggable ? 'cursor-grab active:cursor-grabbing' : ''} ${dragging ? 'opacity-50' : ''}`}
-    >
-      {hasTopRightControls && (
-        <div className="absolute right-3 top-3 flex items-center gap-1">
+  const cardContent = (
+    <>
+    {hasTopRightControls && (
+      <div className="absolute right-3 top-3 flex items-center gap-1">
           {onSizeChange && (
             <label className="relative" onPointerDown={(event) => event.stopPropagation()}>
               <span className="sr-only">选择“{card.label}”的卡片尺寸</span>
@@ -209,6 +202,35 @@ function DashboardStatCard({
           </dl>
         </div>
       )}
+    </>
+  )
+
+  const cardClassName = `relative h-full rounded-lg border border-neutral-200 bg-white p-5 transition-colors dark:border-neutral-800 dark:bg-neutral-950 ${
+    DASHBOARD_CARD_SIZE_CLASSES[size]
+  } ${draggable ? 'cursor-grab active:cursor-grabbing' : ''} ${dragging ? 'opacity-50' : ''}`
+
+  if (!draggable && !action) {
+    return (
+      <Link
+        href={card.href}
+        className={`${cardClassName} block text-left hover:border-neutral-300 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 focus-visible:ring-offset-2 dark:hover:border-neutral-700 dark:focus-visible:ring-neutral-400 dark:focus-visible:ring-offset-neutral-950`}
+        aria-label={`查看${card.label}`}
+      >
+        {cardContent}
+      </Link>
+    )
+  }
+
+  return (
+    <section
+      draggable
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
+      className={cardClassName}
+    >
+      {cardContent}
     </section>
   )
 }
