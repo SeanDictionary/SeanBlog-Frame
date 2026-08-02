@@ -28,8 +28,7 @@ export function AdminSidebarClient({ navigation, userName, signOutAction }: Admi
           href="/admin"
           className={`min-w-0 text-neutral-950 transition-opacity dark:text-neutral-50 ${isCollapsed ? 'sr-only' : 'px-3'}`}
         >
-          <span className="block text-lg font-semibold leading-tight tracking-tight">SeanBlog</span>
-          <span className="mt-0.5 block text-sm font-normal tracking-wide text-neutral-400">Admin</span>
+          <span className="whitespace-nowrap text-lg font-semibold leading-tight tracking-tight">SeanBlog <span className="font-normal text-neutral-400">Admin</span></span>
         </Link>
         <button
           type="button"
