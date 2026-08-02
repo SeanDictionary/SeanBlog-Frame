@@ -358,7 +358,8 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-neutral-500"></p>
+        {isManaging ? (<p className="text-sm text-neutral-500">当前显示 {orderedCards.length} / {cards.length} 张卡片</p>)
+          : (<p></p>)}
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-sm text-neutral-500" aria-live="polite">{isPending ? '正在自动保存…' : message}</span>
           <button
