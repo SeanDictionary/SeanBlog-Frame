@@ -2,7 +2,6 @@ import { revalidatePath } from 'next/cache'
 
 import { badRequest } from '@/lib/api/errors'
 import { handleApiError, json, parseJson } from '@/lib/api/response'
-import { isArticleCommentsMode } from '@/lib/comment-settings'
 import { requireSameOriginRequest } from '@/lib/api/request-guard'
 import { requireAdmin } from '@/lib/auth.utils'
 import { getSetting, upsertSetting } from '@/lib/services/setting-service'
@@ -31,10 +30,6 @@ export async function PUT(request: Request, { params }: { params: Promise<{ key:
     const [{ key }, body] = await Promise.all([params, parseJson(request)])
     const input = settingInputSchema.parse(body)
 
-    if (key === 'articleCommentsMode' && !isArticleCommentsMode(input.value)) {
-      throw badRequest('Invalid article comments mode.', 'INVALID_ARTICLE_COMMENTS_MODE')
-    }
-
     if (key === 'activeTheme') {
       const themeName = assertThemeName(input.value)
 
@@ -47,10 +42,6 @@ export async function PUT(request: Request, { params }: { params: Promise<{ key:
 
     if (key === 'activeTheme') {
       revalidatePath('/(public)', 'layout')
-    }
-
-    if (key === 'articleCommentsMode') {
-      revalidatePath('/articles/[slug]', 'page')
     }
 
     if (key.startsWith('articleMeta')) {

@@ -46,6 +46,12 @@ enum ArticleStatus {
   ARCHIVED
 }
 
+enum ArticleCommentsMode {
+  ENABLED
+  READ_ONLY
+  DISABLED
+}
+
 model Article {
   id                    String        @id @default(cuid())
   title                 String
@@ -55,7 +61,8 @@ model Article {
   legacyContentMarkdown String?       @map("contentMarkdown")
   legacyContentHtml     String?       @map("contentHtml")
   coverImage            String?
-  status                ArticleStatus @default(DRAFT)
+  status                ArticleStatus       @default(DRAFT)
+  commentsMode          ArticleCommentsMode @default(ENABLED)
   metaTitle       String?
   metaDescription String?
   metaKeywords    String?

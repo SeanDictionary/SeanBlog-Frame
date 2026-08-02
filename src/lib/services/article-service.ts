@@ -10,6 +10,7 @@ import {
   writeArticleMarkdown,
   writeArticleRevisionMarkdown,
 } from '@/lib/content/article-content'
+import { toPrismaArticleCommentsMode } from '@/lib/comment-settings'
 import { createExcerpt, markdownToHtml } from '@/lib/content/markdown'
 import { resolveSlug } from '@/lib/content/slug'
 import { getPrisma } from '@/lib/prisma'
@@ -88,6 +89,10 @@ function buildArticleData(input: ArticleInput | ArticleUpdateInput, options: { g
     if (input.status !== ArticleStatus.PUBLISHED) {
       data.publishedAt = input.publishedAt ?? null
     }
+  }
+
+  if (input.commentsMode !== undefined) {
+    data.commentsMode = toPrismaArticleCommentsMode(input.commentsMode)
   }
 
   if (input.publishedAt !== undefined && input.status === undefined) {

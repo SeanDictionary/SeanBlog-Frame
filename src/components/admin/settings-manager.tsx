@@ -36,7 +36,6 @@ export function SettingsManager({ initialSettings, availableThemes }: SettingsMa
   const showWordCount = settings.find((setting) => setting.key === 'articleMetaShowWordCount')?.value !== false
   const showCategory = settings.find((setting) => setting.key === 'articleMetaShowCategory')?.value !== false
   const showTags = settings.find((setting) => setting.key === 'articleMetaShowTags')?.value !== false
-  const commentsMode = String(settings.find((setting) => setting.key === 'articleCommentsMode')?.value ?? 'enabled')
 
   function reportError(error: unknown, fallback: string) {
     setMessage(error instanceof Error ? error.message : fallback)
@@ -167,20 +166,6 @@ export function SettingsManager({ initialSettings, availableThemes }: SettingsMa
         <h2 className="font-semibold">文章详情</h2>
         <p className="mt-1 text-sm text-neutral-500">控制文章详情页展示的元数据信息。</p>
         <div className="mt-5 grid gap-4">
-          <form action={(formData) => save('articleCommentsMode', String(formData.get('commentsMode') ?? 'enabled'))} className="rounded-md border border-neutral-200 p-4 dark:border-neutral-800">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <label htmlFor="article-comments-mode" className="text-sm font-medium">评论</label>
-                <p className="mt-1 text-sm text-neutral-500">可保留历史评论但暂停新评论，或完全从前台和公开接口隐藏评论；后台评论管理始终保留全部数据。</p>
-              </div>
-              <button disabled={isPending} className="text-sm text-blue-600">保存</button>
-            </div>
-            <select id="article-comments-mode" name="commentsMode" defaultValue={commentsMode} className="mt-4 h-10 w-full max-w-sm rounded-md border border-neutral-300 bg-white px-3 text-sm outline-none dark:border-neutral-700 dark:bg-neutral-900">
-              <option value="enabled">允许评论</option>
-              <option value="readOnly">仅展示历史评论，关闭新评论</option>
-              <option value="disabled">完全关闭评论</option>
-            </select>
-          </form>
           <MetadataToggle settingKey="articleMetaShowPublishedAt" fieldName="showPublishedAt" label="显示发布时间" checked={showPublishedAt} isPending={isPending} onSave={save} />
           <MetadataToggle settingKey="articleMetaShowViewCount" fieldName="showViewCount" label="显示阅读次数" checked={showViewCount} isPending={isPending} onSave={save} />
           <MetadataToggle settingKey="articleMetaShowReadingTime" fieldName="showReadingTime" label="显示预估阅读时间" checked={showReadingTime} isPending={isPending} onSave={save} />

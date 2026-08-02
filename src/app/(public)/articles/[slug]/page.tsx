@@ -6,7 +6,7 @@ import { ArticleMeta } from '@/components/article/article-meta'
 import { ArticleNavigation } from '@/components/article/article-navigation'
 import { ArticleToc } from '@/components/article/article-toc'
 import { CommentList } from '@/components/comment/comment-list'
-import { resolveArticleCommentsMode } from '@/lib/comment-settings'
+import { fromPrismaArticleCommentsMode } from '@/lib/comment-settings'
 import { countContentWordsFromHtml, estimateReadingMinutesFromHtml } from '@/lib/content/reading-time'
 import { getPublicArticleBySlug, getPublicArticleNavigation } from '@/lib/services/article-service'
 import { getSiteSettingsMap } from '@/lib/services/setting-service'
@@ -89,7 +89,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     const showWordCount = settings.articleMetaShowWordCount !== false
     const showCategory = settings.articleMetaShowCategory !== false
     const showTags = settings.articleMetaShowTags !== false
-    const commentsMode = resolveArticleCommentsMode(settings.articleCommentsMode)
+    const commentsMode = fromPrismaArticleCommentsMode(article.commentsMode)
     const readingMinutes = estimateReadingMinutesFromHtml(contentHtml)
     const wordCount = countContentWordsFromHtml(contentHtml)
 

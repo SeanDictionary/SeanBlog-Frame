@@ -74,6 +74,7 @@ export const publicArticleDetailSelect = {
   metaTitle: true,
   metaDescription: true,
   metaKeywords: true,
+  commentsMode: true,
   publishedAt: true,
   viewCount: true,
   category: {
@@ -156,6 +157,7 @@ export const adminArticleDetailSelect = {
   excerpt: true,
   coverImage: true,
   status: true,
+  commentsMode: true,
   metaTitle: true,
   metaDescription: true,
   metaKeywords: true,

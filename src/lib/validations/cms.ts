@@ -1,6 +1,8 @@
 import { ArticleStatus, CommentStatus } from '@prisma/client'
 import { z } from 'zod'
 
+import { ARTICLE_COMMENTS_MODES } from '@/lib/comment-settings'
+
 const optionalTrimmedString = z
   .string()
   .trim()
@@ -60,6 +62,7 @@ export const articleInputSchema = z
     contentMarkdown: z.string().trim().min(1),
     coverImage: optionalTrimmedString,
     status: z.nativeEnum(ArticleStatus).default(ArticleStatus.DRAFT),
+    commentsMode: z.enum(ARTICLE_COMMENTS_MODES).default('enabled'),
     metaTitle: optionalTrimmedString,
     metaDescription: optionalTrimmedString,
     metaKeywords: optionalTrimmedString,
@@ -74,12 +77,14 @@ export const articleInputSchema = z
 export const articleUpdateSchema = articleInputSchema
   .omit({
     status: true,
+    commentsMode: true,
     isPinned: true,
     tagIds: true,
   })
   .partial()
   .extend({
     status: z.nativeEnum(ArticleStatus).optional(),
+    commentsMode: z.enum(ARTICLE_COMMENTS_MODES).optional(),
     isPinned: z.boolean().optional(),
     tagIds: tagIdsSchema.optional(),
   })

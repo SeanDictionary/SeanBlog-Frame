@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
 import { ArticleEditor } from '@/components/admin/article-editor'
+import { fromPrismaArticleCommentsMode } from '@/lib/comment-settings'
 import { getAdminArticleById } from '@/lib/services/article-service'
 import { listCategories } from '@/lib/services/category-service'
 import { listTags } from '@/lib/services/tag-service'
@@ -34,6 +35,7 @@ export default async function EditArticlePage({ params }: EditArticlePageProps) 
             excerpt: article.excerpt,
             contentMarkdown: article.contentMarkdown,
             status: article.status,
+            commentsMode: fromPrismaArticleCommentsMode(article.commentsMode),
             categoryId: article.categoryId,
             tagIds: article.tags.map((tag) => tag.id),
             isPinned: article.isPinned,
