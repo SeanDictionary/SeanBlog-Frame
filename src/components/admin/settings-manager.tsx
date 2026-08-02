@@ -30,8 +30,12 @@ export function SettingsManager({ initialSettings, availableThemes }: SettingsMa
   const [message, setMessage] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const activeTheme = String(settings.find((setting) => setting.key === 'activeTheme')?.value ?? 'default')
+  const showPublishedAt = settings.find((setting) => setting.key === 'articleMetaShowPublishedAt')?.value !== false
+  const showViewCount = settings.find((setting) => setting.key === 'articleMetaShowViewCount')?.value !== false
   const showReadingTime = settings.find((setting) => setting.key === 'articleMetaShowReadingTime')?.value !== false
   const showWordCount = settings.find((setting) => setting.key === 'articleMetaShowWordCount')?.value !== false
+  const showCategory = settings.find((setting) => setting.key === 'articleMetaShowCategory')?.value !== false
+  const showTags = settings.find((setting) => setting.key === 'articleMetaShowTags')?.value !== false
   const commentsMode = String(settings.find((setting) => setting.key === 'articleCommentsMode')?.value ?? 'enabled')
 
   function reportError(error: unknown, fallback: string) {
@@ -177,29 +181,47 @@ export function SettingsManager({ initialSettings, availableThemes }: SettingsMa
               <option value="disabled">完全关闭评论</option>
             </select>
           </form>
-          <form action={(formData) => save('articleMetaShowReadingTime', formData.get('showReadingTime') === 'on' ? 'true' : 'false')} className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-neutral-200 p-4 dark:border-neutral-800">
-            <label className="inline-flex items-center gap-2 text-sm font-medium">
-              <input name="showReadingTime" type="checkbox" defaultChecked={showReadingTime} />
-              显示预估阅读时间
-            </label>
-            <button disabled={isPending} className="text-sm text-blue-600">保存</button>
-          </form>
-          <form action={(formData) => save('articleMetaShowWordCount', formData.get('showWordCount') === 'on' ? 'true' : 'false')} className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-neutral-200 p-4 dark:border-neutral-800">
-            <label className="inline-flex items-center gap-2 text-sm font-medium">
-              <input name="showWordCount" type="checkbox" defaultChecked={showWordCount} />
-              显示文章字数
-            </label>
-            <button disabled={isPending} className="text-sm text-blue-600">保存</button>
-          </form>
+          <MetadataToggle settingKey="articleMetaShowPublishedAt" fieldName="showPublishedAt" label="显示发布时间" checked={showPublishedAt} isPending={isPending} onSave={save} />
+          <MetadataToggle settingKey="articleMetaShowViewCount" fieldName="showViewCount" label="显示阅读次数" checked={showViewCount} isPending={isPending} onSave={save} />
+          <MetadataToggle settingKey="articleMetaShowReadingTime" fieldName="showReadingTime" label="显示预估阅读时间" checked={showReadingTime} isPending={isPending} onSave={save} />
+          <MetadataToggle settingKey="articleMetaShowWordCount" fieldName="showWordCount" label="显示文章字数" checked={showWordCount} isPending={isPending} onSave={save} />
+          <MetadataToggle settingKey="articleMetaShowCategory" fieldName="showCategory" label="显示分类" checked={showCategory} isPending={isPending} onSave={save} />
+          <MetadataToggle settingKey="articleMetaShowTags" fieldName="showTags" label="显示标签" checked={showTags} isPending={isPending} onSave={save} />
         </div>
       </section>
 
       <section className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-950">
         <h2 className="font-semibold">其他设置</h2>
-        <div className="mt-5 space-y-4">{settings.filter((setting) => !['activeTheme', 'siteName', 'siteDescription', 'siteUrl', 'articleCommentsMode', 'articleMetaShowReadingTime', 'articleMetaShowWordCount'].includes(setting.key)).map((setting) => <form key={setting.id} action={(formData) => save(setting.key, String(formData.get('value') ?? ''))} className="grid gap-2 sm:grid-cols-[12rem_1fr_auto]"><label className="font-mono text-sm sm:pt-2.5">{setting.key}</label><textarea name="value" defaultValue={stringifyValue(setting.value)} rows={2} className="rounded-md border border-neutral-300 bg-white p-3 font-mono text-xs outline-none dark:border-neutral-700 dark:bg-neutral-900" /><button disabled={isPending} className="text-sm text-blue-600">保存</button></form>)}</div>
+        <div className="mt-5 space-y-4">{settings.filter((setting) => !['activeTheme', 'siteName', 'siteDescription', 'siteUrl', 'articleCommentsMode', 'articleMetaShowPublishedAt', 'articleMetaShowViewCount', 'articleMetaShowReadingTime', 'articleMetaShowWordCount', 'articleMetaShowCategory', 'articleMetaShowTags'].includes(setting.key)).map((setting) => <form key={setting.id} action={(formData) => save(setting.key, String(formData.get('value') ?? ''))} className="grid gap-2 sm:grid-cols-[12rem_1fr_auto]"><label className="font-mono text-sm sm:pt-2.5">{setting.key}</label><textarea name="value" defaultValue={stringifyValue(setting.value)} rows={2} className="rounded-md border border-neutral-300 bg-white p-3 font-mono text-xs outline-none dark:border-neutral-700 dark:bg-neutral-900" /><button disabled={isPending} className="text-sm text-blue-600">保存</button></form>)}</div>
       </section>
 
       {message && <p className="text-sm text-neutral-500" role="status">{message}</p>}
     </div>
+  )
+}
+
+function MetadataToggle({
+  settingKey,
+  fieldName,
+  label,
+  checked,
+  isPending,
+  onSave,
+}: {
+  settingKey: string
+  fieldName: string
+  label: string
+  checked: boolean
+  isPending: boolean
+  onSave: (key: string, rawValue: string) => void
+}) {
+  return (
+    <form action={(formData) => onSave(settingKey, formData.get(fieldName) === 'on' ? 'true' : 'false')} className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-neutral-200 p-4 dark:border-neutral-800">
+      <label className="inline-flex items-center gap-2 text-sm font-medium">
+        <input name={fieldName} type="checkbox" defaultChecked={checked} />
+        {label}
+      </label>
+      <button disabled={isPending} className="text-sm text-blue-600">保存</button>
+    </form>
   )
 }

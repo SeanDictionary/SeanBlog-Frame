@@ -83,8 +83,12 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
       getPublicArticleNavigation(slug),
     ])
     const { contentHtml, headings } = getHeadings(article.contentHtml)
+    const showPublishedAt = settings.articleMetaShowPublishedAt !== false
+    const showViewCount = settings.articleMetaShowViewCount !== false
     const showReadingTime = settings.articleMetaShowReadingTime !== false
     const showWordCount = settings.articleMetaShowWordCount !== false
+    const showCategory = settings.articleMetaShowCategory !== false
+    const showTags = settings.articleMetaShowTags !== false
     const commentsMode = resolveArticleCommentsMode(settings.articleCommentsMode)
     const readingMinutes = estimateReadingMinutesFromHtml(contentHtml)
     const wordCount = countContentWordsFromHtml(contentHtml)
@@ -102,8 +106,16 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                   category={article.category}
                   tags={article.tags}
                   viewCount={article.viewCount}
-                  readingMinutes={showReadingTime ? readingMinutes : undefined}
-                  wordCount={showWordCount ? wordCount : undefined}
+                  readingMinutes={readingMinutes}
+                  wordCount={wordCount}
+                  visibility={{
+                    showPublishedAt,
+                    showViewCount,
+                    showReadingTime,
+                    showWordCount,
+                    showCategory,
+                    showTags,
+                  }}
                 />
               </div>
             </header>
