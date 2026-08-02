@@ -6,6 +6,7 @@ import { ArticleMeta } from '@/components/article/article-meta'
 import { ArticleNavigation } from '@/components/article/article-navigation'
 import { ArticleToc } from '@/components/article/article-toc'
 import { CommentList } from '@/components/comment/comment-list'
+import { resolveArticleCommentsMode } from '@/lib/comment-settings'
 import { countContentWordsFromHtml, estimateReadingMinutesFromHtml } from '@/lib/content/reading-time'
 import { getPublicArticleBySlug, getPublicArticleNavigation } from '@/lib/services/article-service'
 import { getSiteSettingsMap } from '@/lib/services/setting-service'
@@ -84,6 +85,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     const { contentHtml, headings } = getHeadings(article.contentHtml)
     const showReadingTime = settings.articleMetaShowReadingTime !== false
     const showWordCount = settings.articleMetaShowWordCount !== false
+    const commentsMode = resolveArticleCommentsMode(settings.articleCommentsMode)
     const readingMinutes = estimateReadingMinutesFromHtml(contentHtml)
     const wordCount = countContentWordsFromHtml(contentHtml)
 
@@ -108,7 +110,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
 
             <ArticleContent html={contentHtml} />
             <ArticleNavigation previous={navigation.previous} next={navigation.next} />
-            <CommentList articleId={article.id} comments={article.comments} />
+            <CommentList articleId={article.id} comments={article.comments} mode={commentsMode} />
           </article>
 
           <ArticleToc headings={headings} />

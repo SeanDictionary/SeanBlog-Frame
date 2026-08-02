@@ -1,9 +1,11 @@
 import { CommentStatus, Prisma } from '@prisma/client'
 
-import { notFound, tooManyRequests } from '@/lib/api/errors'
+import { forbidden, notFound, tooManyRequests } from '@/lib/api/errors'
 import { checkCommentRateLimit, extractIp, getClientRateLimitIdentifier } from '@/lib/api/rate-limit'
+import { canSubmitArticleComments, resolveArticleCommentsMode } from '@/lib/comment-settings'
 import { getPrisma } from '@/lib/prisma'
 import { pageMeta, paginate } from '@/lib/services/shared'
+import { getSiteSettingsMap } from '@/lib/services/setting-service'
 import type { CommentInput } from '@/lib/validations/cms'
 
 function toPublicCommentReceipt(comment: {
@@ -57,6 +59,12 @@ function toAdminComment(comment: {
 }
 
 export async function createComment(input: CommentInput, request?: Request) {
+  const settings = await getSiteSettingsMap()
+
+  if (!canSubmitArticleComments(resolveArticleCommentsMode(settings.articleCommentsMode))) {
+    throw forbidden('New comments are currently closed.')
+  }
+
   const ip = extractIp(request)
 
   if (!checkCommentRateLimit(getClientRateLimitIdentifier(request))) {
