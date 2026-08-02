@@ -42,6 +42,35 @@ const DASHBOARD_CARD_SIZE_CLASSES: Record<DashboardCardSize, string> = {
   '2x2': 'min-h-[22rem] sm:col-span-2 sm:row-span-2 sm:min-h-0',
 }
 
+type DashboardCardPresentation = 'metric' | 'collection' | 'action' | 'placeholder'
+
+type DashboardCardConfiguration = {
+  allowedSizes: readonly DashboardCardSize[]
+  defaultSize: DashboardCardSize
+  presentation: DashboardCardPresentation
+}
+
+const DASHBOARD_CARD_CONFIG: Record<string, DashboardCardConfiguration> = {
+  articles: { allowedSizes: ['1x1', '1x2'], defaultSize: '1x1', presentation: 'metric' },
+  drafts: { allowedSizes: ['1x1', '1x2'], defaultSize: '1x1', presentation: 'metric' },
+  pendingComments: { allowedSizes: ['1x1', '1x2'], defaultSize: '1x1', presentation: 'metric' },
+  media: { allowedSizes: ['1x1', '1x2'], defaultSize: '1x1', presentation: 'metric' },
+  latestArticles: { allowedSizes: ['1x2', '2x2'], defaultSize: '1x2', presentation: 'collection' },
+  popularArticles: { allowedSizes: ['1x2', '2x2'], defaultSize: '1x2', presentation: 'collection' },
+  siteAnalytics: { allowedSizes: ['1x1'], defaultSize: '1x1', presentation: 'placeholder' },
+  quickCreateArticle: { allowedSizes: ['1x1'], defaultSize: '1x1', presentation: 'action' },
+}
+
+const DEFAULT_DASHBOARD_CARD_CONFIG: DashboardCardConfiguration = {
+  allowedSizes: ['1x1'],
+  defaultSize: '1x1',
+  presentation: 'metric',
+}
+
+function getDashboardCardConfig(key: string) {
+  return DASHBOARD_CARD_CONFIG[key] ?? DEFAULT_DASHBOARD_CARD_CONFIG
+}
+
 type DashboardCardLayout = {
   key: string
   visible: boolean
@@ -68,15 +97,23 @@ function normalizeLayout(cards: DashboardCard[], value: unknown): DashboardCardL
   const configured = rawItems
     .filter((item): item is { key: string; visible?: unknown; size?: unknown } => typeof item === 'object' && item !== null && 'key' in item && typeof item.key === 'string')
     .filter((item) => cardKeys.has(item.key))
-    .map((item) => ({
-      key: item.key,
-      visible: item.visible !== false,
-      size: isDashboardCardSize(item.size) ? item.size : '1x1',
-    }))
+    .map((item) => {
+      const config = getDashboardCardConfig(item.key)
+
+      return {
+        key: item.key,
+        visible: item.visible !== false,
+        size: isDashboardCardSize(item.size) && config.allowedSizes.includes(item.size) ? item.size : config.defaultSize,
+      }
+    })
   const configuredKeys = new Set(configured.map((item) => item.key))
   const missing = cards
     .filter((card) => !configuredKeys.has(card.key))
-    .map((card) => ({ key: card.key, visible: true, size: '1x1' as const }))
+    .map((card) => {
+      const config = getDashboardCardConfig(card.key)
+
+      return { key: card.key, visible: true, size: config.defaultSize }
+    })
 
   return [...configured, ...missing]
 }
@@ -101,7 +138,8 @@ function reorderItem(items: DashboardCardLayout[], sourceKey: string, targetKey:
 
 function DashboardStatCard({
   card,
-  size = '1x1',
+  size,
+  presentation,
   action,
   dragging,
   draggable = false,
@@ -113,7 +151,8 @@ function DashboardStatCard({
   onSizeChange,
 }: {
   card: DashboardCard
-  size?: DashboardCardSize
+  size: DashboardCardSize
+  presentation: DashboardCardPresentation
   action?: 'add' | 'remove'
   dragging?: boolean
   draggable?: boolean
@@ -142,7 +181,7 @@ function DashboardStatCard({
                 onChange={(event) => onSizeChange(event.target.value as DashboardCardSize)}
                 className="h-8 rounded-md border border-neutral-200 bg-white px-2 text-xs font-medium text-neutral-600 outline-none transition-colors hover:border-neutral-300 focus:border-neutral-500 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-300 dark:hover:border-neutral-600 dark:focus:border-neutral-400 dark:focus:ring-neutral-800"
               >
-                {DASHBOARD_CARD_SIZES.map((option) => (
+                {getDashboardCardConfig(card.key).allowedSizes.map((option) => (
                   <option key={option} value={option}>{DASHBOARD_CARD_SIZE_LABELS[option]}</option>
                 ))}
               </select>
@@ -166,7 +205,27 @@ function DashboardStatCard({
         </div>
       )}
 
-      {size === '1x1' && (
+      {presentation === 'action' ? (
+        <div className="flex h-full flex-col justify-between">
+          <span className="grid size-10 place-items-center rounded-full bg-white/10 text-white dark:bg-neutral-900 dark:text-neutral-100">
+            <i className={`${card.icon} text-sm`} aria-hidden="true" />
+          </span>
+          <div>
+            <p className="text-2xl font-semibold tracking-tight">{card.label}</p>
+            <p className="mt-1 text-sm text-white/65 dark:text-neutral-600">{card.status}</p>
+          </div>
+        </div>
+      ) : presentation === 'placeholder' ? (
+        <div className="flex h-full flex-col justify-between border border-dashed border-neutral-300 bg-neutral-50/80 p-1 dark:border-neutral-700 dark:bg-neutral-900/50">
+          <span className="grid size-9 place-items-center rounded-md border border-neutral-200 bg-white text-neutral-400 dark:border-neutral-700 dark:bg-neutral-950">
+            <i className={`${card.icon} text-sm`} aria-hidden="true" />
+          </span>
+          <div>
+            <p className="text-sm font-medium">{card.label}</p>
+            <p className="mt-1 text-xs leading-5 text-neutral-500">{card.status}</p>
+          </div>
+        </div>
+      ) : size === '1x1' && (
         <>
           <i className={`${card.icon} text-neutral-400`} aria-hidden="true" />
           <p className="mt-5 text-3xl font-semibold">{primaryValue}</p>
@@ -175,7 +234,7 @@ function DashboardStatCard({
         </>
       )}
 
-      {size === '1x2' && (
+      {presentation !== 'action' && presentation !== 'placeholder' && size === '1x2' && (
         <div className="flex h-full items-end justify-between gap-5">
           <div>
             <i className={`${card.icon} text-neutral-400`} aria-hidden="true" />
@@ -189,7 +248,7 @@ function DashboardStatCard({
         </div>
       )}
 
-      {size === '2x2' && (
+      {presentation === 'collection' && size === '2x2' && (
         <div className="flex h-full flex-col">
           <div className="flex items-start justify-between gap-4 pr-24">
             <div>
@@ -223,15 +282,15 @@ function DashboardStatCard({
     </>
   )
 
-  const cardClassName = `relative h-full rounded-lg border border-neutral-200 bg-white p-5 transition-colors dark:border-neutral-800 dark:bg-neutral-950 ${
+  const cardClassName = `relative h-full rounded-xl border border-neutral-200 bg-white p-5 transition-[border-color,box-shadow,transform] dark:border-neutral-800 dark:bg-neutral-950 ${
     DASHBOARD_CARD_SIZE_CLASSES[size]
-  } ${draggable ? 'cursor-grab active:cursor-grabbing' : ''} ${dragging ? 'opacity-50' : ''}`
+  } ${presentation === 'action' ? 'border-neutral-950 bg-neutral-950 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950' : ''} ${presentation === 'placeholder' ? 'border-dashed bg-neutral-50 dark:bg-neutral-900' : ''} ${draggable ? 'cursor-grab active:cursor-grabbing' : ''} ${dragging ? 'scale-[0.98] opacity-50' : ''}`
 
   if (!draggable && !action && card.href) {
     return (
       <Link
         href={card.href}
-        className={`${cardClassName} block text-left hover:border-neutral-300 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 focus-visible:ring-offset-2 dark:hover:border-neutral-700 dark:focus-visible:ring-neutral-400 dark:focus-visible:ring-offset-neutral-950`}
+        className={`${cardClassName} block text-left hover:-translate-y-0.5 hover:border-neutral-400 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 focus-visible:ring-offset-2 dark:hover:border-neutral-600 dark:focus-visible:ring-neutral-400 dark:focus-visible:ring-offset-neutral-950`}
         aria-label={`查看${card.label}`}
       >
         {cardContent}
@@ -309,16 +368,19 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
 
   function renderVisibleCard(card: DashboardCard) {
     const item = layout.find((layoutItem) => layoutItem.key === card.key)
+    const config = getDashboardCardConfig(card.key)
+    const size = item?.size ?? config.defaultSize
 
     return (
       <DashboardStatCard
         key={card.key}
         card={card}
-        size={item?.size ?? '1x1'}
+        size={size}
+        presentation={config.presentation}
         action={isManaging ? 'remove' : undefined}
         dragging={draggingKey === card.key}
         draggable={isManaging}
-        onSizeChange={isManaging && item ? (size) => setCardSize(card.key, size) : undefined}
+        onSizeChange={isManaging && item && config.allowedSizes.length > 1 ? (nextSize) => setCardSize(card.key, nextSize) : undefined}
         onDragStart={(event) => {
           draggingKeyRef.current = card.key
           setDraggingKey(card.key)
@@ -355,11 +417,25 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
     )
   }
 
+  function renderHiddenCard(card: DashboardCard) {
+    const config = getDashboardCardConfig(card.key)
+
+    return (
+      <DashboardStatCard
+        key={card.key}
+        card={card}
+        size={config.defaultSize}
+        presentation={config.presentation}
+        action="add"
+        onAction={() => setCardVisibility(card.key, true)}
+      />
+    )
+  }
+
   return (
     <div>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        {isManaging ? (<p className="text-sm text-neutral-500">当前显示 {orderedCards.length} / {cards.length} 张卡片</p>)
-          : (<p></p>)}
+      <div className="mb-4 flex flex-wrap items-center justify-end gap-3">
+        {isManaging && <p className="mr-auto text-sm text-neutral-500">当前显示 {orderedCards.length} / {cards.length} 张卡片</p>}
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-sm text-neutral-500" aria-live="polite">{isPending ? '正在自动保存…' : message}</span>
           <button
@@ -392,9 +468,7 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
           </div>
           {hiddenCards.length > 0 ? (
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              {hiddenCards.map((card) => (
-                <DashboardStatCard key={card.key} card={card} action="add" onAction={() => setCardVisibility(card.key, true)} />
-              ))}
+              {hiddenCards.map(renderHiddenCard)}
             </div>
           ) : (
             <div className="rounded-lg border border-dashed border-neutral-300 p-6 text-center text-sm text-neutral-500 dark:border-neutral-700">
