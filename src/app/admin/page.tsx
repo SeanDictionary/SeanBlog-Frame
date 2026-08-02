@@ -2,12 +2,29 @@ import { DashboardManager } from '@/components/admin/dashboard-manager'
 import { getPrisma } from '@/lib/prisma'
 import { getSiteSettingsMap } from '@/lib/services/setting-service'
 
+function formatArticleDate(date: Date | null) {
+  return date ? date.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' }) : '未发布'
+}
+
 export default async function AdminDashboardPage() {
-  const [articles, drafts, pendingComments, media, settings] = await Promise.all([
-    getPrisma().article.count(),
-    getPrisma().article.count({ where: { status: 'DRAFT' } }),
-    getPrisma().comment.count({ where: { status: 'PENDING' } }),
-    getPrisma().media.count(),
+  const prisma = getPrisma()
+  const [articles, drafts, pendingComments, media, latestArticles, popularArticles, settings] = await Promise.all([
+    prisma.article.count(),
+    prisma.article.count({ where: { status: 'DRAFT' } }),
+    prisma.comment.count({ where: { status: 'PENDING' } }),
+    prisma.media.count(),
+    prisma.article.findMany({
+      where: { status: 'PUBLISHED', publishedAt: { not: null } },
+      orderBy: { publishedAt: 'desc' },
+      take: 3,
+      select: { title: true, publishedAt: true },
+    }),
+    prisma.article.findMany({
+      where: { status: 'PUBLISHED', publishedAt: { not: null } },
+      orderBy: [{ viewCount: 'desc' }, { publishedAt: 'desc' }],
+      take: 3,
+      select: { title: true, viewCount: true },
+    }),
     getSiteSettingsMap(),
   ])
 
@@ -63,6 +80,64 @@ export default async function AdminDashboardPage() {
         { label: '媒体库状态', value: media > 0 ? '已有内容' : '空' },
       ],
       href: '/admin/media' as const,
+    },
+    {
+      key: 'latestArticles',
+      label: '最新文章',
+      value: latestArticles.length,
+      icon: 'fa-regular fa-clock',
+      status: latestArticles.length > 0 ? '最近发布内容' : '尚无已发布文章',
+      description: '最近发布的文章会显示在大尺寸卡片中，方便快速了解内容更新情况。',
+      details: [
+        { label: '展示数量', value: `${latestArticles.length} 篇` },
+        { label: '排序方式', value: '发布时间' },
+      ],
+      listItems: latestArticles.map((article) => ({
+        title: article.title,
+        detail: formatArticleDate(article.publishedAt),
+      })),
+      href: '/admin/articles?status=PUBLISHED' as const,
+    },
+    {
+      key: 'popularArticles',
+      label: '最热文章',
+      value: popularArticles[0]?.viewCount ?? 0,
+      icon: 'fa-solid fa-fire',
+      status: popularArticles.length > 0 ? '按历史浏览量排序' : '尚无已发布文章',
+      description: '当前按文章累计浏览量排列。按时间范围的热度统计将在统计功能完成后接入。',
+      details: [
+        { label: '展示数量', value: `${popularArticles.length} 篇` },
+        { label: '统计范围', value: '历史累计' },
+      ],
+      listItems: popularArticles.map((article) => ({
+        title: article.title,
+        detail: `${article.viewCount} 次阅读`,
+      })),
+      href: '/admin/articles?status=PUBLISHED' as const,
+    },
+    {
+      key: 'siteAnalytics',
+      label: '全站统计',
+      icon: 'fa-solid fa-chart-pie',
+      status: '统计功能待接入',
+      description: '访问量、访客数、来源和趋势等统计指标将在后续的后台统计需求完成后显示。',
+      details: [
+        { label: '访问量', value: '待接入' },
+        { label: '访客数', value: '待接入' },
+      ],
+    },
+    {
+      key: 'quickCreateArticle',
+      label: '快速新建文章',
+      value: '＋',
+      icon: 'fa-solid fa-pen-to-square',
+      status: '开始一篇新文章',
+      description: '打开文章编辑器，开始撰写并保存新的文章内容。',
+      details: [
+        { label: '当前草稿', value: `${drafts} 篇` },
+        { label: '下一步', value: '填写标题与正文' },
+      ],
+      href: '/admin/articles/new' as const,
     },
   ]
 

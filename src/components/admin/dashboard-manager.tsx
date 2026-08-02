@@ -9,15 +9,21 @@ type DashboardCardDetail = {
   value: string
 }
 
+type DashboardCardListItem = {
+  title: string
+  detail: string
+}
+
 type DashboardCard = {
   key: string
   label: string
-  value: number
+  value?: number | string
   icon: string
   status: string
   description: string
   details: DashboardCardDetail[]
-  href: Route
+  listItems?: DashboardCardListItem[]
+  href?: Route
 }
 
 const DASHBOARD_CARD_SIZES = ['1x1', '1x2', '2x2'] as const
@@ -121,6 +127,8 @@ function DashboardStatCard({
   const actionLabel = action === 'add' ? '添加卡片' : '移除卡片'
   const actionIcon = action === 'add' ? 'fa-plus' : 'fa-xmark'
   const hasTopRightControls = action || onSizeChange
+  const primaryValue = card.value === undefined ? '—' : card.value
+
   const cardContent = (
     <>
     {hasTopRightControls && (
@@ -161,7 +169,7 @@ function DashboardStatCard({
       {size === '1x1' && (
         <>
           <i className={`${card.icon} text-neutral-400`} aria-hidden="true" />
-          <p className="mt-5 text-3xl font-semibold">{card.value}</p>
+          <p className="mt-5 text-3xl font-semibold">{primaryValue}</p>
           <p className="mt-1 text-sm text-neutral-500">{card.label}</p>
           <p className="mt-4 text-xs text-neutral-400">{card.status}</p>
         </>
@@ -171,7 +179,7 @@ function DashboardStatCard({
         <div className="flex h-full items-end justify-between gap-5">
           <div>
             <i className={`${card.icon} text-neutral-400`} aria-hidden="true" />
-            <p className="mt-5 text-3xl font-semibold">{card.value}</p>
+            <p className="mt-5 text-3xl font-semibold">{primaryValue}</p>
             <p className="mt-1 text-sm text-neutral-500">{card.label}</p>
           </div>
           <div className="mb-1 max-w-48 border-l border-neutral-200 pl-4 text-right dark:border-neutral-800">
@@ -186,7 +194,7 @@ function DashboardStatCard({
           <div className="flex items-start justify-between gap-4 pr-24">
             <div>
               <i className={`${card.icon} text-neutral-400`} aria-hidden="true" />
-              <p className="mt-5 text-4xl font-semibold">{card.value}</p>
+              <p className="mt-5 text-4xl font-semibold">{primaryValue}</p>
               <p className="mt-1 text-sm text-neutral-500">{card.label}</p>
             </div>
             <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-500 dark:bg-neutral-900 dark:text-neutral-400">{card.status}</span>
@@ -200,6 +208,16 @@ function DashboardStatCard({
               </div>
             ))}
           </dl>
+          {card.listItems && card.listItems.length > 0 && (
+            <ul className="mt-4 divide-y divide-neutral-200 border-t border-neutral-200 text-sm dark:divide-neutral-800 dark:border-neutral-800">
+              {card.listItems.map((item) => (
+                <li key={item.title} className="flex items-center justify-between gap-3 py-2.5">
+                  <span className="min-w-0 truncate text-neutral-700 dark:text-neutral-300">{item.title}</span>
+                  <span className="shrink-0 text-xs text-neutral-500">{item.detail}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
     </>
@@ -209,7 +227,7 @@ function DashboardStatCard({
     DASHBOARD_CARD_SIZE_CLASSES[size]
   } ${draggable ? 'cursor-grab active:cursor-grabbing' : ''} ${dragging ? 'opacity-50' : ''}`
 
-  if (!draggable && !action) {
+  if (!draggable && !action && card.href) {
     return (
       <Link
         href={card.href}
@@ -340,7 +358,7 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-neutral-500">当前显示 {orderedCards.length} / {cards.length} 张卡片</p>
+        <p className="text-sm text-neutral-500"></p>
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-sm text-neutral-500" aria-live="polite">{isPending ? '正在自动保存…' : message}</span>
           <button
@@ -358,7 +376,7 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
       {isManaging && (
         <section className="mb-5 rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-950" aria-label="管理仪表盘卡片">
           <h2 className="font-semibold">管理概览卡片</h2>
-          <p className="mt-1 text-sm text-neutral-500">拖动上方卡片调整排序；仅显示中的卡片可在右上角选择尺寸（1 × 1、1 × 2 或 2 × 2），修改后会自动保存。</p>
+          <p className="mt-1 text-sm text-neutral-500">拖动显示中的卡片调整排序；右上角可选择尺寸或移除卡片。未显示卡片仅可重新添加；未接入内容的卡片会保留占位说明。</p>
         </section>
       )}
 
