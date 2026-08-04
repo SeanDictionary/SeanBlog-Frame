@@ -7,8 +7,7 @@ import { AdminSidebarClient } from '@/components/layout/admin-sidebar-client'
 const adminNavigation: Array<{ href: Route; label: string; icon: string }> = [
   { href: '/admin', label: '概览', icon: 'fa-solid fa-chart-line' },
   { href: '/admin/articles', label: '文章', icon: 'fa-regular fa-file-lines' },
-  { href: '/admin/categories', label: '分类', icon: 'fa-solid fa-folder-tree' },
-  { href: '/admin/tags', label: '标签', icon: 'fa-solid fa-tags' },
+  { href: '/admin/taxonomy' as Route, label: '分类标签', icon: 'fa-solid fa-folder-tree' },
   { href: '/admin/comments', label: '评论', icon: 'fa-regular fa-comments' },
   { href: '/admin/media', label: '媒体', icon: 'fa-regular fa-images' },
   { href: '/admin/settings', label: '设置', icon: 'fa-solid fa-sliders' },
