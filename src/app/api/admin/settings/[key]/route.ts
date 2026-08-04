@@ -40,8 +40,12 @@ export async function PUT(request: Request, { params }: { params: Promise<{ key:
 
     const setting = await upsertSetting(key, input.value)
 
-    if (key === 'activeTheme') {
+    if (key === 'activeTheme' || key.startsWith('publicHeader') || key.startsWith('publicFooter') || key.startsWith('theme')) {
       revalidatePath('/(public)', 'layout')
+    }
+
+    if (key.startsWith('adminSidebar')) {
+      revalidatePath('/admin', 'layout')
     }
 
     if (key.startsWith('articleMeta')) {

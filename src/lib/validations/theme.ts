@@ -43,15 +43,17 @@ export function assertThemeName(value: unknown) {
 
 const unsafeCssPattern = /<\/?style|[<>]|url\(|@import|!important/i
 
+const componentSelectorPattern = /^(\.sb-[a-z0-9-]+|\.sf-[a-z0-9-]+|\.article-content)([\s>]+[a-z0-9_.:#\-[\]=\"'()]+)*$/i
+
 function assertDeclarations(rule: postcss.Rule) {
-  if (rule.selector !== ':root') {
-    throw badRequest('Theme CSS may only define variables on :root.', 'INVALID_THEME_CSS')
+  if (rule.selector !== ':root' && !componentSelectorPattern.test(rule.selector)) {
+    throw badRequest('Theme CSS may only define :root variables or safe .sb-/.sf- component selectors.', 'INVALID_THEME_CSS')
   }
 
   rule.each((node) => {
     if (
       node.type !== 'decl'
-      || !allowedVariables.has(node.prop)
+      || (rule.selector === ':root' && !allowedVariables.has(node.prop))
       || !node.value
       || node.important
       || unsafeCssPattern.test(node.value)
