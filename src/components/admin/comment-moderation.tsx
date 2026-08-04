@@ -62,6 +62,8 @@ export function CommentModeration({ initialComments, emptyMessage = '当前没�
   }
 
   function purge(id: string) {
+    if (!window.confirm('确认彻底删除这条评论吗？该操作不可撤销。')) return
+
     setMessage(null)
     setActiveAction({ id, action: 'DELETE' })
 

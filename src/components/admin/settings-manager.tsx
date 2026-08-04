@@ -104,6 +104,8 @@ export function SettingsManager({ initialSettings, availableThemes }: SettingsMa
   }
 
   function deleteTheme(theme: string) {
+    if (!window.confirm(`确认删除主题 ${theme} 吗？该操作不可撤销。`)) return
+
     startTransition(async () => {
       setMessage(null)
 

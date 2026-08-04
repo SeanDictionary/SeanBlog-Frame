@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 
 import { ArticleEditor } from '@/components/admin/article-editor'
 import { fromPrismaArticleCommentsMode } from '@/lib/comment-settings'
+import { isDatabaseError } from '@/lib/database-errors'
 import { getAdminArticleById } from '@/lib/services/article-service'
 import { listCategories } from '@/lib/services/category-service'
 import { listTags } from '@/lib/services/tag-service'
@@ -54,7 +55,8 @@ export default async function EditArticlePage({ params }: EditArticlePageProps) 
         />
       </div>
     )
-  } catch {
+  } catch (error) {
+    if (isDatabaseError(error)) throw error
     notFound()
   }
 }

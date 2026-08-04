@@ -124,7 +124,11 @@ export function TaxonomyManager({ type, initialItems }: TaxonomyManagerProps) {
           ) : (
             <div key={item.id} className="flex items-center justify-between gap-5 px-6 py-4">
               <div className="min-w-0"><p className="font-medium">{item.name}</p><p className="mt-1 truncate font-mono text-xs text-neutral-500">/{item.slug}{item.description ? ` · ${item.description}` : ''}</p></div>
-              <div className="flex shrink-0 items-center gap-4 text-sm"><span className="text-neutral-500">{item._count.articles} 篇</span><button type="button" onClick={() => setEditingId(item.id)} className="text-neutral-500 hover:text-neutral-950 dark:hover:text-neutral-50">编辑</button><button type="button" onClick={() => request(`/api/admin/${type}/${item.id}`, { method: 'DELETE' })} className="text-red-600 hover:text-red-700">删除</button></div>
+              <div className="flex shrink-0 items-center gap-4 text-sm"><span className="text-neutral-500">{item._count.articles} 篇</span><button type="button" onClick={() => setEditingId(item.id)} className="text-neutral-500 hover:text-neutral-950 dark:hover:text-neutral-50">编辑</button><button type="button" onClick={() => {
+                if (window.confirm(`确认删除${copy.singular}「${item.name}」吗？文章不会被删除，但会失去该关联。`)) {
+                  request(`/api/admin/${type}/${item.id}`, { method: 'DELETE' })
+                }
+              }} className="text-red-600 hover:text-red-700">删除</button></div>
             </div>
           )
         ))}</div> : <p className="px-6 py-14 text-center text-sm text-neutral-500">暂无{copy.plural}。</p>}

@@ -3,6 +3,7 @@ import type { Route } from 'next'
 
 import { ArticleCard } from '@/components/article/article-card'
 import { Pagination } from '@/components/pagination'
+import { isDatabaseError } from '@/lib/database-errors'
 import { getPublicCategoryBySlug } from '@/lib/services/category-service'
 import { listPublicArticles } from '@/lib/services/article-service'
 
@@ -45,7 +46,8 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
         <Pagination currentPage={result.meta.page} pageCount={result.meta.pageCount} hrefForPage={pageHref} />
       </div>
     )
-  } catch {
+  } catch (error) {
+    if (isDatabaseError(error)) throw error
     notFound()
   }
 }

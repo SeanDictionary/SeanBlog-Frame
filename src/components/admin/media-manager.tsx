@@ -53,6 +53,8 @@ export function MediaManager({ initialMedia }: MediaManagerProps) {
   }
 
   function remove(id: string) {
+    if (!window.confirm('确认删除这条媒体记录吗？该操作不会删除远端对象存储中的文件。')) return
+
     startTransition(async () => {
       try {
         const response = await fetch(`/api/admin/media/${id}`, { method: 'DELETE' })

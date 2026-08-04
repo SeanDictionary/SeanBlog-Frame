@@ -8,6 +8,7 @@ import { ArticleToc } from '@/components/article/article-toc'
 import { CommentList } from '@/components/comment/comment-list'
 import { fromPrismaArticleCommentsMode } from '@/lib/comment-settings'
 import { countContentWordsFromHtml, estimateReadingMinutesFromHtml } from '@/lib/content/reading-time'
+import { isDatabaseError } from '@/lib/database-errors'
 import { getPublicArticleBySlug, getPublicArticleNavigation } from '@/lib/services/article-service'
 import { getSiteSettingsMap } from '@/lib/services/setting-service'
 
@@ -68,7 +69,8 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
         images: article.coverImage ? [{ url: article.coverImage }] : undefined,
       },
     }
-  } catch {
+  } catch (error) {
+    if (isDatabaseError(error)) throw error
     return {}
   }
 }
@@ -129,7 +131,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         </div>
       </div>
     )
-  } catch {
+  } catch (error) {
+    if (isDatabaseError(error)) throw error
     notFound()
   }
 }

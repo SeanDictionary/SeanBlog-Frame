@@ -3,6 +3,7 @@ import type { Route } from 'next'
 
 import { ArticleCard } from '@/components/article/article-card'
 import { Pagination } from '@/components/pagination'
+import { isDatabaseError } from '@/lib/database-errors'
 import { listPublicArticles } from '@/lib/services/article-service'
 import { getPublicTagBySlug } from '@/lib/services/tag-service'
 
@@ -44,7 +45,8 @@ export default async function TagPage({ params, searchParams }: TagPageProps) {
         <Pagination currentPage={result.meta.page} pageCount={result.meta.pageCount} hrefForPage={pageHref} />
       </div>
     )
-  } catch {
+  } catch (error) {
+    if (isDatabaseError(error)) throw error
     notFound()
   }
 }

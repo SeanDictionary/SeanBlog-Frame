@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { ZodError } from 'zod'
 
 import { ApiError } from '@/lib/api/errors'
+import { getDatabaseErrorCode, isDatabaseError } from '@/lib/database-errors'
 
 export function json(data: unknown, init?: ResponseInit) {
   return NextResponse.json(data, init)
@@ -38,6 +39,20 @@ export function handleApiError(error: unknown) {
         },
       },
       { status: 400 },
+    )
+  }
+
+  if (isDatabaseError(error)) {
+    console.error(error)
+
+    return json(
+      {
+        error: {
+          code: getDatabaseErrorCode(error),
+          message: 'Database is unavailable. Check the PostgreSQL container and DATABASE_URL.',
+        },
+      },
+      { status: 503 },
     )
   }
 
