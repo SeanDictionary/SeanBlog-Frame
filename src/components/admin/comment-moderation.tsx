@@ -111,5 +111,18 @@ function ActionButton({ action, pending, disabled, onClick, className }: { actio
 
 function StatusBadge({ status }: { status: Comment['status'] }) {
   const copy = { PENDING: '待审核', APPROVED: '已通过', SPAM: '垃圾', TRASHED: '回收站' }[status]
-  return <span className="rounded-full bg-neutral-100 px-2 py-1 text-xs text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400">{copy}</span>
+  const styles = {
+    PENDING: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/70 dark:bg-amber-950/40 dark:text-amber-300',
+    APPROVED: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/40 dark:text-emerald-300',
+    SPAM: 'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-900/70 dark:bg-orange-950/40 dark:text-orange-300',
+    TRASHED: 'border-neutral-300 bg-neutral-100 text-neutral-600 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400',
+  } satisfies Record<Comment['status'], string>
+  const icons = {
+    PENDING: 'fa-regular fa-clock',
+    APPROVED: 'fa-solid fa-check',
+    SPAM: 'fa-solid fa-triangle-exclamation',
+    TRASHED: 'fa-regular fa-trash-can',
+  } satisfies Record<Comment['status'], string>
+
+  return <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${styles[status]}`}><i className={`${icons[status]} text-[0.65rem]`} aria-hidden="true" />{copy}</span>
 }
