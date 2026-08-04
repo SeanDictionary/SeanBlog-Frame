@@ -1,7 +1,6 @@
-import { ArticleStatus } from '@prisma/client'
-
 export const dynamic = 'force-dynamic'
 
+import { getPublicArticleWhere } from '@/lib/services/article-visibility'
 import { getPrisma } from '@/lib/prisma'
 import { getSiteSettingsMap } from '@/lib/services/setting-service'
 
@@ -18,12 +17,7 @@ export async function GET() {
   const [settings, articles] = await Promise.all([
     getSiteSettingsMap(),
     getPrisma().article.findMany({
-      where: {
-        status: ArticleStatus.PUBLISHED,
-        publishedAt: {
-          not: null,
-        },
-      },
+      where: getPublicArticleWhere(),
       orderBy: { publishedAt: 'desc' },
       take: 50,
     }),

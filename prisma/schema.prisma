@@ -68,6 +68,7 @@ model Article {
   metaKeywords    String?
   isPinned        Boolean       @default(false)
   publishedAt     DateTime?
+  expiresAt       DateTime?
   viewCount       Int           @default(0)
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
@@ -79,6 +80,7 @@ model Article {
   revisions  ArticleRevision[]
 
   @@index([status, publishedAt])
+  @@index([expiresAt])
   @@index([categoryId])
   @@index([isPinned, publishedAt])
 }

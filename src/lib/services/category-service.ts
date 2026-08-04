@@ -1,22 +1,17 @@
-import { ArticleStatus, Prisma } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 
 import { conflict, notFound } from '@/lib/api/errors'
+import { createSlugFromTitle } from '@/lib/content/pinyin-slug'
 import { resolveSlug } from '@/lib/content/slug'
 import { getPrisma } from '@/lib/prisma'
+import { getPublicArticleWhere } from '@/lib/services/article-visibility'
 import { pageMeta, paginate } from '@/lib/services/shared'
 import type { CategoryInput, CategoryUpdateInput } from '@/lib/validations/cms'
 
-const publicArticleWhere = {
-  status: ArticleStatus.PUBLISHED,
-  publishedAt: { not: null },
-} satisfies Prisma.ArticleWhereInput
-
-const publishedArticleCount = {
-  where: publicArticleWhere,
-}
-
 export async function listPublicCategories(input: { page: number; pageSize: number }) {
   const prisma = getPrisma()
+  const publicArticleWhere = getPublicArticleWhere()
+  const publishedArticleCount = { where: publicArticleWhere }
   const where: Prisma.CategoryWhereInput = {
     articles: {
       some: publicArticleWhere,
@@ -65,6 +60,8 @@ export async function listCategories() {
 }
 
 export async function getPublicCategoryBySlug(slug: string) {
+  const publicArticleWhere = getPublicArticleWhere()
+  const publishedArticleCount = { where: publicArticleWhere }
   const category = await getPrisma().category.findFirst({
     where: {
       slug,
@@ -108,7 +105,7 @@ export async function getCategoryBySlug(slug: string) {
 }
 
 export async function createCategory(input: CategoryInput) {
-  const slug = resolveSlug({ slug: input.slug, name: input.name })
+  const slug = input.slug ? resolveSlug({ slug: input.slug }) : createSlugFromTitle(input.name)
 
   try {
     return await getPrisma().category.create({

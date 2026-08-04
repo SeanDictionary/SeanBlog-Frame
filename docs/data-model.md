@@ -113,6 +113,7 @@ model Article {
 
   isPinned              Boolean       @default(false)
   publishedAt           DateTime?
+  expiresAt             DateTime?
   viewCount             Int           @default(0)
 
   createdAt             DateTime      @default(now())
@@ -138,6 +139,7 @@ model Article {
 - SEO 字段 (`metaTitle` / `metaDescription` / `metaKeywords`) 为可选，fallback 到文章标题和摘要
 - `viewCount` 使用数据库字段，后续可改用 Redis HLL 异步更新
 - `isPinned` 配合 `publishedAt` 索引，用于首页置顶查询
+- `expiresAt` 用于定时过期；公开查询仅展示 `publishedAt <= now` 且 `expiresAt` 为空或晚于当前时间的已发布文章
 - `onDelete: SetNull` 在 Category 上，删除分类不会删除文章
 - 不保存 `authorId`，因为所有后台内容均由唯一管理员维护
 
@@ -270,7 +272,8 @@ model SiteSetting {
 | Category | `slug` | 前台分类页查询 |
 | Tag | `slug` | 前台标签页查询 |
 | Article | `slug` | 文章详情页查询 |
-| Article | `status, publishedAt` | 文章列表排序筛选 |
+| Article | `status, publishedAt` | 文章列表排序筛选与定时发布过滤 |
+| Article | `expiresAt` | 定时过期过滤 |
 | Article | `categoryId` | 分类下文章查询 |
 | Article | `isPinned, publishedAt` | 首页置顶文章 |
 | ArticleTag | `tagId` | 标签下文章查询 |

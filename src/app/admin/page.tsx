@@ -1,5 +1,6 @@
 import { DashboardManager } from '@/components/admin/dashboard-manager'
 import { getPrisma } from '@/lib/prisma'
+import { getPublicArticleWhere } from '@/lib/services/article-visibility'
 import { getSiteSettingsMap } from '@/lib/services/setting-service'
 
 function formatArticleDate(date: Date | null) {
@@ -8,19 +9,20 @@ function formatArticleDate(date: Date | null) {
 
 export default async function AdminDashboardPage() {
   const prisma = getPrisma()
+  const publicArticleWhere = getPublicArticleWhere()
   const [articles, drafts, pendingComments, media, latestArticles, popularArticles, settings] = await Promise.all([
     prisma.article.count(),
     prisma.article.count({ where: { status: 'DRAFT' } }),
     prisma.comment.count({ where: { status: 'PENDING' } }),
     prisma.media.count(),
     prisma.article.findMany({
-      where: { status: 'PUBLISHED', publishedAt: { not: null } },
+      where: publicArticleWhere,
       orderBy: { publishedAt: 'desc' },
       take: 3,
       select: { title: true, publishedAt: true },
     }),
     prisma.article.findMany({
-      where: { status: 'PUBLISHED', publishedAt: { not: null } },
+      where: publicArticleWhere,
       orderBy: [{ viewCount: 'desc' }, { publishedAt: 'desc' }],
       take: 3,
       select: { title: true, viewCount: true },

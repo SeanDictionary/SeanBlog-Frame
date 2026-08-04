@@ -37,12 +37,12 @@ DRAFT → PUBLISHED → ARCHIVED
 ```
 
 - **DRAFT**：仅管理员后台可见，不出现在任何公开页面
-- **PUBLISHED**：公开可访问，出现在文章列表、分类、标签、搜索、sitemap 中
+- **PUBLISHED**：公开可访问，出现在文章列表、分类、标签、搜索、sitemap 中；如果 `publishedAt` 是未来时间则到点后才公开，如果设置 `expiresAt` 则到期后自动从公开入口隐藏
 - **ARCHIVED**：URL 保留可访问，但不出现在文章列表和 sitemap 中
 
 ### 2.4 Slug 策略
 
-- slug 从文章标题自动生成（`slugify`）
+- slug 从文章标题自动生成（中文标题会先做轻量拼音转换，再规范化为 `a-z0-9-`）
 - 支持手动编辑
 - 唯一性校验：创建/更新文章时检查是否与其他文章 slug 冲突
 - 格式建议：`/articles/hello-world` — 语义化路径，不含日期，不给未来迁移造成负担
@@ -180,7 +180,7 @@ export default function robots(): MetadataRoute.Robots {
 
 | 页面类型 | 策略 | revalidate | 说明 |
 |----------|------|------------|------|
-| 首页（文章列表） | ISR | 300s | 新文章发布后最多 5 分钟上线 |
+| 首页（文章列表） | ISR | 300s | 新文章发布后最多 5 分钟上线；未来发布时间和过期时间由公开查询实时过滤 |
 | 文章详情页 | ISR + generateStaticParams | 600s | 热门文章预渲染，冷门文章首次访问时渲染 |
 | 分类归档页 | ISR | 300s | 新增文章后更新 |
 | 标签归档页 | ISR | 300s | 同上 |

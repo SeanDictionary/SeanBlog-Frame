@@ -23,13 +23,20 @@ const optionalCommentStatusQuery = z.preprocess(emptyQueryParamToUndefined, z.na
 export const publicArticleSortSchema = z.enum(['publishedAt', 'updatedAt', 'viewCount', 'commentCount'])
 const publicArticleSortQuery = z.preprocess(emptyQueryParamToUndefined, publicArticleSortSchema.default('publishedAt'))
 
-const slugSchema = z
+export const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const optionalSlugSchema = z
   .string()
   .trim()
   .min(1)
   .max(120)
-  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug must use lowercase letters, numbers, and dashes.')
+  .regex(slugPattern, 'Slug must use lowercase letters, numbers, and dashes.')
   .optional()
+const requiredSlugSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(120)
+  .regex(slugPattern, 'Slug must use lowercase letters, numbers, and dashes.')
 
 const tagIdsSchema = z.array(z.string().trim().min(1))
 const settingValueSchema = z
@@ -57,7 +64,7 @@ export const publicArticleListQuerySchema = paginationQuerySchema.extend({
 export const articleInputSchema = z
   .object({
     title: z.string().trim().min(1).max(200),
-    slug: slugSchema,
+    slug: requiredSlugSchema,
     excerpt: optionalTrimmedString,
     contentMarkdown: z.string().trim().min(1),
     coverImage: optionalTrimmedString,
@@ -70,6 +77,7 @@ export const articleInputSchema = z
     categoryId: optionalTrimmedString,
     tagIds: tagIdsSchema.default([]),
     publishedAt: z.coerce.date().nullable().optional(),
+    expiresAt: z.coerce.date().nullable().optional(),
     changeNote: optionalTrimmedString,
   })
   .strict()
@@ -93,7 +101,7 @@ export const articleUpdateSchema = articleInputSchema
 export const categoryInputSchema = z
   .object({
     name: z.string().trim().min(1).max(80),
-    slug: slugSchema,
+    slug: optionalSlugSchema,
     description: optionalTrimmedString,
     sortOrder: z.coerce.number().int().default(0),
   })
@@ -110,7 +118,7 @@ export const categoryUpdateSchema = categoryInputSchema
 export const tagInputSchema = z
   .object({
     name: z.string().trim().min(1).max(80),
-    slug: slugSchema,
+    slug: optionalSlugSchema,
   })
   .strict()
 

@@ -24,3 +24,7 @@ export function resolveSlug(input: { slug?: string | null; title?: string; name?
 
   return slug
 }
+
+export function isValidSlug(slug: string) {
+  return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)
+}

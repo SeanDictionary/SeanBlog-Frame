@@ -13,6 +13,7 @@ import {
 import { toPrismaArticleCommentsMode } from '@/lib/comment-settings'
 import { createExcerpt, markdownToHtml } from '@/lib/content/markdown'
 import { resolveSlug } from '@/lib/content/slug'
+import { getPublicArticleWhere } from '@/lib/services/article-visibility'
 import { getPrisma } from '@/lib/prisma'
 import { parseSearchTerms, textIncludesAllSearchTerms } from '@/lib/search'
 import {
@@ -27,13 +28,6 @@ import {
   serializeArticleTags,
 } from '@/lib/services/shared'
 import type { ArticleInput, ArticleUpdateInput, PublicArticleSort } from '@/lib/validations/cms'
-
-const publicArticleWhere = {
-  status: ArticleStatus.PUBLISHED,
-  publishedAt: {
-    not: null,
-  },
-} satisfies Prisma.ArticleWhereInput
 
 type PrismaExecutor = ReturnType<typeof getPrisma> | Prisma.TransactionClient
 type ArticleContentSource = {
@@ -97,6 +91,10 @@ function buildArticleData(input: ArticleInput | ArticleUpdateInput, options: { g
 
   if (input.publishedAt !== undefined && input.status === undefined) {
     data.publishedAt = input.publishedAt
+  }
+
+  if (input.expiresAt !== undefined) {
+    data.expiresAt = input.expiresAt
   }
 
   if (input.metaTitle !== undefined) {
@@ -168,7 +166,7 @@ async function getPublicArticleRecord(slug: string) {
   return getPrisma().article.findFirst({
     where: {
       slug,
-      ...publicArticleWhere,
+      ...getPublicArticleWhere(),
     },
     select: publicArticleDetailSelect,
   })
@@ -299,7 +297,7 @@ export async function listPublicArticles(input: { page: number; pageSize: number
   const prisma = getPrisma()
   const sort = input.sort ?? 'publishedAt'
   const where: Prisma.ArticleWhereInput = {
-    ...publicArticleWhere,
+    ...getPublicArticleWhere(),
     ...(input.category
       ? {
           category: {
@@ -418,7 +416,7 @@ export async function listAdminArticles(input: {
 
 export async function getPublicArticleNavigation(slug: string) {
   const articles = await getPrisma().article.findMany({
-    where: publicArticleWhere,
+    where: getPublicArticleWhere(),
     orderBy: [{ publishedAt: 'desc' }, { title: 'asc' }],
     select: {
       title: true,
@@ -623,7 +621,7 @@ export async function archiveArticle(id: string) {
 export async function searchArticles(input: { q: string; page: number; pageSize: number }) {
   const searchTerms = parseSearchTerms(input.q)
   const candidates = await getPrisma().article.findMany({
-    where: publicArticleWhere,
+    where: getPublicArticleWhere(),
     orderBy: { publishedAt: 'desc' },
     take: SEARCH_CANDIDATE_LIMIT,
     select: publicArticleSearchSelect,

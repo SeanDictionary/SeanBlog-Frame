@@ -1,22 +1,22 @@
-import { ArticleStatus, Prisma } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 
 import { conflict, notFound } from '@/lib/api/errors'
+import { createSlugFromTitle } from '@/lib/content/pinyin-slug'
 import { resolveSlug } from '@/lib/content/slug'
 import { getPrisma } from '@/lib/prisma'
+import { getPublicArticleWhere } from '@/lib/services/article-visibility'
 import { pageMeta, paginate } from '@/lib/services/shared'
 import type { TagInput, TagUpdateInput } from '@/lib/validations/cms'
 
-const publicArticleWhere = {
-  status: ArticleStatus.PUBLISHED,
-  publishedAt: { not: null },
-} satisfies Prisma.ArticleWhereInput
-
-const publicArticleTagWhere = {
-  article: publicArticleWhere,
-} satisfies Prisma.ArticleTagWhereInput
+function getPublicArticleTagWhere() {
+  return {
+    article: getPublicArticleWhere(),
+  } satisfies Prisma.ArticleTagWhereInput
+}
 
 export async function listPublicTags(input: { page: number; pageSize: number }) {
   const prisma = getPrisma()
+  const publicArticleTagWhere = getPublicArticleTagWhere()
   const where: Prisma.TagWhereInput = {
     articles: {
       some: publicArticleTagWhere,
@@ -61,6 +61,7 @@ export async function listTags() {
 }
 
 export async function getPublicTagBySlug(slug: string) {
+  const publicArticleTagWhere = getPublicArticleTagWhere()
   const tag = await getPrisma().tag.findFirst({
     where: {
       slug,
@@ -106,7 +107,7 @@ export async function getTagBySlug(slug: string) {
 }
 
 export async function createTag(input: TagInput) {
-  const slug = resolveSlug({ slug: input.slug, name: input.name })
+  const slug = input.slug ? resolveSlug({ slug: input.slug }) : createSlugFromTitle(input.name)
 
   try {
     return await getPrisma().tag.create({

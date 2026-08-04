@@ -17,9 +17,9 @@ function getSelectedStatus(status: string | undefined) {
 export default async function AdminArticlesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>
+  searchParams: Promise<{ status?: string; saved?: string }>
 }) {
-  const { status: statusParam } = await searchParams
+  const { status: statusParam, saved } = await searchParams
   const status = getSelectedStatus(statusParam)
   const result = await listAdminArticles({ page: 1, pageSize: 50, status })
   const resultDescription = status ? `当前仅显示${articleStatusLabels[status]}文章` : '当前显示全部文章'
@@ -37,6 +37,12 @@ export default async function AdminArticlesPage({
         </Link>
       </header>
 
+      {saved === '1' && (
+        <p className="mb-5 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700 dark:border-green-900/60 dark:bg-green-950/40 dark:text-green-300" role="status">
+          文章已保存。
+        </p>
+      )}
+
       <nav className="mb-5 flex flex-wrap items-center gap-2" aria-label="文章状态筛选">
         <FilterLink href="/admin/articles" active={!status}>全部</FilterLink>
         {(Object.entries(articleStatusLabels) as Array<[ArticleStatus, string]>).map(([value, label]) => (
@@ -52,6 +58,7 @@ export default async function AdminArticlesPage({
               <tr>
                 <th className="px-5 py-3 font-medium">标题</th>
                 <th className="px-5 py-3 font-medium">状态</th>
+                <th className="px-5 py-3 font-medium">发布时间</th>
                 <th className="px-5 py-3 font-medium">更新于</th>
                 <th className="px-5 py-3" aria-label="操作" />
               </tr>
@@ -63,7 +70,8 @@ export default async function AdminArticlesPage({
                     <p className="font-medium">{article.title}</p>
                     <p className="mt-1 font-mono text-xs text-neutral-500">/{article.slug}</p>
                   </td>
-                  <td className="px-5 py-4"><StatusBadge status={article.status} /></td>
+                  <td className="px-5 py-4"><StatusBadges article={article} /></td>
+                  <td className="px-5 py-4 text-neutral-500">{article.publishedAt ? article.publishedAt.toLocaleDateString('zh-CN') : '未设置'}</td>
                   <td className="px-5 py-4 text-neutral-500">{article.updatedAt.toLocaleDateString('zh-CN')}</td>
                   <td className="px-5 py-4 text-right">
                     <Link href={`/admin/articles/${article.id}/edit`} className="text-neutral-500 transition-colors hover:text-neutral-950 dark:hover:text-neutral-50">编辑</Link>
@@ -98,12 +106,39 @@ function FilterLink({ href, active, children }: { href: Route; active: boolean; 
   )
 }
 
-function StatusBadge({ status }: { status: ArticleStatus }) {
-  const styles = {
-    DRAFT: 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300',
-    PUBLISHED: 'bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-300',
-    ARCHIVED: 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400',
-  } satisfies Record<ArticleStatus, string>
+type AdminArticleListItem = Awaited<ReturnType<typeof listAdminArticles>>['items'][number]
 
-  return <span className={`rounded-full px-2 py-1 text-xs ${styles[status]}`}>{articleStatusLabels[status]}</span>
+function StatusBadges({ article }: { article: AdminArticleListItem }) {
+  const now = Date.now()
+  const badges: Array<{ label: string; className: string }> = [
+    { label: articleStatusLabels[article.status], className: statusStyles[article.status] },
+  ]
+  const publishedAt = article.publishedAt?.getTime() ?? null
+  const expiresAt = article.expiresAt?.getTime() ?? null
+
+  if (article.isPinned) {
+    badges.push({ label: '置顶', className: 'bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300' })
+  }
+
+  if (article.status === 'PUBLISHED' && publishedAt && publishedAt > now) {
+    badges.push({ label: '待发布', className: 'bg-purple-50 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300' })
+  }
+
+  if (expiresAt && expiresAt <= now) {
+    badges.push({ label: '已过期', className: 'bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-300' })
+  } else if (expiresAt) {
+    badges.push({ label: '定时过期', className: 'bg-cyan-50 text-cyan-700 dark:bg-cyan-950/50 dark:text-cyan-300' })
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {badges.map((badge) => <span key={badge.label} className={`rounded-full px-2 py-1 text-xs ${badge.className}`}>{badge.label}</span>)}
+    </div>
+  )
 }
+
+const statusStyles = {
+  DRAFT: 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300',
+  PUBLISHED: 'bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-300',
+  ARCHIVED: 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400',
+} satisfies Record<ArticleStatus, string>

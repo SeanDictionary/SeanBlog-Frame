@@ -37,6 +37,8 @@ export default async function EditArticlePage({ params }: EditArticlePageProps) 
             coverImage: article.coverImage,
             status: article.status,
             commentsMode: fromPrismaArticleCommentsMode(article.commentsMode),
+            publishedAt: article.publishedAt,
+            expiresAt: article.expiresAt,
             categoryId: article.categoryId,
             tagIds: article.tags.map((tag) => tag.id),
             isPinned: article.isPinned,

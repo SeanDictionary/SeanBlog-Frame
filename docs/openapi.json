@@ -419,6 +419,7 @@
         "type": "object",
         "required": [
           "title",
+          "slug",
           "contentMarkdown"
         ],
         "properties": {
@@ -426,13 +427,13 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 200,
-            "description": "必填文章标题。创建时未传 slug 会用标题生成 slug。"
+            "description": "必填文章标题。后台编辑器会在输入标题时自动生成 slug，中文标题会先做轻量拼音转换。"
           },
           "slug": {
             "type": "string",
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
             "maxLength": 120,
-            "description": "可选的自定义 URL slug。只能包含小写字母、数字和短横线；创建时省略则从标题生成。"
+            "description": "必填的 URL slug。只能包含小写字母、数字和短横线；后台编辑器会根据标题自动填充，也允许手动修改。"
           },
           "excerpt": {
             "type": [
@@ -506,7 +507,15 @@
               "null"
             ],
             "format": "date-time",
-            "description": "可选发布时间。status 为 PUBLISHED 时使用；或 status 省略且调用方显式更新 publishedAt 时使用。"
+            "description": "可选发布时间。status 为 PUBLISHED 时使用；未来时间表示定时发布。"
+          },
+          "expiresAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "可选过期时间。到期后文章会自动从公开列表、搜索、RSS 和 sitemap 中隐藏。"
           },
           "changeNote": {
             "type": [
@@ -517,7 +526,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "创建文章请求体。未知 JSON 字段会被拒绝。服务端将 contentMarkdown 写入 content/articles/{articleId}/index.md，并创建 Markdown 修订快照。未传 slug 时从 title 生成；未传 excerpt 时从 Markdown 生成。创建 PUBLISHED 文章时 publishedAt 使用传入时间或当前服务端时间；非发布状态会清空 publishedAt。tagIds 会设置初始文章标签集合。"
+        "description": "创建文章请求体。未知 JSON 字段会被拒绝。服务端将 contentMarkdown 写入 content/articles/{articleId}/index.md，并创建 Markdown 修订快照。slug 必填且唯一；未传 excerpt 时从 Markdown 生成。创建 PUBLISHED 文章时 publishedAt 使用传入时间或当前服务端时间，未来时间表示定时发布；expiresAt 到期后自动从公开入口隐藏。tagIds 会设置初始文章标签集合。"
       },
       "ArticleUpdateInput": {
         "type": "object",
@@ -604,7 +613,15 @@
               "null"
             ],
             "format": "date-time",
-            "description": "可选发布时间更新。"
+            "description": "可选发布时间更新。未来时间表示定时发布。"
+          },
+          "expiresAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "可选过期时间更新。传入 null 可取消定时过期。"
           },
           "changeNote": {
             "type": [
@@ -1265,7 +1282,15 @@
               "null"
             ],
             "format": "date-time",
-            "description": "发布时间；非已发布文章时为 null。"
+            "description": "发布时间；非已发布文章时为 null。未来时间表示待发布。"
+          },
+          "expiresAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "过期时间；为 null 表示不过期。"
           },
           "viewCount": {
             "type": "integer",
@@ -1311,6 +1336,7 @@
           "status": "DRAFT",
           "isPinned": false,
           "publishedAt": null,
+          "expiresAt": null,
           "viewCount": 0,
           "createdAt": "2026-07-23T00:00:00.000Z",
           "updatedAt": "2026-07-23T00:00:00.000Z",
@@ -1441,7 +1467,15 @@
               "null"
             ],
             "format": "date-time",
-            "description": "发布时间；非已发布文章时为 null。"
+            "description": "发布时间；非已发布文章时为 null。未来时间表示待发布。"
+          },
+          "expiresAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "过期时间；为 null 表示不过期。"
           },
           "viewCount": {
             "type": "integer",
