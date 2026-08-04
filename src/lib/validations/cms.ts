@@ -164,6 +164,12 @@ export const settingInputSchema = z
   })
   .strict()
 
+export const markdownPreviewSchema = z
+  .object({
+    markdown: z.string().max(500_000),
+  })
+  .strict()
+
 export const searchQuerySchema = paginationQuerySchema.extend({
   q: requiredQueryString,
 })
@@ -183,3 +189,4 @@ export type TagInput = z.infer<typeof tagInputSchema>
 export type TagUpdateInput = z.infer<typeof tagUpdateSchema>
 export type CommentInput = z.infer<typeof commentInputSchema>
 export type MediaInput = z.infer<typeof mediaInputSchema>
+export type MarkdownPreviewInput = z.infer<typeof markdownPreviewSchema>

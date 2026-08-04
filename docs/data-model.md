@@ -135,7 +135,7 @@ model Article {
 - Markdown 正文以 `content/articles/{articleId}/index.md` 文件为唯一权威源；`contentPath` 保存该相对路径，因此 slug 改动不会重命名正文文件
 - 文章详情/后台编辑按需读取 Markdown 文件；`contentHtml` 为运行时渲染结果，可由缓存层缓存，但不是持久化源数据
 - `legacyContentMarkdown` / `legacyContentHtml` 映射旧数据库列，仅用于迁移期回退与导出；所有存量文件迁移完成、验证备份后可用后续迁移删除
-- 修订正文同样保存在 `content/articles/{articleId}/revisions/{revisionId}.md`，数据库仅保留修订元数据和相对路径
+- 修订正文同样保存在 `content/articles/{articleId}/revisions/{revisionId}.md`，数据库仅保留修订元数据和相对路径；后台编辑器可读取历史版本并恢复到当前编辑区，保存后才覆盖正文
 - SEO 字段 (`metaTitle` / `metaDescription` / `metaKeywords`) 为可选，fallback 到文章标题和摘要
 - `viewCount` 使用数据库字段，后续可改用 Redis HLL 异步更新
 - `isPinned` 配合 `publishedAt` 索引，用于首页置顶查询

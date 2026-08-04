@@ -194,7 +194,7 @@ async function withAdminArticleContent(article: NonNullable<Awaited<ReturnType<t
   return {
     ...withoutContentSource(article),
     contentMarkdown: markdown,
-    contentHtml: markdownToHtml(markdown),
+    contentHtml: await markdownToHtml(markdown),
   }
 }
 
@@ -464,6 +464,42 @@ export async function getAdminArticleById(id: string) {
   }
 
   return withAdminArticleContent(article)
+}
+
+export async function getAdminArticleRevision(articleId: string, revisionId: string) {
+  const revision = await getPrisma().articleRevision.findFirst({
+    where: {
+      id: revisionId,
+      articleId,
+    },
+    select: {
+      id: true,
+      articleId: true,
+      title: true,
+      version: true,
+      changeNote: true,
+      contentPath: true,
+      legacyContentMarkdown: true,
+      createdAt: true,
+    },
+  })
+
+  if (!revision) {
+    throw notFound('Article revision not found.')
+  }
+
+  const contentMarkdown = await readMarkdownFromStorage(revision)
+
+  return {
+    id: revision.id,
+    articleId: revision.articleId,
+    title: revision.title,
+    version: revision.version,
+    changeNote: revision.changeNote,
+    createdAt: revision.createdAt,
+    contentMarkdown,
+    contentHtml: await markdownToHtml(contentMarkdown),
+  }
 }
 
 export async function createArticle(input: ArticleInput) {

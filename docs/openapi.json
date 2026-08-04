@@ -1613,6 +1613,88 @@
           }
         },
         "additionalProperties": false
+      },
+      "MarkdownPreviewInput": {
+        "type": "object",
+        "required": [
+          "markdown"
+        ],
+        "properties": {
+          "markdown": {
+            "type": "string",
+            "maxLength": 500000,
+            "description": "要按正式 Markdown pipeline 渲染的源文。"
+          }
+        },
+        "additionalProperties": false,
+        "description": "后台编辑器实时预览请求体。"
+      },
+      "MarkdownPreviewResult": {
+        "type": "object",
+        "required": [
+          "html"
+        ],
+        "properties": {
+          "html": {
+            "type": "string",
+            "description": "经过 Markdown 编译与 HTML 清洗后的预览 HTML。"
+          }
+        },
+        "additionalProperties": false,
+        "description": "后台编辑器实时预览结果。"
+      },
+      "ArticleRevisionDetail": {
+        "type": "object",
+        "required": [
+          "id",
+          "articleId",
+          "title",
+          "version",
+          "createdAt",
+          "contentMarkdown",
+          "contentHtml"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "稳定的修订标识符。"
+          },
+          "articleId": {
+            "type": "string",
+            "description": "所属文章 ID。"
+          },
+          "title": {
+            "type": "string",
+            "description": "该修订保存时的文章标题。"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "该文章内连续递增的版本号。"
+          },
+          "changeNote": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "可选修订说明。"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "修订创建时间。"
+          },
+          "contentMarkdown": {
+            "type": "string",
+            "description": "该历史版本的 Markdown 源文，用于恢复到编辑器。"
+          },
+          "contentHtml": {
+            "type": "string",
+            "description": "该历史版本派生的预览 HTML。"
+          }
+        },
+        "additionalProperties": false,
+        "description": "后台文章历史版本详情，用于版本恢复。"
       }
     },
     "responses": {
@@ -3698,6 +3780,112 @@
         },
         "operationId": "upsertAdminSetting",
         "description": "需要认证的任意设置键创建或更新接口。非字符串值写入时会 JSON 序列化；字符串原样保存，但若看起来像 JSON 字面量，读取时可能反序列化为非字符串。"
+      }
+    },
+    "/api/admin/articles/preview": {
+      "post": {
+        "tags": [
+          "Admin Articles"
+        ],
+        "summary": "预览 Markdown",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkdownPreviewInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Markdown 预览 HTML。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarkdownPreviewResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "operationId": "previewAdminArticleMarkdown",
+        "description": "供后台文章编辑器实时预览使用。服务端复用正式 Markdown 编译、代码块标记和 HTML 清洗逻辑。"
+      }
+    },
+    "/api/admin/articles/{id}/revisions/{revisionId}": {
+      "get": {
+        "tags": [
+          "Admin Articles"
+        ],
+        "summary": "获取文章历史版本详情",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          },
+          {
+            "name": "revisionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "文章修订版本 ID。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "文章历史版本详情。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "revision"
+                  ],
+                  "properties": {
+                    "revision": {
+                      "$ref": "#/components/schemas/ArticleRevisionDetail"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "operationId": "getAdminArticleRevision",
+        "description": "读取指定文章的历史版本 Markdown 和派生 HTML，供后台编辑器恢复到当前编辑区；不会直接修改文章。"
       }
     }
   }

@@ -13,8 +13,9 @@ SEO 是个人博客的核心能力之一。本系统在设计上保证：
 
 ### 2.1 编辑与存储
 
-- 后台文章编辑器使用 Markdown，推荐集成 `@uiw/react-md-editor` 或类似方案
-- 编辑器为 Client Component
+- 后台文章编辑器使用 Markdown，提供编辑 / 预览 / 分栏三种模式
+- 编辑器为 Client Component，实时预览通过后台预览接口复用正式 Markdown 编译与清洗逻辑
+- 编辑器会将未保存内容自动保存到浏览器本地草稿，并在离开页面时提示确认
 - 保存时 Markdown 原文写入 `content/articles/{articleId}/index.md`
 - PostgreSQL 仅保存文章元数据与相对 `contentPath`，不再将正文作为权威内容源存储
 
@@ -24,7 +25,7 @@ SEO 是个人博客的核心能力之一。本系统在设计上保证：
 
 - `remark-parse`：解析 Markdown
 - `remark-gfm`：支持 GFM 语法（表格、任务列表、删除线等）
-- `rehype-highlight`：代码块语法高亮
+- `rehype-highlight`：代码块语法高亮（当前内置轻量 token 标记覆盖常见 JS/TS、JSON、HTML、CSS；后续可替换为 Shiki/Prism）
 - 编译结果按详情请求即时生成，可由缓存层缓存
 - 文章详情页 Server Component 使用经过转义的 HTML 输出渲染
 
