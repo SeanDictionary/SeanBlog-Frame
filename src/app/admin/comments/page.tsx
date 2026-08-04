@@ -3,7 +3,10 @@ import type { Route } from 'next'
 import Link from 'next/link'
 
 import { CommentModeration } from '@/components/admin/comment-moderation'
+import { CommentModerationRulesManager } from '@/components/admin/comment-moderation-rules-manager'
+import { COMMENT_MODERATION_RULES_SETTING_KEY, normalizeCommentModerationRules } from '@/lib/comment-moderation-rules'
 import { listComments } from '@/lib/services/comment-service'
+import { getSiteSettingsMap } from '@/lib/services/setting-service'
 
 const commentStatusLabels = {
   PENDING: '待审核',
@@ -23,7 +26,11 @@ export default async function AdminCommentsPage({
 }) {
   const { status: statusParam } = await searchParams
   const status = getSelectedStatus(statusParam)
-  const result = await listComments({ page: 1, pageSize: 100, status })
+  const [result, settings] = await Promise.all([
+    listComments({ page: 1, pageSize: 100, status }),
+    getSiteSettingsMap(),
+  ])
+  const moderationRules = normalizeCommentModerationRules(settings[COMMENT_MODERATION_RULES_SETTING_KEY])
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -31,6 +38,7 @@ export default async function AdminCommentsPage({
         <p className="mb-2 text-sm text-neutral-500">互动管理</p>
         <h1 className="text-3xl font-semibold tracking-tight">评论</h1>
       </header>
+      <CommentModerationRulesManager initialRules={moderationRules} />
       <nav className="mb-5 flex flex-wrap items-center gap-2" aria-label="评论状态筛选">
         <FilterLink href="/admin/comments" active={!status}>全部</FilterLink>
         {(Object.entries(commentStatusLabels) as Array<[CommentStatus, string]>).map(([value, label]) => (

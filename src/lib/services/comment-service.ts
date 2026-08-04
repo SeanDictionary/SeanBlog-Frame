@@ -3,8 +3,10 @@ import { CommentStatus, Prisma } from '@prisma/client'
 import { forbidden, notFound, tooManyRequests } from '@/lib/api/errors'
 import { checkCommentRateLimit, extractIp, getClientRateLimitIdentifier } from '@/lib/api/rate-limit'
 import { canSubmitArticleComments, fromPrismaArticleCommentsMode } from '@/lib/comment-settings'
+import { COMMENT_MODERATION_RULES_SETTING_KEY, getCommentModerationDecision, normalizeCommentModerationRules } from '@/lib/comment-moderation-rules'
 import { getPrisma } from '@/lib/prisma'
 import { pageMeta, paginate } from '@/lib/services/shared'
+import { getSiteSettingsMap } from '@/lib/services/setting-service'
 import type { CommentInput } from '@/lib/validations/cms'
 
 function toPublicCommentReceipt(comment: {
@@ -89,11 +91,23 @@ export async function createComment(input: CommentInput, request?: Request) {
     }
   }
 
+  const settings = await getSiteSettingsMap()
+  const moderationDecision = getCommentModerationDecision(
+    {
+      content: input.content,
+      guestName: input.guestName,
+      guestEmail: input.guestEmail,
+    },
+    normalizeCommentModerationRules(settings[COMMENT_MODERATION_RULES_SETTING_KEY]),
+  )
+
   const comment = await prisma.comment.create({
     data: {
       articleId: input.articleId,
       parentId: input.parentId,
       content: input.content,
+      status: moderationDecision.status,
+      isSpam: moderationDecision.isSpam,
       guestName: input.guestName,
       guestEmail: input.guestEmail,
       ip,
