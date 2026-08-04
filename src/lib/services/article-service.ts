@@ -10,7 +10,7 @@ import {
   writeArticleMarkdown,
   writeArticleRevisionMarkdown,
 } from '@/lib/content/article-content'
-import { toPrismaArticleCommentsMode } from '@/lib/comment-settings'
+import { fromPrismaArticleCommentsMode, toPrismaArticleCommentsMode } from '@/lib/comment-settings'
 import { createExcerpt, markdownToHtml } from '@/lib/content/markdown'
 import { resolveSlug } from '@/lib/content/slug'
 import { getPublicArticleWhere } from '@/lib/services/article-visibility'
@@ -27,7 +27,7 @@ import {
   publicArticleSummarySelect,
   serializeArticleTags,
 } from '@/lib/services/shared'
-import type { ArticleInput, ArticleUpdateInput, PublicArticleSort } from '@/lib/validations/cms'
+import type { AdminArticleSort, ArticleBulkActionInput, ArticleImportInput, ArticleInput, ArticleUpdateInput, PublicArticleSort } from '@/lib/validations/cms'
 
 type PrismaExecutor = ReturnType<typeof getPrisma> | Prisma.TransactionClient
 type ArticleContentSource = {
@@ -282,6 +282,14 @@ function getPublicArticleOrderBy(sort: Exclude<PublicArticleSort, 'commentCount'
   return [{ isPinned: 'desc' }, { publishedAt: 'desc' }]
 }
 
+function getAdminArticleOrderBy(sort: AdminArticleSort, order: 'asc' | 'desc'): Prisma.ArticleOrderByWithRelationInput[] {
+  if (sort === 'title') {
+    return [{ title: order }, { updatedAt: 'desc' }]
+  }
+
+  return [{ [sort]: order }, { updatedAt: 'desc' }]
+}
+
 async function articleMatchesQuery(
   article: ArticleContentSource & { title: string; excerpt: string | null },
   searchTerms: string[],
@@ -369,8 +377,12 @@ export async function listAdminArticles(input: {
   category?: string
   tag?: string
   q?: string
+  sort?: AdminArticleSort
+  order?: 'asc' | 'desc'
 }) {
   const prisma = getPrisma()
+  const sort = input.sort ?? 'updatedAt'
+  const order = input.order ?? 'desc'
   const where: Prisma.ArticleWhereInput = {
     ...(input.status ? { status: input.status } : {}),
     ...(input.category ? { category: { slug: input.category } } : {}),
@@ -382,7 +394,7 @@ export async function listAdminArticles(input: {
       prisma.article.findMany({
         where,
         ...paginate(input.page, input.pageSize),
-        orderBy: { updatedAt: 'desc' },
+        orderBy: getAdminArticleOrderBy(sort, order),
         select: adminArticleSummarySelect,
       }),
       prisma.article.count({ where }),
@@ -397,7 +409,7 @@ export async function listAdminArticles(input: {
   const searchTerms = parseSearchTerms(input.q)
   const candidates = await prisma.article.findMany({
     where,
-    orderBy: { updatedAt: 'desc' },
+    orderBy: getAdminArticleOrderBy(sort, order),
     take: SEARCH_CANDIDATE_LIMIT,
     select: adminArticleSearchSelect,
   })
@@ -412,6 +424,105 @@ export async function listAdminArticles(input: {
     items: matching.slice(start, start + input.pageSize).map(withoutContentSource),
     meta: pageMeta(matching.length, input.page, input.pageSize),
   }
+}
+
+function bulkStatusData(action: ArticleBulkActionInput['action']): Prisma.ArticleUncheckedUpdateInput | null {
+  if (action === 'publish') {
+    return { status: ArticleStatus.PUBLISHED, publishedAt: new Date() }
+  }
+
+  if (action === 'draft') {
+    return { status: ArticleStatus.DRAFT, publishedAt: null }
+  }
+
+  if (action === 'archive') {
+    return { status: ArticleStatus.ARCHIVED, publishedAt: null }
+  }
+
+  return null
+}
+
+export async function bulkUpdateArticles(input: ArticleBulkActionInput) {
+  if (input.action === 'delete') {
+    const articles = await getPrisma().article.findMany({
+      where: { id: { in: input.ids } },
+      select: { id: true, contentPath: true },
+    })
+
+    await getPrisma().article.deleteMany({ where: { id: { in: input.ids } } })
+    await Promise.all(articles.map((article) => (article.contentPath ? deleteArticleContent(article.contentPath).catch(() => undefined) : undefined)))
+
+    return { count: articles.length }
+  }
+
+  const data = bulkStatusData(input.action)
+  if (!data) throw badRequest('Unsupported bulk article action.')
+
+  const result = await getPrisma().article.updateMany({
+    where: { id: { in: input.ids } },
+    data,
+  })
+
+  return { count: result.count }
+}
+
+export async function exportAdminArticles(input: {
+  status?: ArticleStatus
+  category?: string
+  tag?: string
+  q?: string
+  sort?: AdminArticleSort
+  order?: 'asc' | 'desc'
+}) {
+  const result = await listAdminArticles({
+    page: 1,
+    pageSize: 100,
+    ...input,
+  })
+  const articles = await Promise.all(result.items.map((article) => getAdminArticleById(article.id)))
+
+  return {
+    exportedAt: new Date().toISOString(),
+    version: 1,
+    articles: articles.map((article) => ({
+      title: article.title,
+      slug: article.slug,
+      excerpt: article.excerpt,
+      contentMarkdown: article.contentMarkdown,
+      coverImage: article.coverImage,
+      status: article.status,
+      commentsMode: fromPrismaArticleCommentsMode(article.commentsMode),
+      metaTitle: article.metaTitle,
+      metaDescription: article.metaDescription,
+      metaKeywords: article.metaKeywords,
+      isPinned: article.isPinned,
+      publishedAt: article.publishedAt,
+      expiresAt: article.expiresAt,
+      categoryId: article.categoryId,
+      tagIds: article.tags.map((tag) => tag.id),
+    })),
+  }
+}
+
+export async function importAdminArticles(input: ArticleImportInput) {
+  const articles = []
+
+  for (const [index, articleInput] of input.articles.entries()) {
+    const slugExists = await getPrisma().article.findUnique({
+      where: { slug: articleInput.slug },
+      select: { id: true },
+    })
+    const safeInput = slugExists
+      ? {
+          ...articleInput,
+          slug: `${articleInput.slug}-import-${Date.now()}-${index + 1}`,
+        }
+      : articleInput
+
+    articles.push(await createArticle(safeInput))
+  }
+
+  return { count: articles.length, articles }
 }
 
 export async function getPublicArticleNavigation(slug: string) {

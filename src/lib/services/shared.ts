@@ -121,6 +121,7 @@ export const adminArticleSummarySelect = {
   publishedAt: true,
   expiresAt: true,
   viewCount: true,
+  visitorCount: true,
   createdAt: true,
   updatedAt: true,
   category: {
@@ -166,6 +167,7 @@ export const adminArticleDetailSelect = {
   publishedAt: true,
   expiresAt: true,
   viewCount: true,
+  visitorCount: true,
   createdAt: true,
   updatedAt: true,
   categoryId: true,

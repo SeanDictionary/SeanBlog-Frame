@@ -115,6 +115,7 @@ model Article {
   publishedAt           DateTime?
   expiresAt             DateTime?
   viewCount             Int           @default(0)
+  visitorCount          Int           @default(0)
 
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
@@ -138,6 +139,7 @@ model Article {
 - 修订正文同样保存在 `content/articles/{articleId}/revisions/{revisionId}.md`，数据库仅保留修订元数据和相对路径；后台编辑器可读取历史版本并恢复到当前编辑区，保存后才覆盖正文
 - SEO 字段 (`metaTitle` / `metaDescription` / `metaKeywords`) 为可选，fallback 到文章标题和摘要
 - `viewCount` 使用数据库字段，后续可改用 Redis HLL 异步更新
+- `visitorCount` 预留给后台文章列表展示浏览人数，后续统计功能接入后由访问事件聚合更新
 - `isPinned` 配合 `publishedAt` 索引，用于首页置顶查询
 - `expiresAt` 用于定时过期；公开查询仅展示 `publishedAt <= now` 且 `expiresAt` 为空或晚于当前时间的已发布文章
 - `onDelete: SetNull` 在 Category 上，删除分类不会删除文章

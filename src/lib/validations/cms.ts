@@ -21,7 +21,10 @@ const queryPageSize = z.preprocess(emptyQueryParamToUndefined, z.coerce.number()
 const optionalArticleStatusQuery = z.preprocess(emptyQueryParamToUndefined, z.nativeEnum(ArticleStatus).optional())
 const optionalCommentStatusQuery = z.preprocess(emptyQueryParamToUndefined, z.nativeEnum(CommentStatus).optional())
 export const publicArticleSortSchema = z.enum(['publishedAt', 'updatedAt', 'viewCount', 'commentCount'])
+export const adminArticleSortSchema = z.enum(['updatedAt', 'publishedAt', 'createdAt', 'viewCount', 'visitorCount', 'title'])
 const publicArticleSortQuery = z.preprocess(emptyQueryParamToUndefined, publicArticleSortSchema.default('publishedAt'))
+const adminArticleSortQuery = z.preprocess(emptyQueryParamToUndefined, adminArticleSortSchema.default('updatedAt'))
+const sortOrderQuery = z.preprocess(emptyQueryParamToUndefined, z.enum(['asc', 'desc']).default('desc'))
 
 export const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const optionalSlugSchema = z
@@ -53,6 +56,8 @@ export const articleListQuerySchema = paginationQuerySchema.extend({
   category: optionalQueryString,
   tag: optionalQueryString,
   q: optionalQueryString,
+  sort: adminArticleSortQuery,
+  order: sortOrderQuery,
 })
 
 export const publicArticleListQuerySchema = paginationQuerySchema.extend({
@@ -180,7 +185,21 @@ export const tagListQuerySchema = paginationQuerySchema
 
 export const mediaListQuerySchema = paginationQuerySchema
 
+export const articleBulkActionSchema = z
+  .object({
+    ids: z.array(z.string().trim().min(1)).min(1),
+    action: z.enum(['publish', 'draft', 'archive', 'delete']),
+  })
+  .strict()
+
+export const articleImportSchema = z
+  .object({
+    articles: z.array(articleInputSchema).min(1).max(100),
+  })
+  .strict()
+
 export type PublicArticleSort = z.infer<typeof publicArticleSortSchema>
+export type AdminArticleSort = z.infer<typeof adminArticleSortSchema>
 export type ArticleInput = z.infer<typeof articleInputSchema>
 export type ArticleUpdateInput = z.infer<typeof articleUpdateSchema>
 export type CategoryInput = z.infer<typeof categoryInputSchema>
@@ -190,3 +209,5 @@ export type TagUpdateInput = z.infer<typeof tagUpdateSchema>
 export type CommentInput = z.infer<typeof commentInputSchema>
 export type MediaInput = z.infer<typeof mediaInputSchema>
 export type MarkdownPreviewInput = z.infer<typeof markdownPreviewSchema>
+export type ArticleBulkActionInput = z.infer<typeof articleBulkActionSchema>
+export type ArticleImportInput = z.infer<typeof articleImportSchema>

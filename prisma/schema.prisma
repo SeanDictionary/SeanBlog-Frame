@@ -70,6 +70,7 @@ model Article {
   publishedAt     DateTime?
   expiresAt       DateTime?
   viewCount       Int           @default(0)
+  visitorCount    Int           @default(0)
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 

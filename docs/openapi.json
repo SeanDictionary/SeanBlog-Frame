@@ -1238,6 +1238,7 @@
           "status",
           "isPinned",
           "viewCount",
+          "visitorCount",
           "createdAt",
           "updatedAt"
         ],
@@ -1324,6 +1325,11 @@
               "$ref": "#/components/schemas/TagSummary"
             },
             "description": "附加到文章的精简标签对象。"
+          },
+          "visitorCount": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "已存储的浏览人数。当前为统计功能预留字段。"
           }
         },
         "additionalProperties": false,
@@ -1341,7 +1347,8 @@
           "createdAt": "2026-07-23T00:00:00.000Z",
           "updatedAt": "2026-07-23T00:00:00.000Z",
           "category": null,
-          "tags": []
+          "tags": [],
+          "visitorCount": 0
         }
       },
       "ArticleRevisionSummary": {
@@ -1394,6 +1401,7 @@
           "status",
           "isPinned",
           "viewCount",
+          "visitorCount",
           "createdAt",
           "updatedAt"
         ],
@@ -1523,6 +1531,11 @@
               "$ref": "#/components/schemas/ArticleRevisionSummary"
             },
             "description": "仅返回修订元数据。默认详情响应会刻意省略历史 Markdown/HTML 正文。"
+          },
+          "visitorCount": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "已存储的浏览人数。当前为统计功能预留字段。"
           }
         },
         "additionalProperties": false
@@ -1695,6 +1708,83 @@
         },
         "additionalProperties": false,
         "description": "后台文章历史版本详情，用于版本恢复。"
+      },
+      "ArticleBulkActionInput": {
+        "type": "object",
+        "required": [
+          "ids",
+          "action"
+        ],
+        "properties": {
+          "ids": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "要批量处理的文章 ID 列表。"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "publish",
+              "draft",
+              "archive",
+              "delete"
+            ],
+            "description": "批量操作类型。delete 会删除文章及其内容文件。"
+          }
+        },
+        "additionalProperties": false,
+        "description": "后台文章批量操作请求体。"
+      },
+      "ArticleImportInput": {
+        "type": "object",
+        "required": [
+          "articles"
+        ],
+        "properties": {
+          "articles": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/ArticleInput"
+            },
+            "description": "要导入的文章列表；也接受导出文件中的 articles 字段。"
+          }
+        },
+        "additionalProperties": false,
+        "description": "后台文章导入请求体。"
+      },
+      "ArticleExportResult": {
+        "type": "object",
+        "required": [
+          "exportedAt",
+          "version",
+          "articles"
+        ],
+        "properties": {
+          "exportedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "导出时间。"
+          },
+          "version": {
+            "type": "integer",
+            "description": "导出格式版本。"
+          },
+          "articles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArticleInput"
+            },
+            "description": "可再次导入的文章数据。"
+          }
+        },
+        "additionalProperties": false,
+        "description": "后台文章 JSON 导出结果。"
       }
     },
     "responses": {
@@ -3886,6 +3976,205 @@
         },
         "operationId": "getAdminArticleRevision",
         "description": "读取指定文章的历史版本 Markdown 和派生 HTML，供后台编辑器恢复到当前编辑区；不会直接修改文章。"
+      }
+    },
+    "/api/admin/articles/bulk": {
+      "post": {
+        "tags": [
+          "Admin Articles"
+        ],
+        "summary": "批量操作文章",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArticleBulkActionInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "批量操作结果。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "count"
+                  ],
+                  "properties": {
+                    "count": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "operationId": "bulkUpdateAdminArticles",
+        "description": "支持批量发布、设为草稿、归档和删除。删除操作会同步清理文章内容文件。"
+      }
+    },
+    "/api/admin/articles/export": {
+      "get": {
+        "tags": [
+          "Admin Articles"
+        ],
+        "summary": "导出文章 JSON",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Page"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ArticleStatus"
+            },
+            "description": "文章状态筛选条件。空查询值按未传处理。",
+            "allowEmptyValue": true
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "分类 slug 筛选条件。空查询值按未传处理。",
+            "allowEmptyValue": true
+          },
+          {
+            "name": "tag",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "标签 slug 筛选条件。空查询值按未传处理。",
+            "allowEmptyValue": true
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "搜索关键词。空查询值按未传处理。",
+            "allowEmptyValue": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "文章导出 JSON 文件。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleExportResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "operationId": "exportAdminArticles",
+        "description": "按当前筛选条件导出最多 100 篇文章，返回可再次导入的 JSON。"
+      }
+    },
+    "/api/admin/articles/import": {
+      "post": {
+        "tags": [
+          "Admin Articles"
+        ],
+        "summary": "导入文章 JSON",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArticleImportInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "文章导入结果。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "count",
+                    "articles"
+                  ],
+                  "properties": {
+                    "count": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "articles": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AdminArticleDetail"
+                      }
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "operationId": "importAdminArticles",
+        "description": "导入一篇或多篇文章。若 slug 已存在，会自动追加 import 后缀避免冲突。"
       }
     }
   }
