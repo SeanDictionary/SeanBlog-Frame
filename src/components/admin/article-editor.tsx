@@ -10,6 +10,7 @@ type ArticleFormValues = {
   slug?: string
   excerpt?: string | null
   contentMarkdown?: string
+  coverImage?: string | null
   status?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
   commentsMode?: ArticleCommentsMode
   categoryId?: string | null
@@ -31,8 +32,14 @@ type ArticleEditorProps = {
   tags: Option[]
 }
 
+type UploadResponse = {
+  media?: { url: string }
+  error?: { message?: string }
+}
+
 export function ArticleEditor({ article, categories, tags }: ArticleEditorProps) {
   const [message, setMessage] = useState<string | null>(null)
+  const [coverImage, setCoverImage] = useState(article?.coverImage ?? '')
   const [isPending, startTransition] = useTransition()
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set(article?.tagIds ?? []))
 
@@ -44,6 +51,47 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
     })
   }
 
+  async function uploadCoverImage(file: File) {
+    if (!file.type.startsWith('image/')) {
+      setMessage('只能上传图片作为头图。')
+      return
+    }
+
+    setMessage('正在上传头图…')
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const response = await fetch('/api/admin/media/upload', { method: 'POST', body: formData })
+      const data = (await response.json()) as UploadResponse
+
+      if (!response.ok || !data.media) {
+        throw new Error(data.error?.message ?? '头图上传失败。')
+      }
+
+      setCoverImage(data.media.url)
+      setMessage('头图已上传并填入 URL。')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '头图上传失败。')
+    }
+  }
+
+  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.currentTarget.files?.[0]
+    if (file) {
+      void uploadCoverImage(file)
+    }
+    event.currentTarget.value = ''
+  }
+
+  function handlePaste(event: React.ClipboardEvent<HTMLInputElement>) {
+    const file = Array.from(event.clipboardData.files).find((item) => item.type.startsWith('image/'))
+    if (file) {
+      event.preventDefault()
+      void uploadCoverImage(file)
+    }
+  }
+
   function submit(formData: FormData) {
     setMessage(null)
 
@@ -53,6 +101,7 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
         slug: String(formData.get('slug') ?? '') || undefined,
         excerpt: String(formData.get('excerpt') ?? '') || null,
         contentMarkdown: String(formData.get('contentMarkdown') ?? ''),
+        coverImage: String(formData.get('coverImage') ?? '') || null,
         status: String(formData.get('status') ?? 'DRAFT'),
         commentsMode: String(formData.get('commentsMode') ?? 'enabled'),
         categoryId: String(formData.get('categoryId') ?? '') || null,
@@ -92,6 +141,18 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
         <label className="grid gap-1.5 text-sm font-medium">标题<input name="title" defaultValue={article?.title} required maxLength={200} className="h-11 rounded-md border border-neutral-300 bg-white px-3 font-normal outline-none focus:border-blue-600 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-blue-400" /></label>
         <label className="grid gap-1.5 text-sm font-medium">Slug <span className="font-normal text-neutral-500">（留空自动生成）</span><input name="slug" defaultValue={article?.slug} maxLength={120} className="h-10 rounded-md border border-neutral-300 bg-white px-3 font-mono text-sm font-normal outline-none focus:border-blue-600 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-blue-400" /></label>
         <label className="grid gap-1.5 text-sm font-medium">摘要<textarea name="excerpt" defaultValue={article?.excerpt ?? ''} rows={3} className="rounded-md border border-neutral-300 bg-white p-3 font-normal outline-none focus:border-blue-600 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-blue-400" /></label>
+        <label className="grid gap-1.5 text-sm font-medium">头图 URL <span className="font-normal text-neutral-500">（可手填 URL，也可上传或粘贴图片）</span><input name="coverImage" value={coverImage} onChange={(event) => setCoverImage(event.target.value)} onPaste={handlePaste} maxLength={2048} placeholder="https://example.com/cover.jpg 或粘贴图片" className="h-10 rounded-md border border-neutral-300 bg-white px-3 font-normal outline-none focus:border-blue-600 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-blue-400" /></label>
+        <div className="grid gap-3 rounded-md border border-dashed border-neutral-300 p-4 dark:border-neutral-700 sm:grid-cols-[1fr_auto] sm:items-center">
+          <div>
+            <p className="text-sm font-medium">上传头图</p>
+            <p className="mt-1 text-xs text-neutral-500">支持 jpg、png、webp、gif、avif，最大 5 MB。也可以直接在头图 URL 输入框粘贴图片。</p>
+          </div>
+          <label className="inline-flex cursor-pointer items-center justify-center rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800">
+            选择图片
+            <input type="file" accept="image/*" onChange={handleFileChange} className="sr-only" />
+          </label>
+        </div>
+        {coverImage && <img src={coverImage} alt="文章头图预览" className="h-44 w-full rounded-md border border-neutral-200 object-cover dark:border-neutral-800" />}
         <label className="grid gap-1.5 text-sm font-medium">正文（Markdown）<textarea name="contentMarkdown" defaultValue={article?.contentMarkdown} required rows={22} className="rounded-md border border-neutral-300 bg-white p-3 font-mono text-sm font-normal leading-6 outline-none focus:border-blue-600 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-blue-400" /></label>
       </section>
 
