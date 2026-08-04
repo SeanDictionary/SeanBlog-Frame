@@ -1,3 +1,6 @@
+import { Suspense } from 'react'
+
+import { AnalyticsTracker } from '@/components/analytics/analytics-tracker'
 import { SiteFooter } from '@/components/layout/site-footer'
 import { SiteHeader } from '@/components/layout/site-header'
 import { getSiteSettingsMap } from '@/lib/services/setting-service'
@@ -17,6 +20,9 @@ export default async function PublicLayout({
       {customThemeCss && <style>{customThemeCss}</style>}
       <SiteHeader />
       <main className="flex-1">{children}</main>
+      <Suspense fallback={null}>
+        <AnalyticsTracker />
+      </Suspense>
       <SiteFooter />
     </div>
   )

@@ -9,6 +9,7 @@ const adminNavigation: Array<{ href: Route; label: string; icon: string }> = [
   { href: '/admin/articles', label: '文章', icon: 'fa-regular fa-file-lines' },
   { href: '/admin/taxonomy' as Route, label: '分类标签', icon: 'fa-solid fa-folder-tree' },
   { href: '/admin/comments', label: '评论', icon: 'fa-regular fa-comments' },
+  { href: '/admin/analytics' as Route, label: '统计', icon: 'fa-solid fa-chart-simple' },
   { href: '/admin/media', label: '媒体', icon: 'fa-regular fa-images' },
   { href: '/admin/settings', label: '设置', icon: 'fa-solid fa-sliders' },
 ]

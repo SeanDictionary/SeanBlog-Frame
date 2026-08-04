@@ -20,6 +20,7 @@ const queryPage = z.preprocess(emptyQueryParamToUndefined, z.coerce.number().int
 const queryPageSize = z.preprocess(emptyQueryParamToUndefined, z.coerce.number().int().min(1).max(100).default(20))
 const optionalArticleStatusQuery = z.preprocess(emptyQueryParamToUndefined, z.nativeEnum(ArticleStatus).optional())
 const optionalCommentStatusQuery = z.preprocess(emptyQueryParamToUndefined, z.nativeEnum(CommentStatus).optional())
+const optionalDateQuery = z.preprocess(emptyQueryParamToUndefined, z.coerce.date().optional())
 export const publicArticleSortSchema = z.enum(['publishedAt', 'updatedAt', 'viewCount', 'commentCount'])
 export const adminArticleSortSchema = z.enum(['updatedAt', 'publishedAt', 'createdAt', 'viewCount', 'visitorCount', 'title'])
 const publicArticleSortQuery = z.preprocess(emptyQueryParamToUndefined, publicArticleSortSchema.default('publishedAt'))
@@ -198,6 +199,27 @@ export const articleImportSchema = z
   })
   .strict()
 
+export const analyticsEventSchema = z
+  .object({
+    path: z.string().trim().min(1).max(2048),
+    contentType: z.enum(['page', 'article', 'category', 'tag']).default('page'),
+    slug: optionalTrimmedString,
+    sessionId: optionalTrimmedString,
+    visitorId: optionalTrimmedString,
+    referrer: optionalTrimmedString,
+    browserFingerprint: optionalTrimmedString,
+    hardware: optionalTrimmedString,
+    durationSeconds: z.coerce.number().int().min(0).max(86400).nullable().optional(),
+  })
+  .strict()
+
+export const analyticsQuerySchema = z.object({
+  start: optionalDateQuery,
+  end: optionalDateQuery,
+  dimension: z.preprocess(emptyQueryParamToUndefined, z.enum(['all', 'article', 'category', 'tag']).default('all')),
+  slug: optionalQueryString,
+})
+
 export type PublicArticleSort = z.infer<typeof publicArticleSortSchema>
 export type AdminArticleSort = z.infer<typeof adminArticleSortSchema>
 export type ArticleInput = z.infer<typeof articleInputSchema>
@@ -211,3 +233,5 @@ export type MediaInput = z.infer<typeof mediaInputSchema>
 export type MarkdownPreviewInput = z.infer<typeof markdownPreviewSchema>
 export type ArticleBulkActionInput = z.infer<typeof articleBulkActionSchema>
 export type ArticleImportInput = z.infer<typeof articleImportSchema>
+export type AnalyticsEventInput = z.infer<typeof analyticsEventSchema>
+export type AnalyticsQuery = z.infer<typeof analyticsQuerySchema>

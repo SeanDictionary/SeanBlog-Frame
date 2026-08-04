@@ -266,6 +266,47 @@ model SiteSetting {
 }
 ```
 
+### 4.5 AnalyticsEvent（访问统计事件）
+
+```prisma
+model AnalyticsEvent {
+  id                 String   @id @default(cuid())
+  path               String
+  contentType        String
+  articleId          String?
+  categoryId         String?
+  tagId              String?
+  visitorHash        String?
+  sessionId          String?
+  referrer           String?
+  country            String?
+  ipAddress          String?
+  userAgent          String?
+  browserFingerprint String?
+  hardware           String?
+  durationSeconds    Int?
+  createdAt          DateTime @default(now())
+
+  article            Article?  @relation(fields: [articleId], references: [id], onDelete: SetNull)
+  category           Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tag                Tag?      @relation(fields: [tagId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([articleId, createdAt])
+  @@index([categoryId, createdAt])
+  @@index([tagId, createdAt])
+  @@index([contentType, createdAt])
+  @@index([visitorHash])
+}
+```
+
+说明：
+
+- 统计事件记录访问路径、内容类型、关联文章/分类/标签和访问时长
+- `visitorHash` 使用匿名访客 ID 的 hash 值，用于访客数去重，不保存原始访客 ID
+- `ipAddress`、`userAgent`、`browserFingerprint`、`hardware`、`referrer` 等隐私字段默认不采集，仅在后台设置中显式开启后写入
+- 后台统计页按日期、文章、分类、标签聚合访问量和访客数，并支持 CSV 明细导出
+
 ## 5. 索引策略总结
 
 | 表 | 索引字段 | 用途 |

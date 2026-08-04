@@ -1785,6 +1785,104 @@
         },
         "additionalProperties": false,
         "description": "后台文章 JSON 导出结果。"
+      },
+      "AnalyticsEventInput": {
+        "type": "object",
+        "required": [
+          "path"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "description": "访问路径，包含 pathname 和可选查询字符串。"
+          },
+          "contentType": {
+            "type": "string",
+            "enum": [
+              "page",
+              "article",
+              "category",
+              "tag"
+            ],
+            "default": "page",
+            "description": "访问内容类型。"
+          },
+          "slug": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "文章、分类或标签 slug。"
+          },
+          "sessionId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "匿名会话 ID；服务端不会直接公开。"
+          },
+          "visitorId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "匿名访客 ID；服务端只保存 hash。"
+          },
+          "referrer": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "来源 URL。默认不采集，需后台开启。"
+          },
+          "browserFingerprint": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "浏览器指纹摘要。默认不采集，需后台开启。"
+          },
+          "hardware": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "硬件信息摘要。默认不采集，需后台开启。"
+          },
+          "durationSeconds": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 86400,
+            "description": "本次页面停留时长。"
+          }
+        },
+        "additionalProperties": false,
+        "description": "公开访问统计事件请求体。隐私字段是否保存由后台设置控制。"
+      },
+      "AnalyticsEventReceipt": {
+        "type": "object",
+        "properties": {
+          "skipped": {
+            "type": "boolean",
+            "description": "统计是否因后台关闭而跳过。"
+          },
+          "event": {
+            "type": "object",
+            "nullable": true,
+            "description": "已写入的事件对象；跳过时省略。"
+          }
+        },
+        "additionalProperties": true,
+        "description": "访问统计写入回执。"
+      },
+      "AnalyticsCsvExport": {
+        "type": "string",
+        "description": "按筛选条件导出的 CSV 文本，包含访问时间、路径、内容维度、访问时长及已启用的隐私字段。"
       }
     },
     "responses": {
@@ -4175,6 +4273,120 @@
         },
         "operationId": "importAdminArticles",
         "description": "导入一篇或多篇文章。若 slug 已存在，会自动追加 import 后缀避免冲突。"
+      }
+    },
+    "/api/analytics/events": {
+      "post": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "记录公开访问事件",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalyticsEventInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "访问事件写入或跳过结果。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsEventReceipt"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "operationId": "createAnalyticsEvent",
+        "description": "公开页面 tracker 在页面离开或路由切换时调用。默认只保存匿名访问数据；IP、UA、来源 URL、浏览器指纹和硬件信息需后台显式开启才会保存。"
+      }
+    },
+    "/api/admin/analytics/export": {
+      "get": {
+        "tags": [
+          "Admin Analytics"
+        ],
+        "summary": "导出访问统计 CSV",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "start",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "开始日期。"
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "结束日期。"
+          },
+          {
+            "name": "dimension",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "all",
+                "article",
+                "category",
+                "tag"
+              ],
+              "default": "all"
+            },
+            "description": "筛选维度。"
+          },
+          {
+            "name": "slug",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "文章/分类/标签 slug。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV 导出文件。",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsCsvExport"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "operationId": "exportAdminAnalyticsCsv",
+        "description": "按日期范围和内容维度导出访问事件明细 CSV。"
       }
     }
   }

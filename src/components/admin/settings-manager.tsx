@@ -36,6 +36,12 @@ export function SettingsManager({ initialSettings, availableThemes }: SettingsMa
   const showWordCount = settings.find((setting) => setting.key === 'articleMetaShowWordCount')?.value !== false
   const showCategory = settings.find((setting) => setting.key === 'articleMetaShowCategory')?.value !== false
   const showTags = settings.find((setting) => setting.key === 'articleMetaShowTags')?.value !== false
+  const analyticsEnabled = settings.find((setting) => setting.key === 'analyticsEnabled')?.value !== false
+  const analyticsCollectIp = settings.find((setting) => setting.key === 'analyticsCollectIp')?.value === true
+  const analyticsCollectUserAgent = settings.find((setting) => setting.key === 'analyticsCollectUserAgent')?.value === true
+  const analyticsCollectReferrer = settings.find((setting) => setting.key === 'analyticsCollectReferrer')?.value === true
+  const analyticsCollectFingerprint = settings.find((setting) => setting.key === 'analyticsCollectFingerprint')?.value === true
+  const analyticsCollectHardware = settings.find((setting) => setting.key === 'analyticsCollectHardware')?.value === true
 
   function reportError(error: unknown, fallback: string) {
     setMessage(error instanceof Error ? error.message : fallback)
@@ -176,8 +182,21 @@ export function SettingsManager({ initialSettings, availableThemes }: SettingsMa
       </section>
 
       <section className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-950">
+        <h2 className="font-semibold">访问统计与隐私</h2>
+        <p className="mt-1 text-sm text-neutral-500">默认只采集匿名访问事件和匿名访客标识。IP、UA、浏览器指纹、硬件信息、来源 URL 默认不收集，需单独开启。</p>
+        <div className="mt-5 grid gap-4">
+          <MetadataToggle settingKey="analyticsEnabled" fieldName="analyticsEnabled" label="启用访问统计" checked={analyticsEnabled} isPending={isPending} onSave={save} />
+          <MetadataToggle settingKey="analyticsCollectIp" fieldName="analyticsCollectIp" label="采集 IP 地址" checked={analyticsCollectIp} isPending={isPending} onSave={save} />
+          <MetadataToggle settingKey="analyticsCollectUserAgent" fieldName="analyticsCollectUserAgent" label="采集 User-Agent" checked={analyticsCollectUserAgent} isPending={isPending} onSave={save} />
+          <MetadataToggle settingKey="analyticsCollectReferrer" fieldName="analyticsCollectReferrer" label="采集来源 URL" checked={analyticsCollectReferrer} isPending={isPending} onSave={save} />
+          <MetadataToggle settingKey="analyticsCollectFingerprint" fieldName="analyticsCollectFingerprint" label="采集浏览器指纹摘要" checked={analyticsCollectFingerprint} isPending={isPending} onSave={save} />
+          <MetadataToggle settingKey="analyticsCollectHardware" fieldName="analyticsCollectHardware" label="采集硬件信息摘要" checked={analyticsCollectHardware} isPending={isPending} onSave={save} />
+        </div>
+      </section>
+
+      <section className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-950">
         <h2 className="font-semibold">其他设置</h2>
-        <div className="mt-5 space-y-4">{settings.filter((setting) => !['activeTheme', 'siteName', 'siteDescription', 'siteUrl', 'articleCommentsMode', 'commentModerationRules', 'articleMetaShowPublishedAt', 'articleMetaShowViewCount', 'articleMetaShowReadingTime', 'articleMetaShowWordCount', 'articleMetaShowCategory', 'articleMetaShowTags'].includes(setting.key)).map((setting) => <form key={setting.id} action={(formData) => save(setting.key, String(formData.get('value') ?? ''))} className="grid gap-2 sm:grid-cols-[12rem_1fr_auto]"><label className="font-mono text-sm sm:pt-2.5">{setting.key}</label><textarea name="value" defaultValue={stringifyValue(setting.value)} rows={2} className="rounded-md border border-neutral-300 bg-white p-3 font-mono text-xs outline-none dark:border-neutral-700 dark:bg-neutral-900" /><button disabled={isPending} className="text-sm text-blue-600">保存</button></form>)}</div>
+        <div className="mt-5 space-y-4">{settings.filter((setting) => !['activeTheme', 'siteName', 'siteDescription', 'siteUrl', 'articleCommentsMode', 'commentModerationRules', 'articleMetaShowPublishedAt', 'articleMetaShowViewCount', 'articleMetaShowReadingTime', 'articleMetaShowWordCount', 'articleMetaShowCategory', 'articleMetaShowTags', 'analyticsEnabled', 'analyticsCollectIp', 'analyticsCollectUserAgent', 'analyticsCollectReferrer', 'analyticsCollectFingerprint', 'analyticsCollectHardware'].includes(setting.key)).map((setting) => <form key={setting.id} action={(formData) => save(setting.key, String(formData.get('value') ?? ''))} className="grid gap-2 sm:grid-cols-[12rem_1fr_auto]"><label className="font-mono text-sm sm:pt-2.5">{setting.key}</label><textarea name="value" defaultValue={stringifyValue(setting.value)} rows={2} className="rounded-md border border-neutral-300 bg-white p-3 font-mono text-xs outline-none dark:border-neutral-700 dark:bg-neutral-900" /><button disabled={isPending} className="text-sm text-blue-600">保存</button></form>)}</div>
       </section>
 
       {message && <p className="text-sm text-neutral-500" role="status">{message}</p>}

@@ -24,6 +24,7 @@ model Category {
   updatedAt   DateTime @updatedAt
 
   articles Article[]
+  analyticsEvents AnalyticsEvent[]
 
   @@index([slug])
 }
@@ -36,6 +37,7 @@ model Tag {
   updatedAt DateTime @updatedAt
 
   articles ArticleTag[]
+  analyticsEvents AnalyticsEvent[]
 
   @@index([slug])
 }
@@ -79,6 +81,7 @@ model Article {
   tags       ArticleTag[]
   comments   Comment[]
   revisions  ArticleRevision[]
+  analyticsEvents AnalyticsEvent[]
 
   @@index([status, publishedAt])
   @@index([expiresAt])
@@ -160,4 +163,34 @@ model SiteSetting {
   id    String @id @default(cuid())
   key   String @unique
   value String
+}
+
+model AnalyticsEvent {
+  id                 String    @id @default(cuid())
+  path               String
+  contentType        String
+  articleId          String?
+  categoryId         String?
+  tagId              String?
+  visitorHash        String?
+  sessionId          String?
+  referrer           String?
+  country            String?
+  ipAddress          String?
+  userAgent          String?
+  browserFingerprint String?
+  hardware           String?
+  durationSeconds    Int?
+  createdAt          DateTime  @default(now())
+
+  article  Article?  @relation(fields: [articleId], references: [id], onDelete: SetNull)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tag      Tag?      @relation(fields: [tagId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([articleId, createdAt])
+  @@index([categoryId, createdAt])
+  @@index([tagId, createdAt])
+  @@index([contentType, createdAt])
+  @@index([visitorHash])
 }
