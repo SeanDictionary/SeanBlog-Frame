@@ -4,10 +4,9 @@ import { NextResponse } from 'next/server'
 import { handleApiError, json } from '@/lib/api/response'
 import { requireSameOriginRequest } from '@/lib/api/request-guard'
 import { requireAdmin } from '@/lib/auth.utils'
-import { listThemes, writeThemeCss } from '@/lib/theme'
-import { assertThemeName } from '@/lib/validations/theme'
+import { installThemePackageFromZip, listThemes } from '@/lib/theme'
 
-const MAX_UPLOAD_BYTES = 100 * 1024
+const MAX_UPLOAD_BYTES = 2 * 1024 * 1024
 
 export async function GET() {
   try {
@@ -24,22 +23,21 @@ export async function POST(request: Request) {
     requireSameOriginRequest(request)
 
     const formData = await request.formData()
-    const name = assertThemeName(formData.get('name'))
     const file = formData.get('file')
 
     if (!(file instanceof File)) {
-      return NextResponse.json({ error: { code: 'THEME_FILE_REQUIRED', message: 'Choose a CSS theme file.' } }, { status: 400 })
+      return NextResponse.json({ error: { code: 'THEME_PACKAGE_REQUIRED', message: 'Choose a .zip theme package.' } }, { status: 400 })
     }
 
     if (file.size === 0 || file.size > MAX_UPLOAD_BYTES) {
-      return NextResponse.json({ error: { code: 'INVALID_THEME_FILE_SIZE', message: 'Theme CSS must be between 1 byte and 100 KB.' } }, { status: 400 })
+      return NextResponse.json({ error: { code: 'INVALID_THEME_PACKAGE_SIZE', message: 'Theme packages must be between 1 byte and 2 MB.' } }, { status: 400 })
     }
 
-    if (file.type && file.type !== 'text/css') {
-      return NextResponse.json({ error: { code: 'INVALID_THEME_FILE', message: 'Theme files must use the CSS format.' } }, { status: 400 })
+    if (!file.name.endsWith('.zip') && file.type && !['application/zip', 'application/x-zip-compressed', 'application/octet-stream'].includes(file.type)) {
+      return NextResponse.json({ error: { code: 'INVALID_THEME_PACKAGE', message: 'Theme packages must use the .zip format.' } }, { status: 400 })
     }
 
-    const theme = await writeThemeCss(name, await file.text())
+    const theme = await installThemePackageFromZip(file)
     revalidatePath('/(public)', 'layout')
 
     return json({ theme }, { status: 201 })

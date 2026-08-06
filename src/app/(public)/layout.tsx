@@ -4,26 +4,24 @@ import { AnalyticsTracker } from '@/components/analytics/analytics-tracker'
 import { SiteFooter } from '@/components/layout/site-footer'
 import { SiteHeader } from '@/components/layout/site-header'
 import { getSiteSettingsMap } from '@/lib/services/setting-service'
-import { readThemeCss } from '@/lib/theme'
+import { readThemeCss, readThemeManifest } from '@/lib/theme'
 
-function buildThemeOptionsCss(settings: Record<string, unknown>) {
-  const variables: string[] = []
+function normalizeActiveTheme(value: unknown) {
+  return typeof value === 'string' && value !== 'default' ? value : 'seanblog-default'
+}
 
-  if (typeof settings.themeAccentColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(settings.themeAccentColor)) {
-    variables.push(`--color-accent: ${settings.themeAccentColor}`)
-  }
+async function buildThemeOptionsCss(themeSlug: string, settings: Record<string, unknown>) {
+  const manifest = await readThemeManifest(themeSlug).catch(() => null)
+  if (!manifest?.settingsSchema?.length) return null
 
-  if (typeof settings.themeContentMaxWidth === 'string' && /^\d+(?:\.\d+)?(?:rem|px)$/.test(settings.themeContentMaxWidth)) {
-    variables.push(`--content-max-width: ${settings.themeContentMaxWidth}`)
-  }
-
-  if (typeof settings.themeRadius === 'string' && /^\d+(?:\.\d+)?(?:rem|px)$/.test(settings.themeRadius)) {
-    variables.push(`--radius: ${settings.themeRadius}`, `--radius-lg: ${settings.themeRadius}`)
-  }
-
-  if (typeof settings.themeHeaderHeight === 'string' && /^\d+(?:\.\d+)?(?:rem|px)$/.test(settings.themeHeaderHeight)) {
-    variables.push(`--header-height: ${settings.themeHeaderHeight}`)
-  }
+  const variables = manifest.settingsSchema
+    .map((item) => {
+      if (!item.cssVariable) return null
+      const value = settings[`themeSetting:${manifest.slug}:${item.key}`] ?? item.default
+      if (typeof value !== 'string' && typeof value !== 'number') return null
+      return `${item.cssVariable}: ${value}`
+    })
+    .filter((item): item is string => item !== null)
 
   return variables.length ? `:root{${variables.join(';')}}` : null
 }
@@ -34,9 +32,9 @@ export default async function PublicLayout({
   children: React.ReactNode
 }) {
   const settings = await getSiteSettingsMap()
-  const activeTheme = typeof settings.activeTheme === 'string' ? settings.activeTheme : 'default'
-  const customThemeCss = activeTheme !== 'default' ? await readThemeCss(activeTheme) : null
-  const themeOptionsCss = buildThemeOptionsCss(settings)
+  const activeTheme = normalizeActiveTheme(settings.activeTheme)
+  const customThemeCss = await readThemeCss(activeTheme) ?? await readThemeCss('seanblog-default')
+  const themeOptionsCss = await buildThemeOptionsCss(activeTheme, settings) ?? await buildThemeOptionsCss('seanblog-default', settings)
 
   return (
     <div className="flex min-h-screen flex-col">

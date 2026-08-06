@@ -1,0 +1,5 @@
+{
+  "template": "search",
+  "layout": "results-list",
+  "slots": ["search-box", "search-results", "pagination"]
+}

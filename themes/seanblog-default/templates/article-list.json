@@ -1,0 +1,5 @@
+{
+  "template": "article-list",
+  "layout": "archive-list",
+  "slots": ["archive-header", "article-list", "pagination"]
+}

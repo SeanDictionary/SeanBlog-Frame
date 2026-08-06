@@ -9,9 +9,28 @@ type Setting = {
   value: unknown
 }
 
+type ThemeSettingSchemaItem = {
+  key: string
+  label: string
+  type: 'text' | 'color' | 'number' | 'boolean' | 'select'
+  default?: string | number | boolean
+  cssVariable?: string
+  options?: Array<{ label: string; value: string }>
+}
+
+type ThemePackageSummary = {
+  slug: string
+  name: string
+  version: string
+  author?: string
+  description?: string
+  previewImage?: string
+  settingsSchema: ThemeSettingSchemaItem[]
+}
+
 type PersonalizationManagerProps = {
   initialSettings: Setting[]
-  availableThemes: string[]
+  availableThemes: ThemePackageSummary[]
 }
 
 type ApiResponse = {
@@ -30,6 +49,20 @@ function settingEnabled(settings: Setting[], key: string, fallback = true) {
   return typeof value === 'boolean' ? value : fallback
 }
 
+function activeThemeSlug(settings: Setting[]) {
+  const value = settingValue(settings, 'activeTheme', 'seanblog-default')
+  return value === 'default' ? 'seanblog-default' : value
+}
+
+function themeSettingKey(themeSlug: string, key: string) {
+  return `themeSetting:${themeSlug}:${key}`
+}
+
+function themeSettingValue(settings: Setting[], themeSlug: string, item: ThemeSettingSchemaItem) {
+  const setting = settings.find((entry) => entry.key === themeSettingKey(themeSlug, item.key))?.value
+  return setting ?? item.default ?? ''
+}
+
 export function PersonalizationManager({ initialSettings, availableThemes }: PersonalizationManagerProps) {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -37,7 +70,14 @@ export function PersonalizationManager({ initialSettings, availableThemes }: Per
   const [themes, setThemes] = useState(availableThemes)
   const [message, setMessage] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
-  const activeTheme = settingValue(settings, 'activeTheme', 'default')
+  const activeTheme = activeThemeSlug(settings)
+  const activeThemePackage = themes.find((theme) => theme.slug === activeTheme) ?? themes[0]
+
+  function applySetting(setting: Setting) {
+    setSettings((previous) => previous.some((item) => item.key === setting.key)
+      ? previous.map((item) => item.key === setting.key ? setting : item)
+      : [...previous, setting])
+  }
 
   function saveSetting(key: string, value: unknown) {
     startTransition(async () => {
@@ -55,9 +95,7 @@ export function PersonalizationManager({ initialSettings, availableThemes }: Per
           throw new Error(data.error?.message ?? '保存失败。')
         }
 
-        setSettings((previous) => previous.some((setting) => setting.key === key)
-          ? previous.map((setting) => setting.key === key ? data.setting! : setting)
-          : [...previous, data.setting!])
+        applySetting(data.setting)
         setMessage('个性化设置已保存。')
         router.refresh()
       } catch (error) {
@@ -77,10 +115,6 @@ export function PersonalizationManager({ initialSettings, availableThemes }: Per
       ['publicFooterShowRss', formData.get('publicFooterShowRss') === 'on'],
       ['adminSidebarTitle', String(formData.get('adminSidebarTitle') ?? '')],
       ['adminSidebarShowViewSite', formData.get('adminSidebarShowViewSite') === 'on'],
-      ['themeAccentColor', String(formData.get('themeAccentColor') ?? '')],
-      ['themeContentMaxWidth', String(formData.get('themeContentMaxWidth') ?? '')],
-      ['themeRadius', String(formData.get('themeRadius') ?? '')],
-      ['themeHeaderHeight', String(formData.get('themeHeaderHeight') ?? '')],
     ] as const
 
     startTransition(async () => {
@@ -94,14 +128,39 @@ export function PersonalizationManager({ initialSettings, availableThemes }: Per
           })
           const data = (await response.json()) as ApiResponse
           if (!response.ok || !data.setting) throw new Error(data.error?.message ?? '保存失败。')
-          setSettings((previous) => previous.some((setting) => setting.key === key)
-            ? previous.map((setting) => setting.key === key ? data.setting! : setting)
-            : [...previous, data.setting!])
+          applySetting(data.setting)
         }
         setMessage('个性化设置已保存。')
         router.refresh()
       } catch (error) {
         setMessage(error instanceof Error ? error.message : '保存失败。')
+      }
+    })
+  }
+
+  function saveThemeSettings(formData: FormData) {
+    if (!activeThemePackage) return
+
+    startTransition(async () => {
+      setMessage(null)
+      try {
+        for (const item of activeThemePackage.settingsSchema) {
+          const rawValue = item.type === 'boolean'
+            ? formData.get(item.key) === 'on'
+            : String(formData.get(item.key) ?? item.default ?? '')
+          const response = await fetch(`/api/admin/settings/${encodeURIComponent(themeSettingKey(activeThemePackage.slug, item.key))}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ value: rawValue }),
+          })
+          const data = (await response.json()) as ApiResponse
+          if (!response.ok || !data.setting) throw new Error(data.error?.message ?? '主题设置保存失败。')
+          applySetting(data.setting)
+        }
+        setMessage('主题包设置已保存。')
+        router.refresh()
+      } catch (error) {
+        setMessage(error instanceof Error ? error.message : '主题设置保存失败。')
       }
     })
   }
@@ -115,33 +174,35 @@ export function PersonalizationManager({ initialSettings, availableThemes }: Per
         const data = (await response.json()) as ApiResponse
 
         if (!response.ok || !data.theme) {
-          throw new Error(data.error?.message ?? '主题导入失败。')
+          throw new Error(data.error?.message ?? '主题包导入失败。')
         }
 
-        setThemes((previous) => [...new Set([...previous, data.theme!])].sort((left, right) => left.localeCompare(right)))
-        setMessage(`已导入主题 ${data.theme}。`)
+        const refreshed = await fetch('/api/admin/themes')
+        const refreshedData = (await refreshed.json()) as { themes?: ThemePackageSummary[] }
+        if (refreshedData.themes) setThemes(refreshedData.themes)
+        setMessage(`已导入主题包 ${data.theme}。`)
         fileInputRef.current?.form?.reset()
         router.refresh()
       } catch (error) {
-        setMessage(error instanceof Error ? error.message : '主题导入失败。')
+        setMessage(error instanceof Error ? error.message : '主题包导入失败。')
       }
     })
   }
 
-  function deleteTheme(theme: string) {
-    if (!window.confirm(`确认删除主题 ${theme} 吗？`)) return
+  function deleteTheme(theme: ThemePackageSummary) {
+    if (!window.confirm(`确认删除主题包 ${theme.name} 吗？`)) return
 
     startTransition(async () => {
       setMessage(null)
       try {
-        const response = await fetch(`/api/admin/themes/${encodeURIComponent(theme)}`, { method: 'DELETE' })
+        const response = await fetch(`/api/admin/themes/${encodeURIComponent(theme.slug)}`, { method: 'DELETE' })
         const data = response.status === 204 ? null : (await response.json()) as ApiResponse
-        if (!response.ok) throw new Error(data?.error?.message ?? '主题删除失败。')
-        setThemes((previous) => previous.filter((item) => item !== theme))
-        setMessage(`已删除主题 ${theme}。`)
+        if (!response.ok) throw new Error(data?.error?.message ?? '主题包删除失败。')
+        setThemes((previous) => previous.filter((item) => item.slug !== theme.slug))
+        setMessage(`已删除主题包 ${theme.name}。`)
         router.refresh()
       } catch (error) {
-        setMessage(error instanceof Error ? error.message : '主题删除失败。')
+        setMessage(error instanceof Error ? error.message : '主题包删除失败。')
       }
     })
   }
@@ -150,26 +211,26 @@ export function PersonalizationManager({ initialSettings, availableThemes }: Per
     <div className="space-y-7">
       <section className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-950">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div><h2 className="font-semibold">主题库</h2><p className="mt-1 text-sm text-neutral-500">以卡片方式应用、预览、导入和导出主题。</p></div>
+          <div><h2 className="font-semibold">主题包库</h2><p className="mt-1 text-sm text-neutral-500">导入、预览、启用、导出和卸载第三方主题包。主题必须包含 theme.json、模板、部件和资源目录。</p></div>
           <form action={importTheme} className="flex flex-wrap items-end gap-3">
-            <label className="grid gap-1.5 text-sm">主题名<input name="name" required pattern="[a-z0-9][a-z0-9_-]{0,63}" maxLength={64} className="h-10 w-40 rounded-md border border-neutral-300 bg-white px-3 font-mono text-sm outline-none dark:border-neutral-700 dark:bg-neutral-900" /></label>
-            <label className="grid gap-1.5 text-sm">CSS 文件<input ref={fileInputRef} name="file" type="file" required accept=".css,text/css" className="max-w-52 text-sm" /></label>
-            <button disabled={isPending} className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium disabled:opacity-60 dark:border-neutral-700">导入主题</button>
+            <label className="grid gap-1.5 text-sm">主题包 ZIP<input ref={fileInputRef} name="file" type="file" required accept=".zip,application/zip" className="max-w-64 text-sm" /></label>
+            <button disabled={isPending} className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium disabled:opacity-60 dark:border-neutral-700">导入主题包</button>
           </form>
         </div>
         <div className="mt-6 grid gap-4 md:grid-cols-3">
           {themes.map((theme) => (
-            <article key={theme} className={`rounded-lg border p-4 ${theme === activeTheme ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30' : 'border-neutral-200 dark:border-neutral-800'}`}>
-              <div className="h-28 rounded-md border border-neutral-200 bg-gradient-to-br from-bg via-bg-secondary to-accent-subtle dark:border-neutral-800" />
+            <article key={theme.slug} className={`rounded-lg border p-4 ${theme.slug === activeTheme ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30' : 'border-neutral-200 dark:border-neutral-800'}`}>
+              {theme.previewImage ? <img src={`/api/admin/themes/${encodeURIComponent(theme.slug)}/asset?path=${encodeURIComponent(theme.previewImage)}`} alt={`${theme.name} 预览图`} className="h-32 w-full rounded-md border border-neutral-200 object-cover dark:border-neutral-800" /> : <div className="h-32 rounded-md border border-neutral-200 bg-gradient-to-br from-bg via-bg-secondary to-accent-subtle dark:border-neutral-800" />}
               <div className="mt-4 flex items-start justify-between gap-3">
-                <div><h3 className="font-mono text-sm font-semibold">{theme}</h3>{theme === activeTheme && <p className="mt-1 text-xs text-blue-600">当前主题</p>}</div>
+                <div><h3 className="text-sm font-semibold">{theme.name}</h3><p className="mt-1 text-xs text-neutral-500">{theme.author ?? '未知作者'} · v{theme.version}</p>{theme.slug === activeTheme && <p className="mt-1 text-xs text-blue-600">当前主题包</p>}</div>
                 <div className="flex flex-wrap justify-end gap-2 text-xs">
-                  <a href={`/admin/personalization/preview?theme=${encodeURIComponent(theme)}`} target="_blank" rel="noreferrer" className="rounded border border-neutral-300 px-2 py-1 dark:border-neutral-700">预览</a>
-                  <button type="button" disabled={isPending || theme === activeTheme} onClick={() => saveSetting('activeTheme', theme)} className="rounded bg-neutral-950 px-2 py-1 text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-950">应用</button>
-                  <a href={`/api/admin/themes/${encodeURIComponent(theme)}`} className="rounded border border-neutral-300 px-2 py-1 dark:border-neutral-700">导出</a>
-                  {theme !== 'default' && <button type="button" disabled={isPending || theme === activeTheme} onClick={() => deleteTheme(theme)} className="rounded border border-red-200 px-2 py-1 text-red-600 disabled:opacity-50 dark:border-red-900/60">删除</button>}
+                  <a href={`/admin/personalization/preview?theme=${encodeURIComponent(theme.slug)}`} target="_blank" rel="noreferrer" className="rounded border border-neutral-300 px-2 py-1 dark:border-neutral-700">预览</a>
+                  <button type="button" disabled={isPending || theme.slug === activeTheme} onClick={() => saveSetting('activeTheme', theme.slug)} className="rounded bg-neutral-950 px-2 py-1 text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-950">启用</button>
+                  <a href={`/api/admin/themes/${encodeURIComponent(theme.slug)}`} className="rounded border border-neutral-300 px-2 py-1 dark:border-neutral-700">导出</a>
+                  {theme.slug !== 'seanblog-default' && <button type="button" disabled={isPending || theme.slug === activeTheme} onClick={() => deleteTheme(theme)} className="rounded border border-red-200 px-2 py-1 text-red-600 disabled:opacity-50 dark:border-red-900/60">卸载</button>}
                 </div>
               </div>
+              {theme.description && <p className="mt-3 text-xs leading-5 text-neutral-500">{theme.description}</p>}
             </article>
           ))}
         </div>
@@ -196,23 +257,28 @@ export function PersonalizationManager({ initialSettings, availableThemes }: Per
             <Toggle name="adminSidebarShowViewSite" label="显示“查看网站”入口" checked={settingEnabled(settings, 'adminSidebarShowViewSite')} />
           </div>
         </section>
-
-        <section className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-950 xl:col-span-2">
-          <h2 className="font-semibold">当前主题设置</h2>
-          <p className="mt-1 text-sm text-neutral-500">这些设置以 CSS 变量覆盖方式应用在当前主题之上。</p>
-          <div className="mt-5 grid gap-4 md:grid-cols-4">
-            <label className="grid gap-1.5 text-sm">强调色<input name="themeAccentColor" type="color" defaultValue={settingValue(settings, 'themeAccentColor', '#2563eb')} className="h-10 rounded-md border border-neutral-300 bg-white px-2 dark:border-neutral-700 dark:bg-neutral-900" /></label>
-            <label className="grid gap-1.5 text-sm">内容宽度<input name="themeContentMaxWidth" defaultValue={settingValue(settings, 'themeContentMaxWidth', '48rem')} className="h-10 rounded-md border border-neutral-300 bg-white px-3 font-mono dark:border-neutral-700 dark:bg-neutral-900" /></label>
-            <label className="grid gap-1.5 text-sm">圆角<input name="themeRadius" defaultValue={settingValue(settings, 'themeRadius', '0.375rem')} className="h-10 rounded-md border border-neutral-300 bg-white px-3 font-mono dark:border-neutral-700 dark:bg-neutral-900" /></label>
-            <label className="grid gap-1.5 text-sm">Header 高度<input name="themeHeaderHeight" defaultValue={settingValue(settings, 'themeHeaderHeight', '4rem')} className="h-10 rounded-md border border-neutral-300 bg-white px-3 font-mono dark:border-neutral-700 dark:bg-neutral-900" /></label>
-          </div>
-          <button disabled={isPending} className="mt-5 rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950">保存个性化设置</button>
-        </section>
       </form>
+
+      {activeThemePackage && activeThemePackage.settingsSchema.length > 0 && (
+        <form action={saveThemeSettings} className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-950">
+          <h2 className="font-semibold">{activeThemePackage.name} 设置</h2>
+          <p className="mt-1 text-sm text-neutral-500">由当前主题包的 settingsSchema 动态生成。</p>
+          <div className="mt-5 grid gap-4 md:grid-cols-4">
+            {activeThemePackage.settingsSchema.map((item) => <ThemeSettingField key={item.key} item={item} value={themeSettingValue(settings, activeThemePackage.slug, item)} />)}
+          </div>
+          <button disabled={isPending} className="mt-5 rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950">保存主题包设置</button>
+        </form>
+      )}
 
       {message && <p className="text-sm text-neutral-500" role="status">{message}</p>}
     </div>
   )
+}
+
+function ThemeSettingField({ item, value }: { item: ThemeSettingSchemaItem; value: unknown }) {
+  if (item.type === 'boolean') return <Toggle name={item.key} label={item.label} checked={value === true} />
+  if (item.type === 'select') return <label className="grid gap-1.5 text-sm">{item.label}<select name={item.key} defaultValue={String(value)} className="h-10 rounded-md border border-neutral-300 bg-white px-3 dark:border-neutral-700 dark:bg-neutral-900">{item.options?.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+  return <label className="grid gap-1.5 text-sm">{item.label}<input name={item.key} type={item.type === 'color' ? 'color' : item.type === 'number' ? 'number' : 'text'} defaultValue={String(value)} className="h-10 rounded-md border border-neutral-300 bg-white px-3 font-mono dark:border-neutral-700 dark:bg-neutral-900" /></label>
 }
 
 function Toggle({ name, label, checked }: { name: string; label: string; checked: boolean }) {

@@ -1,0 +1,34 @@
+{
+  "slug": "starter",
+  "name": "Starter Theme",
+  "version": "0.1.0",
+  "author": "Theme Developer",
+  "description": "Starter package for building a SeanBlog declarative theme.",
+  "engine": "seanblog-theme",
+  "engineVersion": 1,
+  "previewImage": "assets/preview.svg",
+  "assets": {
+    "css": "assets/theme.css"
+  },
+  "templates": {
+    "home": "templates/home.json",
+    "articleList": "templates/article-list.json",
+    "articleDetail": "templates/article-detail.json",
+    "taxonomy": "templates/taxonomy.json",
+    "search": "templates/search.json"
+  },
+  "parts": {
+    "header": "parts/header.json",
+    "footer": "parts/footer.json"
+  },
+  "settingsSchema": [
+    {
+      "key": "accentColor",
+      "label": "Accent color",
+      "type": "color",
+      "default": "#2563eb",
+      "cssVariable": "--color-accent"
+    }
+  ],
+  "blocks": ["SiteHeader", "ArticleList", "ArticleCard", "ArticleContent", "TaxonomyList", "Pagination", "SearchDialog", "CommentList", "SiteFooter"]
+}

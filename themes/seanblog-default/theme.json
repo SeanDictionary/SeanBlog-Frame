@@ -1,0 +1,65 @@
+{
+  "slug": "seanblog-default",
+  "name": "SeanBlog Default",
+  "version": "1.0.0",
+  "author": "SeanBlog Frame",
+  "description": "Content-first default theme package with native SeanBlog components, clean typography, soft borders, and low-distraction interactions.",
+  "engine": "seanblog-theme",
+  "engineVersion": 1,
+  "previewImage": "assets/preview.svg",
+  "assets": {
+    "css": "assets/theme.css"
+  },
+  "templates": {
+    "home": "templates/home.json",
+    "articleList": "templates/article-list.json",
+    "articleDetail": "templates/article-detail.json",
+    "taxonomy": "templates/taxonomy.json",
+    "search": "templates/search.json"
+  },
+  "parts": {
+    "header": "parts/header.json",
+    "footer": "parts/footer.json"
+  },
+  "settingsSchema": [
+    {
+      "key": "accentColor",
+      "label": "强调色",
+      "type": "color",
+      "default": "#2563eb",
+      "cssVariable": "--color-accent"
+    },
+    {
+      "key": "contentMaxWidth",
+      "label": "内容宽度",
+      "type": "text",
+      "default": "48rem",
+      "cssVariable": "--content-max-width"
+    },
+    {
+      "key": "radius",
+      "label": "圆角",
+      "type": "text",
+      "default": "0.375rem",
+      "cssVariable": "--radius"
+    },
+    {
+      "key": "headerHeight",
+      "label": "Header 高度",
+      "type": "text",
+      "default": "4rem",
+      "cssVariable": "--header-height"
+    }
+  ],
+  "blocks": [
+    "SiteHeader",
+    "ArticleList",
+    "ArticleCard",
+    "ArticleContent",
+    "TaxonomyList",
+    "Pagination",
+    "SearchDialog",
+    "CommentList",
+    "SiteFooter"
+  ]
+}

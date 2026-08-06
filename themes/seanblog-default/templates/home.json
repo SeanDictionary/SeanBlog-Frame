@@ -1,0 +1,5 @@
+{
+  "template": "home",
+  "layout": "content-first",
+  "slots": ["site-intro", "pinned-articles", "article-list", "pagination"]
+}

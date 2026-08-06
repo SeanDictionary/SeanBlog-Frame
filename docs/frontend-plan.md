@@ -89,49 +89,27 @@ src/components/
 
 ```
 themes/
-├── default/                            # 默认极简主题（随项目发布）
-│   └── theme.css                       # CSS 变量定义
-└── (用户导入的自定义主题)/
-    └── theme.css
+├── seanblog-default/                    # 默认主题包（随项目发布）
+│   ├── theme.json                       # 主题清单、模板映射、设置 schema
+│   ├── templates/                       # 首页、文章详情、归档、搜索等声明式模板
+│   ├── parts/                           # Header/Footer/Dock 等模板部件
+│   └── assets/                          # theme.css、预览图、字体或图片资源
+└── starter/                             # 第三方主题开发示例包
 ```
 
 ### 实现方式
 
-1. **CSS 变量方案**：所有颜色、间距、圆角等定义在 `:root`（浅色）和 `[data-theme="dark"]`（深色）下
-2. **系统颜色适配**：默认跟随 `prefers-color-scheme`，可手动切换
-3. **当前主题名**存入 `SiteSetting`（key: `activeTheme`），前台布局读取后加载对应 CSS
-4. **导入/导出**：上传 CSS 文件到 `themes/` 目录，后台设置页面提供管理界面
-5. **主题作用域**：只影响 `(public)` 路由组下的前台页面，后台界面保持固定样式
-6. **持久化**：Docker 部署时 `themes/` 目录挂载 volume，与 `content/` 同等对待
+1. **主题包方案**：所有主题（包括默认主题）都是目录式 package，必须包含 `theme.json`，不再支持单独 CSS 文件作为主题。
+2. **声明式模板**：主题通过 `templates/*.json` 与 `parts/*.json` 组合平台白名单 block/component，不执行第三方 React/Node 代码。
+3. **当前主题包**存入 `SiteSetting`（key: `activeTheme`），默认值为 `seanblog-default`。
+4. **导入/导出**：后台导入 `.zip` 主题包，服务端校验 zip-slip、manifest、模板、资源和 CSS 安全规则；导出也以 `.zip` 主题包形式提供。
+5. **主题资源**：主题 CSS 位于 `assets/theme.css`，只能使用安全 CSS 变量和 `.sb-*` / `.sf-*` / `.article-content` 命名空间；相对资源引用会被重写到主题资产 API。
+6. **主题作用域**：只影响 `(public)` 路由组下的前台页面，后台界面保持固定样式。
+7. **持久化**：Docker 部署时 `themes/` 目录挂载 volume，与 `content/` 同等对待。
 
-### 默认极简主题变量（示例）
+### 默认主题包要求
 
-```css
-:root {
-  --color-bg: #ffffff;
-  --color-bg-secondary: #f5f5f5;
-  --color-text: #1a1a1a;
-  --color-text-secondary: #666666;
-  --color-border: #e5e5e5;
-  --color-accent: #2563eb;
-  --color-accent-hover: #1d4ed8;
-  --font-sans: 'Inter', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
-  --radius: 0.375rem;
-  --header-height: 4rem;
-  --content-max-width: 48rem;
-}
-
-[data-theme="dark"] {
-  --color-bg: #0a0a0a;
-  --color-bg-secondary: #171717;
-  --color-text: #ededed;
-  --color-text-secondary: #a3a3a3;
-  --color-border: #262626;
-  --color-accent: #3b82f6;
-  --color-accent-hover: #60a5fa;
-}
-```
+默认主题不再是 `themes/default/theme.css`。默认主题包为 `themes/seanblog-default/`，延续内容优先、极简、原生组件风格，并提供完整 `theme.json`、模板、部件、settings schema、预览图和资源目录。
 
 ---
 
@@ -147,7 +125,7 @@ themes/
 | 1.2 | 初始化 shadcn/ui | components.json, src/components/ui/*, src/lib/utils.ts |
 | 1.3 | 配置 next/font 字体 | src/app/layout.tsx |
 | 1.4 | 引入 FontAwesome CDN | src/app/layout.tsx |
-| 1.5 | 创建默认极简主题 CSS 变量 | src/app/globals.css, themes/default/theme.css |
+| 1.5 | 创建默认主题包 | src/app/globals.css, themes/seanblog-default/theme.json, themes/seanblog-default/assets/theme.css |
 | 1.6 | 创建主题加载工具 | src/lib/theme.ts |
 | 1.7 | 创建前台路由组 (public) | src/app/(public)/layout.tsx |
 | 1.8 | 创建 SiteHeader 组件 | src/components/layout/site-header.tsx |
@@ -201,4 +179,4 @@ themes/
 | 4.2 | 代码高亮（Shiki 或 Prism） |
 | 4.3 | SEO 优化（动态 metadata、Open Graph） |
 | 4.4 | 页面加载状态与错误边界 |
-| 4.5 | 主题导入/导出功能完善 |
+| 4.5 | 主题包导入/导出功能完善 |

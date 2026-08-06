@@ -2,7 +2,7 @@ import postcss from 'postcss'
 
 import { badRequest } from '@/lib/api/errors'
 
-export const DEFAULT_THEME_NAME = 'default'
+export const DEFAULT_THEME_NAME = 'seanblog-default'
 export const THEME_NAME_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/
 export const MAX_THEME_CSS_BYTES = 100 * 1024
 
@@ -41,7 +41,7 @@ export function assertThemeName(value: unknown) {
   return value
 }
 
-const unsafeCssPattern = /<\/?style|[<>]|url\(|@import|!important/i
+const unsafeCssPattern = /<\/?style|[<>]|@import|!important/i
 
 const componentSelectorPattern = /^(\.sb-[a-z0-9-]+|\.sf-[a-z0-9-]+|\.article-content)([\s>]+[a-z0-9_.:#\-[\]=\"'()]+)*$/i
 
