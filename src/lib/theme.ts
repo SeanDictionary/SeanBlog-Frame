@@ -41,6 +41,12 @@ export type ThemePackageManifest = {
   blocks?: string[]
 }
 
+export type ThemeTemplate = {
+  template?: string
+  layout?: string
+  slots?: string[]
+}
+
 export type ThemePackageSummary = {
   slug: string
   name: string
@@ -327,8 +333,22 @@ function createZip(entries: ZipEntry[]) {
   return Buffer.concat([...localParts, centralDirectory, eocd])
 }
 
+export function normalizeThemeName(value: unknown) {
+  return typeof value === 'string' && value !== 'default' ? assertThemeName(value) : DEFAULT_THEME_NAME
+}
+
+function validateTemplate(raw: unknown): ThemeTemplate {
+  const record = assertRecord(raw, 'template')
+
+  return {
+    template: typeof record.template === 'string' ? record.template : undefined,
+    layout: typeof record.layout === 'string' ? record.layout : undefined,
+    slots: Array.isArray(record.slots) ? record.slots.filter((slot): slot is string => typeof slot === 'string') : [],
+  }
+}
+
 export async function readThemeManifest(themeName: string) {
-  const slug = assertThemeName(themeName === 'default' ? DEFAULT_THEME_NAME : themeName)
+  const slug = normalizeThemeName(themeName)
   const manifest = validateManifest(await readJsonFile(getThemeManifestPath(slug)), slug)
 
   if (manifest.engineVersion > THEME_ENGINE_VERSION) {
@@ -340,7 +360,7 @@ export async function readThemeManifest(themeName: string) {
 
 export async function themeExists(themeName: string) {
   try {
-    const manifestFile = await stat(getThemeManifestPath(themeName === 'default' ? DEFAULT_THEME_NAME : themeName))
+    const manifestFile = await stat(getThemeManifestPath(normalizeThemeName(themeName)))
     return manifestFile.isFile() && manifestFile.size > 0
   } catch {
     return false
@@ -393,6 +413,17 @@ function rewriteThemeCssUrls(themeSlug: string, cssPath: string, css: string) {
   })
 }
 
+export async function readThemeTemplate(themeName: string, templateKey: string) {
+  try {
+    const manifest = await readThemeManifest(themeName)
+    const templatePath = manifest.templates[templateKey]
+    if (!templatePath) return null
+    return validateTemplate(await readJsonFile(resolveThemePath(manifest.slug, templatePath)))
+  } catch {
+    return null
+  }
+}
+
 export async function readThemeCss(themeName: string) {
   try {
     const manifest = await readThemeManifest(themeName)
@@ -405,7 +436,7 @@ export async function readThemeCss(themeName: string) {
 }
 
 export async function readThemeAsset(themeName: string, assetPath: string) {
-  const name = themeName === 'default' ? DEFAULT_THEME_NAME : assertThemeName(themeName)
+  const name = normalizeThemeName(themeName)
   return readFile(resolveThemePath(name, assetPath))
 }
 
@@ -463,13 +494,13 @@ export async function installThemePackageFromManifest(manifest: ThemePackageMani
 }
 
 export async function exportThemePackage(themeName: string) {
-  const name = themeName === 'default' ? DEFAULT_THEME_NAME : assertThemeName(themeName)
+  const name = normalizeThemeName(themeName)
   if (!(await themeExists(name))) throw notFound('Theme package not found.')
   return createZip(await walkThemeFiles(name))
 }
 
 export async function deleteTheme(themeName: string) {
-  const name = themeName === 'default' ? DEFAULT_THEME_NAME : assertThemeName(themeName)
+  const name = normalizeThemeName(themeName)
 
   if (name === DEFAULT_THEME_NAME) {
     throw conflict('The default theme package cannot be deleted.')

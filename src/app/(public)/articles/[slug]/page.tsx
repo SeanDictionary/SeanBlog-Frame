@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
+import type { ReactNode } from 'react'
 
 import { ArticleContent } from '@/components/article/article-content'
 import { ArticleMeta } from '@/components/article/article-meta'
@@ -11,6 +12,8 @@ import { countContentWordsFromHtml, estimateReadingMinutesFromHtml } from '@/lib
 import { isDatabaseError } from '@/lib/database-errors'
 import { getPublicArticleBySlug, getPublicArticleNavigation } from '@/lib/services/article-service'
 import { getSiteSettingsMap } from '@/lib/services/setting-service'
+import { normalizeThemeName, readThemeTemplate } from '@/lib/theme'
+import { orderThemeSlots } from '@/lib/theme-slots'
 
 type ArticlePageProps = {
   params: Promise<{ slug: string }>
@@ -84,6 +87,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
       getSiteSettingsMap(),
       getPublicArticleNavigation(slug),
     ])
+    const template = await readThemeTemplate(normalizeThemeName(settings.activeTheme), 'articleDetail')
     const { contentHtml, headings } = getHeadings(article.contentHtml)
     const showPublishedAt = settings.articleMetaShowPublishedAt !== false
     const showViewCount = settings.articleMetaShowViewCount !== false
@@ -94,40 +98,38 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     const commentsMode = fromPrismaArticleCommentsMode(article.commentsMode)
     const readingMinutes = estimateReadingMinutesFromHtml(contentHtml)
     const wordCount = countContentWordsFromHtml(contentHtml)
+    const slotContent: Record<string, ReactNode> = {
+      'article-header': (
+        <header className="mb-10 border-b border-border pb-9">
+          <div className="mb-5 font-mono text-xs uppercase tracking-[0.18em] text-text-tertiary">文章</div>
+          <h1 className="text-4xl font-semibold leading-[1.15] tracking-[-0.045em] sm:text-5xl">{article.title}</h1>
+          <div className="mt-6">
+            <ArticleMeta
+              publishedAt={article.publishedAt}
+              category={article.category}
+              tags={article.tags}
+              viewCount={article.viewCount}
+              readingMinutes={readingMinutes}
+              wordCount={wordCount}
+              visibility={{ showPublishedAt, showViewCount, showReadingTime, showWordCount, showCategory, showTags }}
+            />
+          </div>
+        </header>
+      ),
+      'article-content': <ArticleContent html={contentHtml} />,
+      'article-navigation': <ArticleNavigation previous={navigation.previous} next={navigation.next} />,
+      comments: <CommentList articleId={article.id} comments={article.comments} mode={commentsMode} />,
+      toc: <ArticleToc headings={headings} />,
+    }
+    const slots = orderThemeSlots(['article-header', 'article-content', 'article-navigation', 'comments', 'toc'], template?.slots)
 
     return (
       <div className="mx-auto max-w-6xl px-(--content-padding) py-12 sm:py-18">
         <div className="relative">
           <article className="mx-auto w-full max-w-(--content-max-width) min-w-0">
-            <header className="mb-10 border-b border-border pb-9">
-              <div className="mb-5 font-mono text-xs uppercase tracking-[0.18em] text-text-tertiary">文章</div>
-              <h1 className="text-4xl font-semibold leading-[1.15] tracking-[-0.045em] sm:text-5xl">{article.title}</h1>
-              <div className="mt-6">
-                <ArticleMeta
-                  publishedAt={article.publishedAt}
-                  category={article.category}
-                  tags={article.tags}
-                  viewCount={article.viewCount}
-                  readingMinutes={readingMinutes}
-                  wordCount={wordCount}
-                  visibility={{
-                    showPublishedAt,
-                    showViewCount,
-                    showReadingTime,
-                    showWordCount,
-                    showCategory,
-                    showTags,
-                  }}
-                />
-              </div>
-            </header>
-
-            <ArticleContent html={contentHtml} />
-            <ArticleNavigation previous={navigation.previous} next={navigation.next} />
-            <CommentList articleId={article.id} comments={article.comments} mode={commentsMode} />
+            {slots.filter((slot) => slot !== 'toc').map((slot) => <div key={slot}>{slotContent[slot]}</div>)}
           </article>
-
-          <ArticleToc headings={headings} />
+          {slots.includes('toc') && slotContent.toc}
         </div>
       </div>
     )

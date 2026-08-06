@@ -1,11 +1,14 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import type { Route } from 'next'
+import type { ReactNode } from 'react'
 
 import { ArticleCard } from '@/components/article/article-card'
 import { Pagination } from '@/components/pagination'
 import { listPublicArticles } from '@/lib/services/article-service'
 import { getSiteSettingsMap } from '@/lib/services/setting-service'
+import { normalizeThemeName, readThemeTemplate } from '@/lib/theme'
+import { orderThemeSlots } from '@/lib/theme-slots'
 import { publicArticleSortSchema, type PublicArticleSort } from '@/lib/validations/cms'
 
 type HomePageProps = {
@@ -60,28 +63,28 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     getSiteSettingsMap(),
     listPublicArticles({ page, pageSize: 12, sort }),
   ])
+  const template = await readThemeTemplate(normalizeThemeName(settings.activeTheme), 'home')
 
   const siteName = typeof settings.siteName === 'string' ? settings.siteName : 'SeanBlog'
   const siteDescription = typeof settings.siteDescription === 'string' ? settings.siteDescription : ''
   const pinned = page === 1 && sort === 'publishedAt' ? result.items.filter((article) => article.isPinned) : []
   const latest = page === 1 && sort === 'publishedAt' ? result.items.filter((article) => !article.isPinned) : result.items
   const currentSortLabel = sortOptions.find((option) => option.value === sort)?.label ?? '发布时间'
-
-  return (
-    <div className="mx-auto max-w-(--content-max-width) px-(--content-padding) py-12 sm:py-18">
+  const slotContent: Record<string, ReactNode> = {
+    'site-intro': (
       <header className="mb-14 border-b border-border pb-10">
         <p className="mb-3 font-mono text-xs uppercase tracking-[0.18em] text-text-tertiary">个人博客</p>
         <h1 className="text-4xl font-semibold tracking-[-0.045em] sm:text-5xl">{siteName}</h1>
         {siteDescription && <p className="mt-4 max-w-2xl text-lg leading-8 text-text-secondary">{siteDescription}</p>}
       </header>
-
-      {pinned.length > 0 && (
-        <section className="mb-12">
-          <p className="mb-2 font-mono text-xs uppercase tracking-[0.18em] text-accent">置顶内容</p>
-          <div>{pinned.map((article) => <ArticleCard key={article.id} article={article} pinned priority />)}</div>
-        </section>
-      )}
-
+    ),
+    'pinned-articles': pinned.length > 0 ? (
+      <section className="mb-12">
+        <p className="mb-2 font-mono text-xs uppercase tracking-[0.18em] text-accent">置顶内容</p>
+        <div>{pinned.map((article) => <ArticleCard key={article.id} article={article} pinned priority />)}</div>
+      </section>
+    ) : null,
+    'article-list': (
       <section aria-labelledby="latest-articles-heading">
         <div className="mb-2 flex items-baseline justify-between">
           <h2 id="latest-articles-heading" className="font-mono text-xs uppercase tracking-[0.18em] text-text-tertiary">
@@ -114,9 +117,15 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         ) : (
           <div className="border-t border-border py-12 text-text-secondary">这里还没有文章。</div>
         )}
-
-        <Pagination currentPage={result.meta.page} pageCount={result.meta.pageCount} hrefForPage={(nextPage) => pageHref(nextPage, sort)} />
       </section>
+    ),
+    pagination: <Pagination currentPage={result.meta.page} pageCount={result.meta.pageCount} hrefForPage={(nextPage) => pageHref(nextPage, sort)} />,
+  }
+  const slots = orderThemeSlots(['site-intro', 'pinned-articles', 'article-list', 'pagination'], template?.slots)
+
+  return (
+    <div className="mx-auto max-w-(--content-max-width) px-(--content-padding) py-12 sm:py-18">
+      {slots.map((slot) => <div key={slot}>{slotContent[slot]}</div>)}
     </div>
   )
 }
