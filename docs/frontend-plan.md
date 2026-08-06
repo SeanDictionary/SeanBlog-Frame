@@ -94,7 +94,6 @@ themes/
 │   ├── templates/                       # 首页、文章详情、归档、搜索等声明式模板
 │   ├── parts/                           # Header/Footer/Dock 等模板部件
 │   └── assets/                          # theme.css、预览图、字体或图片资源
-└── starter/                             # 第三方主题开发示例包
 ```
 
 ### 实现方式

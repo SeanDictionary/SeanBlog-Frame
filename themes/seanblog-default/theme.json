@@ -3,7 +3,7 @@
   "name": "SeanBlog Default",
   "version": "1.0.0",
   "author": "SeanBlog Frame",
-  "description": "Content-first default theme package with native SeanBlog components, clean typography, soft borders, and low-distraction interactions.",
+  "description": "Default theme package with native components, clean typography, soft borders, and low-distraction interactions.",
   "engine": "seanblog-theme",
   "engineVersion": 1,
   "previewImage": "assets/preview.svg",
