@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import type { PointerEventHandler } from 'react'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from 'react'
 
-type DashboardCardSize = '1x1' | '1x2' | '2x2'
+type DashboardCardSize = '1x1' | '1x2' | '2x2' | '3x2'
 
 type DashboardCardListItem = {
   title: string
@@ -40,19 +40,21 @@ type DashboardCard = {
   insights?: DashboardCardInsight[]
 }
 
-const DASHBOARD_CARD_SIZES = ['1x1', '1x2', '2x2'] as const
+const DASHBOARD_CARD_SIZES = ['1x1', '1x2', '2x2', '3x2'] as const
 const DASHBOARD_LAYOUT_STORAGE_KEY = 'adminDashboardCards'
 
 const DASHBOARD_CARD_SIZE_LABELS: Record<DashboardCardSize, string> = {
   '1x1': '1×1',
   '1x2': '1×2',
   '2x2': '2×2',
+  '3x2': '3×2',
 }
 
 const DASHBOARD_CARD_SIZE_CLASSES: Record<DashboardCardSize, string> = {
   '1x1': '',
   '1x2': 'sm:col-span-2',
   '2x2': 'min-h-[22rem] sm:col-span-2 sm:row-span-2 sm:min-h-0',
+  '3x2': 'min-h-[22rem] sm:col-span-2 sm:row-span-2 sm:min-h-0 xl:col-span-3',
 }
 
 type DashboardCardKind = 'summary' | 'articleHeat' | 'comments' | 'create' | 'siteAnalytics'
@@ -66,10 +68,10 @@ type DashboardCardConfiguration = {
 const DASHBOARD_CARD_CONFIG: Record<string, DashboardCardConfiguration> = {
   drafts: { allowedSizes: ['1x1', '1x2'], defaultSize: '1x1', kind: 'summary' },
   articles: { allowedSizes: ['1x1', '1x2'], defaultSize: '1x1', kind: 'summary' },
-  articleHeat: { allowedSizes: ['1x1', '2x2'], defaultSize: '2x2', kind: 'articleHeat' },
+  articleHeat: { allowedSizes: ['1x1', '3x2'], defaultSize: '3x2', kind: 'articleHeat' },
   comments: { allowedSizes: ['1x2'], defaultSize: '1x2', kind: 'comments' },
   quickCreateArticle: { allowedSizes: ['1x1'], defaultSize: '1x1', kind: 'create' },
-  siteAnalytics: { allowedSizes: ['1x1', '1x2', '2x2'], defaultSize: '1x2', kind: 'siteAnalytics' },
+  siteAnalytics: { allowedSizes: ['1x1', '1x2', '2x2', '3x2'], defaultSize: '1x2', kind: 'siteAnalytics' },
 }
 
 const DEFAULT_DASHBOARD_CARD_CONFIG: DashboardCardConfiguration = {
@@ -227,12 +229,20 @@ function CardLink({ href, disabled, children, className, ariaLabel }: { href: Ro
   return <Link href={href} className={className} aria-label={ariaLabel}>{children}</Link>
 }
 
+function MetricStack({ card, label, value, className = '' }: { card: DashboardCard; label?: string; value?: number | string; className?: string }) {
+  return (
+    <span className={`flex min-w-0 flex-col ${className}`} data-dashboard-metric>
+      <i className={`${card.icon} text-neutral-400`} aria-hidden="true" data-dashboard-metric-icon />
+      <span className="mt-5 block text-3xl font-semibold tracking-tight" data-dashboard-metric-value>{formatNumber(value ?? card.value)}</span>
+      <span className="mt-1 block text-sm text-neutral-500" data-dashboard-metric-label>{label ?? card.label}</span>
+    </span>
+  )
+}
+
 function MetricLink({ card, disabled }: { card: DashboardCard; disabled?: boolean }) {
   return (
-    <CardLink href={card.href} disabled={disabled} className="block rounded-lg p-2 -m-2 transition-colors hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 dark:hover:bg-neutral-900">
-      <i className={`${card.icon} text-neutral-400`} aria-hidden="true" />
-      <p className="mt-5 text-3xl font-semibold tracking-tight">{formatNumber(card.value)}</p>
-      <p className="mt-1 text-sm text-neutral-500">{card.label}</p>
+    <CardLink href={card.href} disabled={disabled} className="flex h-full w-full rounded-lg transition-colors hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 dark:hover:bg-neutral-900">
+      <MetricStack card={card} />
     </CardLink>
   )
 }
@@ -269,9 +279,7 @@ function ArticleHeatContent({ card, size, linksDisabled }: { card: DashboardCard
     <div className="flex h-full flex-col">
       <div className="flex items-start justify-between gap-4 pr-24">
         <div>
-          <i className={`${card.icon} text-neutral-400`} aria-hidden="true" />
-          <p className="mt-5 text-4xl font-semibold tracking-tight">{formatNumber(card.value)}</p>
-          <p className="mt-1 text-sm text-neutral-500">{card.label}</p>
+          <MetricStack card={card} className="" />
         </div>
         <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-500 dark:bg-neutral-900 dark:text-neutral-400">历史累计</span>
       </div>
@@ -309,10 +317,8 @@ function CommentsContent({ card, linksDisabled }: { card: DashboardCard; linksDi
   return (
     <div className="grid h-full gap-4 sm:grid-cols-2">
       {items.map((item, index) => (
-        <CardLink key={item.label} href={item.href} disabled={linksDisabled} className={`${index > 0 ? 'border-t border-neutral-200 pt-4 dark:border-neutral-800 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0' : ''} flex flex-col justify-end rounded-lg transition-colors hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 dark:hover:text-blue-300`}>
-          <i className={`${card.icon} text-neutral-400`} aria-hidden="true" />
-          <span className="mt-5 text-3xl font-semibold tracking-tight">{item.value}</span>
-          <span className="mt-1 text-sm text-neutral-500">{item.label}</span>
+        <CardLink key={item.label} href={item.href} disabled={linksDisabled} className={`${index > 0 ? 'border-t border-neutral-200 pt-4 dark:border-neutral-800 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0' : ''} flex h-full flex-col rounded-lg transition-colors hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 dark:hover:text-blue-300`}>
+          <MetricStack card={card} value={item.value} label={item.label} />
         </CardLink>
       ))}
     </div>
@@ -320,11 +326,18 @@ function CommentsContent({ card, linksDisabled }: { card: DashboardCard; linksDi
 }
 
 function CreateArticleContent({ card }: { card: DashboardCard }) {
+  return <MetricStack card={card} value={card.label} label="点击进入编辑器" />
+}
+
+function AnalyticsInsights({ items, linksDisabled }: { items: DashboardCardInsight[]; linksDisabled?: boolean }) {
   return (
-    <div className="flex h-full flex-col justify-end">
-      <i className={`${card.icon} text-neutral-400`} aria-hidden="true" />
-      <p className="mt-5 text-2xl font-semibold tracking-tight">{card.label}</p>
-      <p className="mt-1 text-sm text-neutral-500">点击进入编辑器</p>
+    <div className="grid gap-3 sm:grid-cols-2">
+      {items.map((item) => (
+        <CardLink key={item.label} href={item.href} disabled={linksDisabled} className="rounded-lg bg-neutral-50 px-3 py-2.5 transition-colors hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 dark:bg-neutral-900 dark:hover:bg-neutral-800">
+          <span className="text-xs text-neutral-500">{item.label}</span>
+          <span className="mt-1 block truncate text-sm font-medium text-neutral-800 dark:text-neutral-100">{item.value}</span>
+        </CardLink>
+      ))}
     </div>
   )
 }
@@ -334,19 +347,30 @@ function SiteAnalyticsContent({ card, size, linksDisabled }: { card: DashboardCa
     return <MetricLink card={card} disabled={linksDisabled} />
   }
 
+  if (size === '3x2') {
+    return (
+      <div className="grid h-full gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+        <div className="flex min-w-0 flex-col">
+          <MetricStack card={card} className="" />
+          <CardLink href={card.href} disabled={linksDisabled} className="mt-5 block rounded-lg transition-colors hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 dark:hover:text-blue-300">
+            <MiniLineChart points={card.trend ?? []} />
+          </CardLink>
+        </div>
+        <div className="border-t border-neutral-200 pt-4 dark:border-neutral-800 xl:border-l xl:border-t-0 xl:pl-5 xl:pt-0">
+          <AnalyticsInsights items={card.insights ?? []} linksDisabled={linksDisabled} />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex h-full flex-col">
       <CardLink href={card.href} disabled={linksDisabled} className="block rounded-lg transition-colors hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 dark:hover:text-blue-300">
         <MiniLineChart points={card.trend ?? []} />
       </CardLink>
       {size === '2x2' && (
-        <div className="mt-auto grid gap-3 border-t border-neutral-200 pt-5 dark:border-neutral-800 sm:grid-cols-2">
-          {(card.insights ?? []).map((item) => (
-            <CardLink key={item.label} href={item.href} disabled={linksDisabled} className="rounded-lg bg-neutral-50 px-3 py-2.5 transition-colors hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 dark:bg-neutral-900 dark:hover:bg-neutral-800">
-              <span className="text-xs text-neutral-500">{item.label}</span>
-              <span className="mt-1 block truncate text-sm font-medium text-neutral-800 dark:text-neutral-100">{item.value}</span>
-            </CardLink>
-          ))}
+        <div className="mt-auto border-t border-neutral-200 pt-5 dark:border-neutral-800">
+          <AnalyticsInsights items={card.insights ?? []} linksDisabled={linksDisabled} />
         </div>
       )}
     </div>
