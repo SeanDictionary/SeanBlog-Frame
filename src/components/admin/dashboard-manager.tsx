@@ -105,6 +105,10 @@ type CardDragState = {
   height: number
 }
 
+type PendingDrag = CardDragState & {
+  startSignature: string | null
+}
+
 function getDashboardCardConfig(key: string) {
   return DASHBOARD_CARD_CONFIG[key] ?? DEFAULT_DASHBOARD_CARD_CONFIG
 }
@@ -249,23 +253,51 @@ function SummaryCardContent({ card, size, linksDisabled }: { card: DashboardCard
   return <MetricLink card={card} disabled={linksDisabled} />
 }
 
+function getHeatValue(detail: string) {
+  return Number(detail.replace(/[^\d]/g, '')) || 0
+}
+
 function ArticleHeatContent({ card, size, linksDisabled }: { card: DashboardCard; size: DashboardCardSize; linksDisabled?: boolean }) {
   if (size === '1x1') {
     return <MetricLink card={card} disabled={linksDisabled} />
   }
 
+  const items = card.listItems ?? []
+  const maxHeat = Math.max(1, ...items.map((item) => getHeatValue(item.detail)))
+
   return (
     <div className="flex h-full flex-col">
-      <MetricLink card={card} disabled={linksDisabled} />
-      <ul className="mt-6 space-y-2 border-t border-neutral-200 pt-4 dark:border-neutral-800">
-        {(card.listItems ?? []).length > 0 ? card.listItems?.map((item) => (
-          <li key={`${item.title}-${item.detail}`}>
-            <CardLink href={item.href} disabled={linksDisabled} className="flex min-w-0 items-center justify-between gap-3 rounded-md px-2 py-1.5 -mx-2 text-sm transition-colors hover:bg-neutral-50 hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 dark:hover:bg-neutral-900 dark:hover:text-blue-300">
-              <span className="min-w-0 truncate">{item.title}</span>
-              <span className="shrink-0 text-xs text-neutral-500">{item.detail}</span>
-            </CardLink>
-          </li>
-        )) : <li className="text-sm text-neutral-500">暂无热度数据。</li>}
+      <div className="flex items-start justify-between gap-4 pr-24">
+        <div>
+          <i className={`${card.icon} text-neutral-400`} aria-hidden="true" />
+          <p className="mt-5 text-4xl font-semibold tracking-tight">{formatNumber(card.value)}</p>
+          <p className="mt-1 text-sm text-neutral-500">{card.label}</p>
+        </div>
+        <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-500 dark:bg-neutral-900 dark:text-neutral-400">历史累计</span>
+      </div>
+
+      <ul className="mt-5 flex-1 space-y-3 border-t border-neutral-200 pt-4 dark:border-neutral-800">
+        {items.length > 0 ? items.map((item, index) => {
+          const heat = getHeatValue(item.detail)
+          const width = `${Math.max(8, (heat / maxHeat) * 100)}%`
+
+          return (
+            <li key={`${item.title}-${item.detail}`}>
+              <CardLink href={item.href} disabled={linksDisabled} className="block rounded-lg px-2 py-1.5 -mx-2 transition-colors hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 dark:hover:bg-neutral-900">
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="grid size-5 shrink-0 place-items-center rounded-full bg-neutral-100 text-[0.625rem] font-semibold text-neutral-500 dark:bg-neutral-900 dark:text-neutral-400">{index + 1}</span>
+                    <span className="min-w-0 truncate font-medium text-neutral-700 dark:text-neutral-200">{item.title}</span>
+                  </span>
+                  <span className="shrink-0 text-xs text-neutral-500">{item.detail}</span>
+                </div>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-900">
+                  <div className="h-full rounded-full bg-orange-500" style={{ width }} />
+                </div>
+              </CardLink>
+            </li>
+          )
+        }) : <li className="rounded-lg border border-dashed border-neutral-200 px-3 py-5 text-center text-sm text-neutral-500 dark:border-neutral-800">暂无热度数据。</li>}
       </ul>
     </div>
   )
@@ -361,7 +393,7 @@ function DashboardStatCard({
   const actionLabel = action === 'add' ? '添加卡片' : '移除卡片'
   const actionIcon = action === 'add' ? 'fa-plus' : 'fa-xmark'
   const hasTopRightControls = action || onSizeChange
-  const cardClassName = `dashboard-card relative h-full rounded-xl border border-neutral-200 bg-white p-5 transition-[border-color,box-shadow,transform,opacity] duration-200 ease-out dark:border-neutral-800 dark:bg-neutral-950 ${DASHBOARD_CARD_SIZE_CLASSES[size]} ${sorting ? 'cursor-grab select-none touch-none active:cursor-grabbing' : ''} ${dragging ? 'opacity-0' : ''} ${dragPreview ? 'cursor-grabbing shadow-2xl ring-2 ring-blue-500 ring-offset-2 ring-offset-neutral-50 dark:ring-blue-400 dark:ring-offset-neutral-900' : ''}`
+  const cardClassName = `dashboard-card relative h-full rounded-xl border border-neutral-200 bg-white p-5 transition-[border-color,box-shadow,transform,opacity] duration-200 ease-out dark:border-neutral-800 dark:bg-neutral-950 ${DASHBOARD_CARD_SIZE_CLASSES[size]} ${sorting ? 'cursor-grab select-none touch-none active:cursor-grabbing' : ''} ${dragging ? 'opacity-40 outline outline-2 outline-dashed outline-neutral-300 dark:outline-neutral-700' : ''} ${dragPreview ? 'cursor-grabbing shadow-2xl ring-2 ring-blue-500 ring-offset-2 ring-offset-neutral-50 dark:ring-blue-400 dark:ring-offset-neutral-900' : ''}`
   const cardContent = (
     <>
       {hasTopRightControls && (
@@ -440,7 +472,7 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
   const gridRef = useRef<HTMLDivElement | null>(null)
   const positionsRef = useRef(new Map<string, DOMRect>())
   const latestLayoutRef = useRef(layout)
-  const dragStartSignatureRef = useRef<string | null>(null)
+  const pendingDragRef = useRef<PendingDrag | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
@@ -572,16 +604,81 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
       return null
     }
 
-    const element = document.elementFromPoint(clientX, clientY)?.closest<HTMLElement>('[data-card-key]')
-    const key = element?.dataset.cardKey
-    if (!key || key === sourceKey) {
+    const positions = [...readCardPositions()].filter(([key]) => key !== sourceKey)
+    const hit = positions.find(([, rect]) => clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom)
+    const [key, rect] = hit ?? positions.reduce<[string, DOMRect] | null>((nearest, current) => {
+      const [, currentRect] = current
+      const currentDistance = Math.hypot(clientX - (currentRect.left + currentRect.width / 2), clientY - (currentRect.top + currentRect.height / 2))
+
+      if (!nearest) return current
+
+      const [, nearestRect] = nearest
+      const nearestDistance = Math.hypot(clientX - (nearestRect.left + nearestRect.width / 2), clientY - (nearestRect.top + nearestRect.height / 2))
+
+      return currentDistance < nearestDistance ? current : nearest
+    }, null) ?? []
+
+    if (!key || !rect) {
       return null
     }
 
-    const rect = element.getBoundingClientRect()
     const placement = clientY < rect.top + rect.height / 2 ? 'before' : 'after'
 
     return { key, placement } as const
+  }
+
+  function detachGlobalDragListeners() {
+    window.removeEventListener('pointermove', handleGlobalPointerMove)
+    window.removeEventListener('pointerup', handleGlobalPointerEnd)
+    window.removeEventListener('pointercancel', handleGlobalPointerEnd)
+    window.removeEventListener('blur', handleGlobalDragCancel)
+  }
+
+  function handleGlobalPointerMove(event: PointerEvent) {
+    const drag = pendingDragRef.current
+    if (!drag || drag.pointerId !== event.pointerId) return
+
+    event.preventDefault()
+    const x = event.clientX - drag.offsetX
+    const y = event.clientY - drag.offsetY
+    const nextDrag = { ...drag, x, y }
+    pendingDragRef.current = nextDrag
+    setDragState(nextDrag)
+
+    const target = getCardPlacementAtPoint(event.clientX, event.clientY, drag.key)
+    if (!target) return
+
+    const nextLayout = moveVisibleItem(latestLayoutRef.current, drag.key, target.key, target.placement)
+    if (nextLayout !== latestLayoutRef.current) {
+      setLiveLayout(nextLayout)
+    }
+  }
+
+  function finishGlobalDrag(event?: PointerEvent) {
+    const drag = pendingDragRef.current
+    if (!drag || (event && drag.pointerId !== event.pointerId)) return
+
+    event?.preventDefault()
+    detachGlobalDragListeners()
+
+    const nextLayout = latestLayoutRef.current
+    const nextSignature = getLayoutSignature(nextLayout)
+    const shouldPersist = Boolean(drag.startSignature && drag.startSignature !== nextSignature)
+
+    pendingDragRef.current = null
+    setDragState(null)
+
+    if (shouldPersist) {
+      persistLayout(nextLayout)
+    }
+  }
+
+  function handleGlobalPointerEnd(event: PointerEvent) {
+    finishGlobalDrag(event)
+  }
+
+  function handleGlobalDragCancel() {
+    finishGlobalDrag()
   }
 
   function beginCardDrag(key: string): PointerEventHandler<HTMLElement> {
@@ -589,16 +686,10 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
       if (!isManaging || event.button !== 0) return
 
       event.preventDefault()
-      try {
-        event.currentTarget.setPointerCapture(event.pointerId)
-      } catch {
-        // Synthetic pointer events in tests may not have an active pointer to capture.
-      }
       positionsRef.current = readCardPositions()
-      dragStartSignatureRef.current = getLayoutSignature(latestLayoutRef.current)
 
       const rect = event.currentTarget.getBoundingClientRect()
-      setDragState({
+      const nextDrag = {
         key,
         pointerId: event.pointerId,
         offsetX: event.clientX - rect.left,
@@ -607,48 +698,15 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
         y: rect.top,
         width: rect.width,
         height: rect.height,
-      })
-    }
-  }
-
-  function updateCardDrag(key: string): PointerEventHandler<HTMLElement> {
-    return (event) => {
-      if (!dragState || dragState.key !== key || dragState.pointerId !== event.pointerId) return
-
-      event.preventDefault()
-      const x = event.clientX - dragState.offsetX
-      const y = event.clientY - dragState.offsetY
-      setDragState({ ...dragState, x, y })
-
-      const target = getCardPlacementAtPoint(event.clientX, event.clientY, key)
-      if (!target) return
-
-      const nextLayout = moveVisibleItem(latestLayoutRef.current, key, target.key, target.placement)
-      if (nextLayout !== latestLayoutRef.current) {
-        setLiveLayout(nextLayout)
-      }
-    }
-  }
-
-  function endCardDrag(key: string): PointerEventHandler<HTMLElement> {
-    return (event) => {
-      if (!dragState || dragState.key !== key || dragState.pointerId !== event.pointerId) return
-
-      event.preventDefault()
-      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-        event.currentTarget.releasePointerCapture(event.pointerId)
+        startSignature: getLayoutSignature(latestLayoutRef.current),
       }
 
-      const nextLayout = latestLayoutRef.current
-      const nextSignature = getLayoutSignature(nextLayout)
-      const shouldPersist = Boolean(dragStartSignatureRef.current && dragStartSignatureRef.current !== nextSignature)
-
-      setDragState(null)
-      dragStartSignatureRef.current = null
-
-      if (shouldPersist) {
-        persistLayout(nextLayout)
-      }
+      pendingDragRef.current = nextDrag
+      setDragState(nextDrag)
+      window.addEventListener('pointermove', handleGlobalPointerMove, { passive: false })
+      window.addEventListener('pointerup', handleGlobalPointerEnd)
+      window.addEventListener('pointercancel', handleGlobalPointerEnd)
+      window.addEventListener('blur', handleGlobalDragCancel)
     }
   }
 
@@ -668,9 +726,6 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
           sorting={isManaging}
           onSizeChange={isManaging && item && config.allowedSizes.length > 1 ? (nextSize) => setCardSize(card.key, nextSize) : undefined}
           onPointerDown={beginCardDrag(card.key)}
-          onPointerMove={updateCardDrag(card.key)}
-          onPointerUp={endCardDrag(card.key)}
-          onPointerCancel={endCardDrag(card.key)}
           onAction={() => setCardVisibility(card.key, false)}
         />
       </div>
@@ -722,7 +777,7 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
 
       {dragState && draggedCard && draggedLayoutItem && (
         <div
-          className="pointer-events-none fixed z-50 will-change-transform"
+          className="pointer-events-none fixed left-0 top-0 z-50 will-change-transform"
           style={{
             height: dragState.height,
             transform: `translate3d(${dragState.x}px, ${dragState.y}px, 0)`,
