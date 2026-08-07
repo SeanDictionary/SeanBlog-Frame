@@ -2,8 +2,9 @@
 
 import type { Route } from 'next'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import type { PointerEventHandler } from 'react'
-import { useLayoutEffect, useMemo, useRef, useState, useTransition } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from 'react'
 
 type DashboardCardSize = '1x1' | '1x2' | '2x2'
 
@@ -40,6 +41,7 @@ type DashboardCard = {
 }
 
 const DASHBOARD_CARD_SIZES = ['1x1', '1x2', '2x2'] as const
+const DASHBOARD_LAYOUT_STORAGE_KEY = 'adminDashboardCards'
 
 const DASHBOARD_CARD_SIZE_LABELS: Record<DashboardCardSize, string> = {
   '1x1': '1×1',
@@ -64,7 +66,7 @@ type DashboardCardConfiguration = {
 const DASHBOARD_CARD_CONFIG: Record<string, DashboardCardConfiguration> = {
   drafts: { allowedSizes: ['1x1', '1x2'], defaultSize: '1x1', kind: 'summary' },
   articles: { allowedSizes: ['1x1', '1x2'], defaultSize: '1x1', kind: 'summary' },
-  articleHeat: { allowedSizes: ['1x1', '1x2', '2x2'], defaultSize: '1x2', kind: 'articleHeat' },
+  articleHeat: { allowedSizes: ['1x1', '2x2'], defaultSize: '2x2', kind: 'articleHeat' },
   comments: { allowedSizes: ['1x2'], defaultSize: '1x2', kind: 'comments' },
   quickCreateArticle: { allowedSizes: ['1x1'], defaultSize: '1x1', kind: 'create' },
   siteAnalytics: { allowedSizes: ['1x1', '1x2', '2x2'], defaultSize: '1x2', kind: 'siteAnalytics' },
@@ -138,26 +140,51 @@ function normalizeLayout(cards: DashboardCard[], value: unknown): DashboardCardL
   return [...configured, ...missing]
 }
 
-function reorderItem(items: DashboardCardLayout[], sourceKey: string, targetKey: string) {
+function moveVisibleItem(items: DashboardCardLayout[], sourceKey: string, targetKey: string, placement: 'before' | 'after') {
   if (sourceKey === targetKey) {
     return items
   }
 
-  const sourceIndex = items.findIndex((item) => item.key === sourceKey)
-  const targetIndex = items.findIndex((item) => item.key === targetKey)
+  const visibleItems = items.filter((item) => item.visible)
+  const hiddenItems = items.filter((item) => !item.visible)
+  const source = visibleItems.find((item) => item.key === sourceKey)
+  const target = visibleItems.find((item) => item.key === targetKey)
 
-  if (sourceIndex === -1 || targetIndex === -1 || items[sourceIndex].visible === false || items[targetIndex].visible === false) {
+  if (!source || !target) {
     return items
   }
 
-  const next = [...items]
-  const [source] = next.splice(sourceIndex, 1)
-  next.splice(targetIndex, 0, source)
-  return next
+  const nextVisibleItems = visibleItems.filter((item) => item.key !== sourceKey)
+  const targetIndex = nextVisibleItems.findIndex((item) => item.key === targetKey)
+
+  if (targetIndex === -1) {
+    return items
+  }
+
+  nextVisibleItems.splice(targetIndex + (placement === 'after' ? 1 : 0), 0, source)
+  const next = [...nextVisibleItems, ...hiddenItems]
+
+  return getLayoutSignature(next) === getLayoutSignature(items) ? items : next
 }
 
 function getLayoutSignature(items: DashboardCardLayout[]) {
   return items.map((item) => `${item.key}:${item.visible ? '1' : '0'}:${item.size}`).join('|')
+}
+
+function readStoredLayout() {
+  if (typeof window === 'undefined') return null
+
+  try {
+    return JSON.parse(window.localStorage.getItem(DASHBOARD_LAYOUT_STORAGE_KEY) ?? 'null') as unknown
+  } catch {
+    return null
+  }
+}
+
+function writeStoredLayout(layout: DashboardCardLayout[]) {
+  if (typeof window === 'undefined') return
+
+  window.localStorage.setItem(DASHBOARD_LAYOUT_STORAGE_KEY, JSON.stringify(layout))
 }
 
 function formatNumber(value: number | string | undefined) {
@@ -188,70 +215,73 @@ function MiniLineChart({ points }: { points: DashboardCardTrendPoint[] }) {
   )
 }
 
-function MetricLink({ card }: { card: DashboardCard }) {
+function CardLink({ href, disabled, children, className, ariaLabel }: { href: Route; disabled?: boolean; children: React.ReactNode; className: string; ariaLabel?: string }) {
+  if (disabled) {
+    return <span className={className} aria-label={ariaLabel}>{children}</span>
+  }
+
+  return <Link href={href} className={className} aria-label={ariaLabel}>{children}</Link>
+}
+
+function MetricLink({ card, disabled }: { card: DashboardCard; disabled?: boolean }) {
   return (
-    <Link href={card.href} className="block rounded-lg p-2 -m-2 transition-colors hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 dark:hover:bg-neutral-900">
+    <CardLink href={card.href} disabled={disabled} className="block rounded-lg p-2 -m-2 transition-colors hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 dark:hover:bg-neutral-900">
       <i className={`${card.icon} text-neutral-400`} aria-hidden="true" />
       <p className="mt-5 text-3xl font-semibold tracking-tight">{formatNumber(card.value)}</p>
       <p className="mt-1 text-sm text-neutral-500">{card.label}</p>
-    </Link>
+    </CardLink>
   )
 }
 
-function SummaryCardContent({ card, size }: { card: DashboardCard; size: DashboardCardSize }) {
+function SummaryCardContent({ card, size, linksDisabled }: { card: DashboardCard; size: DashboardCardSize; linksDisabled?: boolean }) {
   if (size === '1x2') {
     return (
       <div className="grid h-full gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
-        <MetricLink card={card} />
-        <Link href={card.secondaryHref ?? card.href} className="flex min-w-0 flex-col justify-end border-t border-neutral-200 pt-4 transition-colors hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 dark:border-neutral-800 dark:hover:text-blue-300 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0">
+        <MetricLink card={card} disabled={linksDisabled} />
+        <CardLink href={card.secondaryHref ?? card.href} disabled={linksDisabled} className="flex min-w-0 flex-col justify-end border-t border-neutral-200 pt-4 transition-colors hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 dark:border-neutral-800 dark:hover:text-blue-300 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0">
           <span className="text-xs font-medium text-neutral-400">最新一篇</span>
           <span className="mt-2 line-clamp-3 text-base font-medium leading-6">{card.secondaryLabel ?? '未命名'}</span>
-        </Link>
+        </CardLink>
       </div>
     )
   }
 
-  return <MetricLink card={card} />
+  return <MetricLink card={card} disabled={linksDisabled} />
 }
 
-function ArticleHeatContent({ card, size }: { card: DashboardCard; size: DashboardCardSize }) {
+function ArticleHeatContent({ card, size, linksDisabled }: { card: DashboardCard; size: DashboardCardSize; linksDisabled?: boolean }) {
   if (size === '1x1') {
-    return <MetricLink card={card} />
+    return <MetricLink card={card} disabled={linksDisabled} />
   }
 
   return (
-    <div className={`${size === '2x2' ? 'flex h-full flex-col' : 'grid h-full gap-5 sm:grid-cols-[minmax(0,0.85fr)_minmax(0,1.35fr)]'}`}>
-      <div className={size === '2x2' ? '' : 'flex flex-col justify-end'}>
-        <MetricLink card={card} />
-      </div>
-      <div className={`${size === '2x2' ? 'mt-6 border-t pt-4 dark:border-neutral-800' : 'border-t pt-4 dark:border-neutral-800 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0'}`}>
-        <p className="text-xs font-medium text-neutral-400">热度最高前五篇</p>
-        <ul className="mt-3 space-y-2">
-          {(card.listItems ?? []).length > 0 ? card.listItems?.map((item) => (
-            <li key={`${item.title}-${item.detail}`}>
-              <Link href={item.href} className="flex min-w-0 items-center justify-between gap-3 rounded-md px-2 py-1.5 -mx-2 text-sm transition-colors hover:bg-neutral-50 hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 dark:hover:bg-neutral-900 dark:hover:text-blue-300">
-                <span className="min-w-0 truncate">{item.title}</span>
-                <span className="shrink-0 text-xs text-neutral-500">{item.detail}</span>
-              </Link>
-            </li>
-          )) : <li className="text-sm text-neutral-500">暂无热度数据。</li>}
-        </ul>
-      </div>
+    <div className="flex h-full flex-col">
+      <MetricLink card={card} disabled={linksDisabled} />
+      <ul className="mt-6 space-y-2 border-t border-neutral-200 pt-4 dark:border-neutral-800">
+        {(card.listItems ?? []).length > 0 ? card.listItems?.map((item) => (
+          <li key={`${item.title}-${item.detail}`}>
+            <CardLink href={item.href} disabled={linksDisabled} className="flex min-w-0 items-center justify-between gap-3 rounded-md px-2 py-1.5 -mx-2 text-sm transition-colors hover:bg-neutral-50 hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 dark:hover:bg-neutral-900 dark:hover:text-blue-300">
+              <span className="min-w-0 truncate">{item.title}</span>
+              <span className="shrink-0 text-xs text-neutral-500">{item.detail}</span>
+            </CardLink>
+          </li>
+        )) : <li className="text-sm text-neutral-500">暂无热度数据。</li>}
+      </ul>
     </div>
   )
 }
 
-function CommentsContent({ card }: { card: DashboardCard }) {
+function CommentsContent({ card, linksDisabled }: { card: DashboardCard; linksDisabled?: boolean }) {
   const items = card.insights ?? []
 
   return (
     <div className="grid h-full gap-4 sm:grid-cols-2">
       {items.map((item, index) => (
-        <Link key={item.label} href={item.href} className={`${index > 0 ? 'border-t border-neutral-200 pt-4 dark:border-neutral-800 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0' : ''} flex flex-col justify-end rounded-lg transition-colors hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 dark:hover:text-blue-300`}>
+        <CardLink key={item.label} href={item.href} disabled={linksDisabled} className={`${index > 0 ? 'border-t border-neutral-200 pt-4 dark:border-neutral-800 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0' : ''} flex flex-col justify-end rounded-lg transition-colors hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 dark:hover:text-blue-300`}>
           <i className={`${card.icon} text-neutral-400`} aria-hidden="true" />
           <span className="mt-5 text-3xl font-semibold tracking-tight">{item.value}</span>
           <span className="mt-1 text-sm text-neutral-500">{item.label}</span>
-        </Link>
+        </CardLink>
       ))}
     </div>
   )
@@ -259,32 +289,31 @@ function CommentsContent({ card }: { card: DashboardCard }) {
 
 function CreateArticleContent({ card }: { card: DashboardCard }) {
   return (
-    <div className="flex h-full flex-col justify-between">
-      <span className="grid size-10 place-items-center rounded-full bg-white/10 text-white dark:bg-neutral-900 dark:text-neutral-100">
-        <i className={`${card.icon} text-sm`} aria-hidden="true" />
-      </span>
-      <p className="text-2xl font-semibold tracking-tight">{card.label}</p>
+    <div className="flex h-full flex-col justify-end">
+      <i className={`${card.icon} text-neutral-400`} aria-hidden="true" />
+      <p className="mt-5 text-2xl font-semibold tracking-tight">{card.label}</p>
+      <p className="mt-1 text-sm text-neutral-500">点击进入编辑器</p>
     </div>
   )
 }
 
-function SiteAnalyticsContent({ card, size }: { card: DashboardCard; size: DashboardCardSize }) {
+function SiteAnalyticsContent({ card, size, linksDisabled }: { card: DashboardCard; size: DashboardCardSize; linksDisabled?: boolean }) {
   if (size === '1x1') {
-    return <MetricLink card={card} />
+    return <MetricLink card={card} disabled={linksDisabled} />
   }
 
   return (
     <div className="flex h-full flex-col">
-      <Link href={card.href} className="block rounded-lg transition-colors hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 dark:hover:text-blue-300">
+      <CardLink href={card.href} disabled={linksDisabled} className="block rounded-lg transition-colors hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 dark:hover:text-blue-300">
         <MiniLineChart points={card.trend ?? []} />
-      </Link>
+      </CardLink>
       {size === '2x2' && (
         <div className="mt-auto grid gap-3 border-t border-neutral-200 pt-5 dark:border-neutral-800 sm:grid-cols-2">
           {(card.insights ?? []).map((item) => (
-            <Link key={item.label} href={item.href} className="rounded-lg bg-neutral-50 px-3 py-2.5 transition-colors hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 dark:bg-neutral-900 dark:hover:bg-neutral-800">
+            <CardLink key={item.label} href={item.href} disabled={linksDisabled} className="rounded-lg bg-neutral-50 px-3 py-2.5 transition-colors hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 dark:bg-neutral-900 dark:hover:bg-neutral-800">
               <span className="text-xs text-neutral-500">{item.label}</span>
               <span className="mt-1 block truncate text-sm font-medium text-neutral-800 dark:text-neutral-100">{item.value}</span>
-            </Link>
+            </CardLink>
           ))}
         </div>
       )}
@@ -292,12 +321,12 @@ function SiteAnalyticsContent({ card, size }: { card: DashboardCard; size: Dashb
   )
 }
 
-function DashboardCardContent({ card, size, kind }: { card: DashboardCard; size: DashboardCardSize; kind: DashboardCardKind }) {
-  if (kind === 'articleHeat') return <ArticleHeatContent card={card} size={size} />
-  if (kind === 'comments') return <CommentsContent card={card} />
+function DashboardCardContent({ card, size, kind, linksDisabled }: { card: DashboardCard; size: DashboardCardSize; kind: DashboardCardKind; linksDisabled?: boolean }) {
+  if (kind === 'articleHeat') return <ArticleHeatContent card={card} size={size} linksDisabled={linksDisabled} />
+  if (kind === 'comments') return <CommentsContent card={card} linksDisabled={linksDisabled} />
   if (kind === 'create') return <CreateArticleContent card={card} />
-  if (kind === 'siteAnalytics') return <SiteAnalyticsContent card={card} size={size} />
-  return <SummaryCardContent card={card} size={size} />
+  if (kind === 'siteAnalytics') return <SiteAnalyticsContent card={card} size={size} linksDisabled={linksDisabled} />
+  return <SummaryCardContent card={card} size={size} linksDisabled={linksDisabled} />
 }
 
 function DashboardStatCard({
@@ -332,11 +361,11 @@ function DashboardStatCard({
   const actionLabel = action === 'add' ? '添加卡片' : '移除卡片'
   const actionIcon = action === 'add' ? 'fa-plus' : 'fa-xmark'
   const hasTopRightControls = action || onSizeChange
-  const cardClassName = `dashboard-card relative h-full rounded-xl border border-neutral-200 bg-white p-5 transition-[border-color,box-shadow,transform,opacity] duration-200 ease-out dark:border-neutral-800 dark:bg-neutral-950 ${DASHBOARD_CARD_SIZE_CLASSES[size]} ${kind === 'create' ? 'border-neutral-950 bg-neutral-950 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950' : ''} ${sorting ? 'cursor-grab select-none touch-none active:cursor-grabbing' : ''} ${dragging ? 'opacity-0' : ''} ${dragPreview ? 'cursor-grabbing shadow-2xl ring-2 ring-blue-500 ring-offset-2 ring-offset-neutral-50 dark:ring-blue-400 dark:ring-offset-neutral-900' : ''}`
+  const cardClassName = `dashboard-card relative h-full rounded-xl border border-neutral-200 bg-white p-5 transition-[border-color,box-shadow,transform,opacity] duration-200 ease-out dark:border-neutral-800 dark:bg-neutral-950 ${DASHBOARD_CARD_SIZE_CLASSES[size]} ${sorting ? 'cursor-grab select-none touch-none active:cursor-grabbing' : ''} ${dragging ? 'opacity-0' : ''} ${dragPreview ? 'cursor-grabbing shadow-2xl ring-2 ring-blue-500 ring-offset-2 ring-offset-neutral-50 dark:ring-blue-400 dark:ring-offset-neutral-900' : ''}`
   const cardContent = (
     <>
       {hasTopRightControls && (
-        <div className="absolute right-3 top-3 z-10 flex items-center gap-1">
+        <div className="absolute right-3 top-3 z-10 flex items-center gap-1" data-dashboard-control>
           {onSizeChange && (
             <label className="relative" onPointerDown={(event) => event.stopPropagation()}>
               <span className="sr-only">选择“{card.label}”的卡片尺寸</span>
@@ -369,7 +398,7 @@ function DashboardStatCard({
           )}
         </div>
       )}
-      <DashboardCardContent card={card} size={size} kind={kind} />
+      <DashboardCardContent card={card} size={size} kind={kind} linksDisabled={sorting} />
     </>
   )
 
@@ -387,6 +416,12 @@ function DashboardStatCard({
 
   return (
     <section
+      onClickCapture={(event) => {
+        if (!sorting) return
+        if ((event.target as HTMLElement).closest('[data-dashboard-control]')) return
+        event.preventDefault()
+        event.stopPropagation()
+      }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
@@ -408,6 +443,7 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
   const dragStartSignatureRef = useRef<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  const router = useRouter()
   const cardMap = useMemo(() => new Map(cards.map((card) => [card.key, card])), [cards])
   const orderedCards = layout
     .filter((item) => item.visible)
@@ -416,6 +452,27 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
   const hiddenCards = cards.filter((card) => layout.find((item) => item.key === card.key)?.visible === false)
   const draggedCard = dragState ? cardMap.get(dragState.key) : null
   const draggedLayoutItem = dragState ? layout.find((item) => item.key === dragState.key) : null
+
+  useEffect(() => {
+    function syncStoredLayout() {
+      const storedLayout = readStoredLayout()
+      if (!storedLayout) return
+
+      const nextLayout = normalizeLayout(cards, storedLayout)
+      if (getLayoutSignature(nextLayout) !== getLayoutSignature(latestLayoutRef.current)) {
+        setLiveLayout(nextLayout)
+      }
+    }
+
+    syncStoredLayout()
+    window.addEventListener('pageshow', syncStoredLayout)
+    window.addEventListener('focus', syncStoredLayout)
+
+    return () => {
+      window.removeEventListener('pageshow', syncStoredLayout)
+      window.removeEventListener('focus', syncStoredLayout)
+    }
+  }, [cards])
 
   useLayoutEffect(() => {
     const grid = gridRef.current
@@ -480,6 +537,7 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
         }
 
         setMessage('已自动保存。')
+        router.refresh()
       } catch (error) {
         setMessage(error instanceof Error ? error.message : '自动保存失败。')
       }
@@ -488,6 +546,7 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
 
   function setLiveLayout(nextLayout: DashboardCardLayout[]) {
     latestLayoutRef.current = nextLayout
+    writeStoredLayout(nextLayout)
     setLayout(nextLayout)
   }
 
@@ -504,7 +563,7 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
     applyLayout(layout.map((item) => item.key === key ? { ...item, size } : item))
   }
 
-  function getCardKeyAtPoint(clientX: number, clientY: number, sourceKey: string) {
+  function getCardPlacementAtPoint(clientX: number, clientY: number, sourceKey: string) {
     const grid = gridRef.current
     if (!grid) return null
 
@@ -513,15 +572,16 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
       return null
     }
 
-    for (const [key, rect] of readCardPositions()) {
-      if (key === sourceKey) continue
-
-      if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) {
-        return key
-      }
+    const element = document.elementFromPoint(clientX, clientY)?.closest<HTMLElement>('[data-card-key]')
+    const key = element?.dataset.cardKey
+    if (!key || key === sourceKey) {
+      return null
     }
 
-    return null
+    const rect = element.getBoundingClientRect()
+    const placement = clientY < rect.top + rect.height / 2 ? 'before' : 'after'
+
+    return { key, placement } as const
   }
 
   function beginCardDrag(key: string): PointerEventHandler<HTMLElement> {
@@ -529,7 +589,11 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
       if (!isManaging || event.button !== 0) return
 
       event.preventDefault()
-      event.currentTarget.setPointerCapture(event.pointerId)
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId)
+      } catch {
+        // Synthetic pointer events in tests may not have an active pointer to capture.
+      }
       positionsRef.current = readCardPositions()
       dragStartSignatureRef.current = getLayoutSignature(latestLayoutRef.current)
 
@@ -556,10 +620,10 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
       const y = event.clientY - dragState.offsetY
       setDragState({ ...dragState, x, y })
 
-      const targetKey = getCardKeyAtPoint(event.clientX, event.clientY, key)
-      if (!targetKey) return
+      const target = getCardPlacementAtPoint(event.clientX, event.clientY, key)
+      if (!target) return
 
-      const nextLayout = reorderItem(latestLayoutRef.current, key, targetKey)
+      const nextLayout = moveVisibleItem(latestLayoutRef.current, key, target.key, target.placement)
       if (nextLayout !== latestLayoutRef.current) {
         setLiveLayout(nextLayout)
       }
@@ -658,11 +722,10 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
 
       {dragState && draggedCard && draggedLayoutItem && (
         <div
-          className="pointer-events-none fixed z-50"
+          className="pointer-events-none fixed z-50 will-change-transform"
           style={{
             height: dragState.height,
-            left: dragState.x,
-            top: dragState.y,
+            transform: `translate3d(${dragState.x}px, ${dragState.y}px, 0)`,
             width: dragState.width,
           }}
         >
