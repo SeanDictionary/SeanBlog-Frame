@@ -2,6 +2,7 @@
 
 import type { Route } from 'next'
 import Link from 'next/link'
+import type { PointerEventHandler } from 'react'
 import { useLayoutEffect, useMemo, useRef, useState, useTransition } from 'react'
 
 type DashboardCardSize = '1x1' | '1x2' | '2x2'
@@ -91,6 +92,17 @@ type ApiResponse = {
   setting?: { value: unknown }
 }
 
+type CardDragState = {
+  key: string
+  pointerId: number
+  offsetX: number
+  offsetY: number
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
 function getDashboardCardConfig(key: string) {
   return DASHBOARD_CARD_CONFIG[key] ?? DEFAULT_DASHBOARD_CARD_CONFIG
 }
@@ -142,6 +154,10 @@ function reorderItem(items: DashboardCardLayout[], sourceKey: string, targetKey:
   const [source] = next.splice(sourceIndex, 1)
   next.splice(targetIndex, 0, source)
   return next
+}
+
+function getLayoutSignature(items: DashboardCardLayout[]) {
+  return items.map((item) => `${item.key}:${item.visible ? '1' : '0'}:${item.size}`).join('|')
 }
 
 function formatNumber(value: number | string | undefined) {
@@ -290,12 +306,12 @@ function DashboardStatCard({
   kind,
   action,
   dragging,
-  dropTarget,
-  draggable = false,
-  onDragStart,
-  onDragOver,
-  onDrop,
-  onDragEnd,
+  dragPreview,
+  sorting = false,
+  onPointerDown,
+  onPointerMove,
+  onPointerUp,
+  onPointerCancel,
   onAction,
   onSizeChange,
 }: {
@@ -304,19 +320,19 @@ function DashboardStatCard({
   kind: DashboardCardKind
   action?: 'add' | 'remove'
   dragging?: boolean
-  dropTarget?: boolean
-  draggable?: boolean
-  onDragStart?: React.DragEventHandler<HTMLElement>
-  onDragOver?: React.DragEventHandler<HTMLElement>
-  onDrop?: React.DragEventHandler<HTMLElement>
-  onDragEnd?: React.DragEventHandler<HTMLElement>
+  dragPreview?: boolean
+  sorting?: boolean
+  onPointerDown?: PointerEventHandler<HTMLElement>
+  onPointerMove?: PointerEventHandler<HTMLElement>
+  onPointerUp?: PointerEventHandler<HTMLElement>
+  onPointerCancel?: PointerEventHandler<HTMLElement>
   onAction?: () => void
   onSizeChange?: (size: DashboardCardSize) => void
 }) {
   const actionLabel = action === 'add' ? '添加卡片' : '移除卡片'
   const actionIcon = action === 'add' ? 'fa-plus' : 'fa-xmark'
   const hasTopRightControls = action || onSizeChange
-  const cardClassName = `dashboard-card relative h-full rounded-xl border border-neutral-200 bg-white p-5 transition-[border-color,box-shadow,transform,opacity] duration-200 ease-out dark:border-neutral-800 dark:bg-neutral-950 ${DASHBOARD_CARD_SIZE_CLASSES[size]} ${kind === 'create' ? 'border-neutral-950 bg-neutral-950 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950' : ''} ${draggable ? 'cursor-grab active:cursor-grabbing' : ''} ${dragging ? 'scale-[0.98] opacity-45 shadow-xl' : ''} ${dropTarget ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-neutral-50 dark:ring-blue-400 dark:ring-offset-neutral-900' : ''}`
+  const cardClassName = `dashboard-card relative h-full rounded-xl border border-neutral-200 bg-white p-5 transition-[border-color,box-shadow,transform,opacity] duration-200 ease-out dark:border-neutral-800 dark:bg-neutral-950 ${DASHBOARD_CARD_SIZE_CLASSES[size]} ${kind === 'create' ? 'border-neutral-950 bg-neutral-950 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950' : ''} ${sorting ? 'cursor-grab select-none touch-none active:cursor-grabbing' : ''} ${dragging ? 'opacity-0' : ''} ${dragPreview ? 'cursor-grabbing shadow-2xl ring-2 ring-blue-500 ring-offset-2 ring-offset-neutral-50 dark:ring-blue-400 dark:ring-offset-neutral-900' : ''}`
   const cardContent = (
     <>
       {hasTopRightControls && (
@@ -357,7 +373,7 @@ function DashboardStatCard({
     </>
   )
 
-  if (!draggable && !action && kind === 'create') {
+  if (!sorting && !action && kind === 'create') {
     return (
       <Link
         href={card.href}
@@ -371,11 +387,10 @@ function DashboardStatCard({
 
   return (
     <section
-      draggable={draggable}
-      onDragStart={onDragStart}
-      onDragOver={onDragOver}
-      onDrop={onDrop}
-      onDragEnd={onDragEnd}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerCancel}
       className={cardClassName}
     >
       {cardContent}
@@ -386,11 +401,11 @@ function DashboardStatCard({
 export function DashboardManager({ cards, initialLayout }: DashboardManagerProps) {
   const [layout, setLayout] = useState(() => normalizeLayout(cards, initialLayout))
   const [isManaging, setIsManaging] = useState(false)
-  const [draggingKey, setDraggingKey] = useState<string | null>(null)
-  const [dropTargetKey, setDropTargetKey] = useState<string | null>(null)
-  const draggingKeyRef = useRef<string | null>(null)
+  const [dragState, setDragState] = useState<CardDragState | null>(null)
   const gridRef = useRef<HTMLDivElement | null>(null)
   const positionsRef = useRef(new Map<string, DOMRect>())
+  const latestLayoutRef = useRef(layout)
+  const dragStartSignatureRef = useRef<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const cardMap = useMemo(() => new Map(cards.map((card) => [card.key, card])), [cards])
@@ -399,40 +414,54 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
     .map((item) => cardMap.get(item.key))
     .filter((card): card is DashboardCard => Boolean(card))
   const hiddenCards = cards.filter((card) => layout.find((item) => item.key === card.key)?.visible === false)
+  const draggedCard = dragState ? cardMap.get(dragState.key) : null
+  const draggedLayoutItem = dragState ? layout.find((item) => item.key === dragState.key) : null
 
   useLayoutEffect(() => {
     const grid = gridRef.current
+    latestLayoutRef.current = layout
     if (!grid) return
 
     const previousPositions = positionsRef.current
-    const nextPositions = new Map<string, DOMRect>()
+    const nextPositions = readCardPositions()
 
-    for (const element of Array.from(grid.querySelectorAll<HTMLElement>('[data-card-key]'))) {
-      const key = element.dataset.cardKey
-      if (!key) continue
-
-      const nextRect = element.getBoundingClientRect()
+    for (const [key, nextRect] of nextPositions) {
       const previousRect = previousPositions.get(key)
-      nextPositions.set(key, nextRect)
 
-      if (!previousRect || draggingKey === key) continue
+      if (!previousRect || dragState?.key === key) continue
 
       const deltaX = previousRect.left - nextRect.left
       const deltaY = previousRect.top - nextRect.top
 
       if (!deltaX && !deltaY) continue
 
-      element.animate([
+      const element = grid.querySelector<HTMLElement>(`[data-card-key="${key}"]`)
+      element?.animate([
         { transform: `translate(${deltaX}px, ${deltaY}px)` },
         { transform: 'translate(0, 0)' },
       ], {
-        duration: 220,
+        duration: 180,
         easing: 'cubic-bezier(0.2, 0, 0, 1)',
       })
     }
 
     positionsRef.current = nextPositions
-  }, [draggingKey, layout])
+  }, [dragState?.key, layout])
+
+  function readCardPositions() {
+    const grid = gridRef.current
+    const positions = new Map<string, DOMRect>()
+    if (!grid) return positions
+
+    for (const element of Array.from(grid.querySelectorAll<HTMLElement>('[data-card-key]'))) {
+      const key = element.dataset.cardKey
+      if (key) {
+        positions.set(key, element.getBoundingClientRect())
+      }
+    }
+
+    return positions
+  }
 
   function persistLayout(nextLayout: DashboardCardLayout[]) {
     startTransition(async () => {
@@ -457,8 +486,13 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
     })
   }
 
-  function applyLayout(nextLayout: DashboardCardLayout[]) {
+  function setLiveLayout(nextLayout: DashboardCardLayout[]) {
+    latestLayoutRef.current = nextLayout
     setLayout(nextLayout)
+  }
+
+  function applyLayout(nextLayout: DashboardCardLayout[]) {
+    setLiveLayout(nextLayout)
     persistLayout(nextLayout)
   }
 
@@ -470,8 +504,88 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
     applyLayout(layout.map((item) => item.key === key ? { ...item, size } : item))
   }
 
-  function moveCard(sourceKey: string, targetKey: string) {
-    applyLayout(reorderItem(layout, sourceKey, targetKey))
+  function getCardKeyAtPoint(clientX: number, clientY: number, sourceKey: string) {
+    const grid = gridRef.current
+    if (!grid) return null
+
+    const gridRect = grid.getBoundingClientRect()
+    if (clientX < gridRect.left || clientX > gridRect.right || clientY < gridRect.top || clientY > gridRect.bottom) {
+      return null
+    }
+
+    for (const [key, rect] of readCardPositions()) {
+      if (key === sourceKey) continue
+
+      if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) {
+        return key
+      }
+    }
+
+    return null
+  }
+
+  function beginCardDrag(key: string): PointerEventHandler<HTMLElement> {
+    return (event) => {
+      if (!isManaging || event.button !== 0) return
+
+      event.preventDefault()
+      event.currentTarget.setPointerCapture(event.pointerId)
+      positionsRef.current = readCardPositions()
+      dragStartSignatureRef.current = getLayoutSignature(latestLayoutRef.current)
+
+      const rect = event.currentTarget.getBoundingClientRect()
+      setDragState({
+        key,
+        pointerId: event.pointerId,
+        offsetX: event.clientX - rect.left,
+        offsetY: event.clientY - rect.top,
+        x: rect.left,
+        y: rect.top,
+        width: rect.width,
+        height: rect.height,
+      })
+    }
+  }
+
+  function updateCardDrag(key: string): PointerEventHandler<HTMLElement> {
+    return (event) => {
+      if (!dragState || dragState.key !== key || dragState.pointerId !== event.pointerId) return
+
+      event.preventDefault()
+      const x = event.clientX - dragState.offsetX
+      const y = event.clientY - dragState.offsetY
+      setDragState({ ...dragState, x, y })
+
+      const targetKey = getCardKeyAtPoint(event.clientX, event.clientY, key)
+      if (!targetKey) return
+
+      const nextLayout = reorderItem(latestLayoutRef.current, key, targetKey)
+      if (nextLayout !== latestLayoutRef.current) {
+        setLiveLayout(nextLayout)
+      }
+    }
+  }
+
+  function endCardDrag(key: string): PointerEventHandler<HTMLElement> {
+    return (event) => {
+      if (!dragState || dragState.key !== key || dragState.pointerId !== event.pointerId) return
+
+      event.preventDefault()
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId)
+      }
+
+      const nextLayout = latestLayoutRef.current
+      const nextSignature = getLayoutSignature(nextLayout)
+      const shouldPersist = Boolean(dragStartSignatureRef.current && dragStartSignatureRef.current !== nextSignature)
+
+      setDragState(null)
+      dragStartSignatureRef.current = null
+
+      if (shouldPersist) {
+        persistLayout(nextLayout)
+      }
+    }
   }
 
   function renderVisibleCard(card: DashboardCard) {
@@ -486,40 +600,13 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
           size={size}
           kind={config.kind}
           action={isManaging ? 'remove' : undefined}
-          dragging={draggingKey === card.key}
-          dropTarget={dropTargetKey === card.key && draggingKey !== card.key}
-          draggable={isManaging}
+          dragging={dragState?.key === card.key}
+          sorting={isManaging}
           onSizeChange={isManaging && item && config.allowedSizes.length > 1 ? (nextSize) => setCardSize(card.key, nextSize) : undefined}
-          onDragStart={(event) => {
-            draggingKeyRef.current = card.key
-            setDraggingKey(card.key)
-            event.dataTransfer.effectAllowed = 'move'
-            event.dataTransfer.setData('text/plain', card.key)
-          }}
-          onDragOver={(event) => {
-            if (!isManaging) return
-
-            event.preventDefault()
-            event.dataTransfer.dropEffect = 'move'
-            setDropTargetKey(card.key)
-          }}
-          onDrop={(event) => {
-            if (!isManaging) return
-
-            event.preventDefault()
-            const sourceKey = event.dataTransfer.getData('text/plain') || draggingKeyRef.current
-            if (sourceKey) {
-              moveCard(sourceKey, card.key)
-            }
-            draggingKeyRef.current = null
-            setDraggingKey(null)
-            setDropTargetKey(null)
-          }}
-          onDragEnd={() => {
-            draggingKeyRef.current = null
-            setDraggingKey(null)
-            setDropTargetKey(null)
-          }}
+          onPointerDown={beginCardDrag(card.key)}
+          onPointerMove={updateCardDrag(card.key)}
+          onPointerUp={endCardDrag(card.key)}
+          onPointerCancel={endCardDrag(card.key)}
           onAction={() => setCardVisibility(card.key, false)}
         />
       </div>
@@ -544,7 +631,7 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-end gap-3">
-        {isManaging && <p className="mr-auto text-sm text-neutral-500">当前显示 {orderedCards.length} / {cards.length} 张卡片。拖动卡片可调整顺序。</p>}
+        {isManaging && <p className="mr-auto text-sm text-neutral-500">当前显示 {orderedCards.length} / {cards.length} 张卡片。按住卡片拖动可实时调整顺序。</p>}
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-sm text-neutral-500" aria-live="polite">{isPending ? '正在自动保存…' : message}</span>
           <button
@@ -566,6 +653,26 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
       ) : (
         <div className="rounded-lg border border-dashed border-neutral-300 p-8 text-center text-sm text-neutral-500 dark:border-neutral-700">
           暂无显示的概览卡片。点击“管理卡片”重新启用。
+        </div>
+      )}
+
+      {dragState && draggedCard && draggedLayoutItem && (
+        <div
+          className="pointer-events-none fixed z-50"
+          style={{
+            height: dragState.height,
+            left: dragState.x,
+            top: dragState.y,
+            width: dragState.width,
+          }}
+        >
+          <DashboardStatCard
+            card={draggedCard}
+            size={draggedLayoutItem.size}
+            kind={getDashboardCardConfig(draggedCard.key).kind}
+            dragPreview
+            sorting
+          />
         </div>
       )}
 
