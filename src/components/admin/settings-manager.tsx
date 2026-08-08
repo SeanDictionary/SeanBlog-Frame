@@ -213,7 +213,7 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
 
     return (
       <div
-        className="rounded-lg border border-dashed border-neutral-300 bg-neutral-50/60 p-4 dark:border-neutral-700 dark:bg-neutral-900/40"
+        className="flex items-center gap-3 overflow-hidden rounded-lg border border-dashed border-neutral-300 bg-neutral-50/60 p-4 dark:border-neutral-700 dark:bg-neutral-900/40"
         onDragOver={(event) => event.preventDefault()}
         onDrop={(event) => {
           event.preventDefault()
@@ -221,11 +221,11 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
           setDraggedMetaId(null)
         }}
       >
-        <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex h-[38px] shrink-0 items-center gap-2">
           <h3 className="text-sm font-semibold">{visible ? '显示' : '不显示'}</h3>
           <span className="text-xs text-neutral-500">{items.length} 项</span>
         </div>
-        <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
+        <div className="flex min-w-0 flex-1 flex-nowrap gap-2 overflow-x-auto pb-1">
           {items.length > 0 ? items.map((item) => {
             const config = ARTICLE_META_CONFIGS.find((meta) => meta.id === item.id)!
 
