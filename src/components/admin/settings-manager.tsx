@@ -222,7 +222,7 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
         }}
       >
         <div className="flex h-[38px] shrink-0 items-center gap-2">
-          <h3 className="text-sm font-semibold">{visible ? '显示' : '不显示'}</h3>
+          <h3 className="text-sm font-semibold">{visible ? '显示' : '隐藏'}</h3>
           <span className="text-xs text-neutral-500">{items.length} 项</span>
         </div>
         <div className="flex min-w-0 flex-1 flex-nowrap gap-2 overflow-x-auto pb-1">
