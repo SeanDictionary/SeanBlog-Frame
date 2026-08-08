@@ -349,6 +349,8 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
   }, [form.contentMarkdown, showPreview])
 
   useEffect(() => {
+    window.history.pushState({ articleEditorGuard: true }, '', window.location.href)
+
     function handleBeforeUnload(event: BeforeUnloadEvent) {
       if (!dirtyRef.current || allowNavigationRef.current) return
 
@@ -372,11 +374,29 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
       }
     }
 
+    function handlePopState() {
+      if (!dirtyRef.current || allowNavigationRef.current) {
+        allowNavigationRef.current = true
+        window.history.back()
+        return
+      }
+
+      if (window.confirm('当前文章有未保存内容，确认离开吗？')) {
+        allowNavigationRef.current = true
+        window.history.back()
+        return
+      }
+
+      window.history.pushState({ articleEditorGuard: true }, '', window.location.href)
+    }
+
     window.addEventListener('beforeunload', handleBeforeUnload)
+    window.addEventListener('popstate', handlePopState)
     document.addEventListener('click', handleDocumentClick, true)
 
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload)
+      window.removeEventListener('popstate', handlePopState)
       document.removeEventListener('click', handleDocumentClick, true)
     }
   }, [])
@@ -628,7 +648,7 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
         }))
         setPreviewHtml(data.revision.contentHtml)
         markDirty()
-        setMessage(`已恢复版本 v${data.revision.version} 到编辑器，请保存后生效。`)
+        setMessage(`已恢复 ${formatDateTime(data.revision.createdAt)} 的历史版本到编辑器，请保存后生效。`)
       } catch (error) {
         setMessage(error instanceof Error ? error.message : '读取历史版本失败。')
       }
@@ -995,26 +1015,24 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
           </details>
 
           {article?.id && article.revisions && article.revisions.length > 0 && (
-            <section className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-950">
-              <div className="mb-4 flex items-center justify-between gap-4">
-                <div>
-                  <h2 className="font-semibold">版本管理</h2>
-                  <p className="mt-1 text-sm text-neutral-500">恢复历史版本会填入编辑器，保存后才会覆盖当前文章。</p>
-                </div>
-                <span className="text-xs text-neutral-500">共 {article.revisions.length} 个版本</span>
-              </div>
-              <div className="divide-y divide-neutral-100 dark:divide-neutral-900">
-                {article.revisions.slice(0, 8).map((revision) => (
+            <details className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-950">
+              <summary className="flex cursor-pointer items-center justify-between gap-4 text-sm font-medium">
+                <span>版本管理</span>
+                <span className="text-xs font-normal text-neutral-500">共 {article.revisions.length} 条</span>
+              </summary>
+              <p className="mt-3 text-sm text-neutral-500">恢复历史版本会填入编辑器，保存后才会覆盖当前文章。</p>
+              <div className="mt-4 max-h-72 overflow-y-auto divide-y divide-neutral-100 dark:divide-neutral-900">
+                {article.revisions.map((revision) => (
                   <div key={revision.id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
                     <div>
-                      <p className="font-medium">v{revision.version} · {revision.title}</p>
-                      <p className="mt-1 text-xs text-neutral-500">{formatDateTime(revision.createdAt)}{revision.changeNote ? ` · ${revision.changeNote}` : ''}</p>
+                      <p className="font-medium">{formatDateTime(revision.createdAt)}</p>
+                      {revision.changeNote && <p className="mt-1 text-xs text-neutral-500">{revision.changeNote}</p>}
                     </div>
                     <button type="button" disabled={isRevisionPending} onClick={() => restoreRevision(revision.id)} className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm transition-colors hover:bg-neutral-100 disabled:opacity-60 dark:border-neutral-700 dark:hover:bg-neutral-800">恢复到编辑器</button>
                   </div>
                 ))}
               </div>
-            </section>
+            </details>
           )}
         </aside>
       </div>
