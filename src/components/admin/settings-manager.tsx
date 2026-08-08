@@ -3,6 +3,8 @@
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 
+import { ARTICLE_META_ITEM_IDS, type ArticleMetaItemId } from '@/components/article/article-meta'
+
 type Setting = {
   id: string
   key: string
@@ -17,30 +19,131 @@ type ApiResponse = {
   error?: { message?: string }
 }
 
+type SettingUpdate = {
+  key: string
+  value: unknown
+}
+
+type MetadataLayoutItem = {
+  id: ArticleMetaItemId
+  visible: boolean
+}
+
+type ArticleMetaConfig = {
+  id: ArticleMetaItemId
+  settingKey: string
+  label: string
+  detail: string
+}
+
+type AnalyticsConfig = {
+  key: string
+  label: string
+  detail: string
+  defaultValue: boolean
+}
+
+const ARTICLE_META_CONFIGS: ArticleMetaConfig[] = [
+  { id: 'publishedAt', settingKey: 'articleMetaShowPublishedAt', label: '发布时间', detail: '文章发布时间。' },
+  { id: 'viewCount', settingKey: 'articleMetaShowViewCount', label: '阅读次数', detail: '文章累计浏览量。' },
+  { id: 'readingTime', settingKey: 'articleMetaShowReadingTime', label: '预估阅读时间', detail: '根据正文自动估算阅读分钟数。' },
+  { id: 'wordCount', settingKey: 'articleMetaShowWordCount', label: '文章字数', detail: '根据正文自动统计字数。' },
+  { id: 'category', settingKey: 'articleMetaShowCategory', label: '分类', detail: '文章所属分类链接。' },
+  { id: 'tags', settingKey: 'articleMetaShowTags', label: '标签', detail: '文章关联标签链接。' },
+]
+
+const ANALYTICS_CONFIGS: AnalyticsConfig[] = [
+  { key: 'analyticsEnabled', label: '启用访问统计', detail: '记录匿名访问事件和匿名访客标识。', defaultValue: true },
+  { key: 'analyticsCollectIp', label: '采集 IP 地址', detail: '默认关闭，开启后写入访问事件。', defaultValue: false },
+  { key: 'analyticsCollectUserAgent', label: '采集 User-Agent', detail: '默认关闭，开启后可分析浏览器和系统。', defaultValue: false },
+  { key: 'analyticsCollectReferrer', label: '采集来源 URL', detail: '默认关闭，开启后记录 referrer。', defaultValue: false },
+  { key: 'analyticsCollectFingerprint', label: '采集浏览器指纹摘要', detail: '默认关闭，仅保存摘要字段。', defaultValue: false },
+  { key: 'analyticsCollectHardware', label: '采集硬件信息摘要', detail: '默认关闭，仅保存摘要字段。', defaultValue: false },
+]
+
+const EXCLUDED_SETTING_KEYS = new Set([
+  'activeTheme',
+  'siteName',
+  'siteDescription',
+  'siteUrl',
+  'articleCommentsMode',
+  'commentModerationRules',
+  'articleMetaOrder',
+  ...ARTICLE_META_CONFIGS.map((item) => item.settingKey),
+  ...ANALYTICS_CONFIGS.map((item) => item.key),
+])
+
 function stringifyValue(value: unknown) {
   return typeof value === 'string' ? value : JSON.stringify(value, null, 2)
+}
+
+function getSettingValue(settings: Setting[], key: string) {
+  return settings.find((setting) => setting.key === key)?.value
+}
+
+function getBooleanSetting(settings: Setting[], key: string, fallback: boolean) {
+  const value = getSettingValue(settings, key)
+  return typeof value === 'boolean' ? value : fallback
+}
+
+function mergeSettings(previous: Setting[], nextSettings: Setting[]) {
+  const nextByKey = new Map(nextSettings.map((setting) => [setting.key, setting]))
+  const merged = previous.map((setting) => nextByKey.get(setting.key) ?? setting)
+  const existingKeys = new Set(previous.map((setting) => setting.key))
+
+  return [...merged, ...nextSettings.filter((setting) => !existingKeys.has(setting.key))]
+}
+
+function normalizeArticleMetaOrder(value: unknown) {
+  const orderedIds = Array.isArray(value)
+    ? value.filter((item): item is ArticleMetaItemId => typeof item === 'string' && ARTICLE_META_ITEM_IDS.includes(item as ArticleMetaItemId))
+    : []
+  const orderedSet = new Set(orderedIds)
+
+  return [...orderedIds, ...ARTICLE_META_ITEM_IDS.filter((item) => !orderedSet.has(item))]
+}
+
+function buildMetadataLayout(settings: Setting[]): MetadataLayoutItem[] {
+  return normalizeArticleMetaOrder(getSettingValue(settings, 'articleMetaOrder')).map((id) => {
+    const config = ARTICLE_META_CONFIGS.find((item) => item.id === id)
+
+    return {
+      id,
+      visible: config ? getBooleanSetting(settings, config.settingKey, true) : true,
+    }
+  })
+}
+
+function buildAnalyticsSettings(settings: Setting[]) {
+  return Object.fromEntries(ANALYTICS_CONFIGS.map((item) => [item.key, getBooleanSetting(settings, item.key, item.defaultValue)])) as Record<string, boolean>
 }
 
 export function SettingsManager({ initialSettings }: SettingsManagerProps) {
   const router = useRouter()
   const [settings, setSettings] = useState(initialSettings)
+  const [metadataLayout, setMetadataLayout] = useState(() => buildMetadataLayout(initialSettings))
+  const [draggedMetaId, setDraggedMetaId] = useState<ArticleMetaItemId | null>(null)
+  const [analyticsSettings, setAnalyticsSettings] = useState(() => buildAnalyticsSettings(initialSettings))
   const [message, setMessage] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
-  const showPublishedAt = settings.find((setting) => setting.key === 'articleMetaShowPublishedAt')?.value !== false
-  const showViewCount = settings.find((setting) => setting.key === 'articleMetaShowViewCount')?.value !== false
-  const showReadingTime = settings.find((setting) => setting.key === 'articleMetaShowReadingTime')?.value !== false
-  const showWordCount = settings.find((setting) => setting.key === 'articleMetaShowWordCount')?.value !== false
-  const showCategory = settings.find((setting) => setting.key === 'articleMetaShowCategory')?.value !== false
-  const showTags = settings.find((setting) => setting.key === 'articleMetaShowTags')?.value !== false
-  const analyticsEnabled = settings.find((setting) => setting.key === 'analyticsEnabled')?.value !== false
-  const analyticsCollectIp = settings.find((setting) => setting.key === 'analyticsCollectIp')?.value === true
-  const analyticsCollectUserAgent = settings.find((setting) => setting.key === 'analyticsCollectUserAgent')?.value === true
-  const analyticsCollectReferrer = settings.find((setting) => setting.key === 'analyticsCollectReferrer')?.value === true
-  const analyticsCollectFingerprint = settings.find((setting) => setting.key === 'analyticsCollectFingerprint')?.value === true
-  const analyticsCollectHardware = settings.find((setting) => setting.key === 'analyticsCollectHardware')?.value === true
 
   function reportError(error: unknown, fallback: string) {
     setMessage(error instanceof Error ? error.message : fallback)
+  }
+
+  async function persistSetting(key: string, value: unknown) {
+    const response = await fetch(`/api/admin/settings/${encodeURIComponent(key)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value }),
+    })
+    const data = (await response.json()) as ApiResponse & { setting?: Setting }
+
+    if (!response.ok || !data.setting) {
+      throw new Error(data.error?.message ?? '保存失败。')
+    }
+
+    return data.setting
   }
 
   function save(key: string, rawValue: string) {
@@ -55,26 +158,109 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
       }
 
       try {
-        const response = await fetch(`/api/admin/settings/${encodeURIComponent(key)}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ value }),
-        })
-        const data = (await response.json()) as ApiResponse & { setting?: Setting }
-
-        if (!response.ok || !data.setting) {
-          throw new Error(data.error?.message ?? '保存失败。')
-        }
-
-        setSettings((previous) => previous.some((setting) => setting.key === key)
-          ? previous.map((setting) => setting.key === key ? data.setting! : setting)
-          : [...previous, data.setting!])
+        const setting = await persistSetting(key, value)
+        setSettings((previous) => mergeSettings(previous, [setting]))
         setMessage(`已保存 ${key}。`)
         router.refresh()
       } catch (error) {
         reportError(error, '保存失败。')
       }
     })
+  }
+
+  function saveMany(updates: SettingUpdate[], successMessage: string) {
+    startTransition(async () => {
+      setMessage(null)
+
+      try {
+        const savedSettings = await Promise.all(updates.map((update) => persistSetting(update.key, update.value)))
+        setSettings((previous) => mergeSettings(previous, savedSettings))
+        setMessage(successMessage)
+        router.refresh()
+      } catch (error) {
+        reportError(error, '保存失败。')
+      }
+    })
+  }
+
+  function moveMetadataItem(id: ArticleMetaItemId, targetVisible: boolean, targetId?: ArticleMetaItemId, placement: 'before' | 'after' = 'after') {
+    const visibleIds = metadataLayout.filter((item) => item.visible && item.id !== id).map((item) => item.id)
+    const hiddenIds = metadataLayout.filter((item) => !item.visible && item.id !== id).map((item) => item.id)
+    const targetIds = targetVisible ? visibleIds : hiddenIds
+    const targetIndex = targetId ? targetIds.indexOf(targetId) : -1
+    const insertIndex = targetIndex === -1 ? targetIds.length : targetIndex + (placement === 'after' ? 1 : 0)
+
+    targetIds.splice(insertIndex, 0, id)
+
+    setMetadataLayout([
+      ...visibleIds.map((itemId) => ({ id: itemId, visible: true })),
+      ...hiddenIds.map((itemId) => ({ id: itemId, visible: false })),
+    ])
+  }
+
+  function saveMetadataLayout() {
+    const visibleIds = metadataLayout.filter((item) => item.visible).map((item) => item.id)
+    const updates = ARTICLE_META_CONFIGS.map((config) => ({
+      key: config.settingKey,
+      value: visibleIds.includes(config.id),
+    }))
+
+    saveMany([...updates, { key: 'articleMetaOrder', value: visibleIds }], '已保存文章元数据设置。')
+  }
+
+  function renderMetadataZone(visible: boolean) {
+    const items = metadataLayout.filter((item) => item.visible === visible)
+
+    return (
+      <div
+        className="rounded-lg border border-dashed border-neutral-300 bg-neutral-50/60 p-4 dark:border-neutral-700 dark:bg-neutral-900/40"
+        onDragOver={(event) => event.preventDefault()}
+        onDrop={(event) => {
+          event.preventDefault()
+          if (draggedMetaId) moveMetadataItem(draggedMetaId, visible)
+          setDraggedMetaId(null)
+        }}
+      >
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h3 className="text-sm font-semibold">{visible ? '显示' : '不显示'}</h3>
+          <span className="text-xs text-neutral-500">{items.length} 项</span>
+        </div>
+        <div className="space-y-2">
+          {items.length > 0 ? items.map((item) => {
+            const config = ARTICLE_META_CONFIGS.find((meta) => meta.id === item.id)!
+
+            return (
+              <div
+                key={item.id}
+                draggable
+                onDragStart={() => setDraggedMetaId(item.id)}
+                onDragEnd={() => setDraggedMetaId(null)}
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={(event) => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  if (!draggedMetaId) return
+
+                  const rect = event.currentTarget.getBoundingClientRect()
+                  const placement = event.clientY < rect.top + rect.height / 2 ? 'before' : 'after'
+                  moveMetadataItem(draggedMetaId, visible, item.id, placement)
+                  setDraggedMetaId(null)
+                }}
+                className={`cursor-grab rounded-md border border-neutral-200 bg-white px-3 py-3 active:cursor-grabbing dark:border-neutral-800 dark:bg-neutral-950 ${draggedMetaId === item.id ? 'opacity-50' : ''}`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium">{config.label}</p>
+                    <p className="mt-1 text-xs text-neutral-500">{config.detail}</p>
+                  </div>
+                  <i className="fa-solid fa-grip-vertical mt-1 text-xs text-neutral-400" aria-hidden="true" />
+                </div>
+              </div>
+            )
+          }) : <p className="rounded-md border border-dashed border-neutral-200 px-3 py-5 text-center text-sm text-neutral-500 dark:border-neutral-800">拖到这里</p>}
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -86,63 +272,52 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
       </section>
 
       <section className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-950">
-        <h2 className="font-semibold">文章详情</h2>
-        <p className="mt-1 text-sm text-neutral-500">控制文章详情页展示的元数据信息。</p>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="font-semibold">文章详情</h2>
+            <p className="mt-1 text-sm text-neutral-500">拖动元数据到“显示”或“不显示”，并调整显示区顺序。</p>
+          </div>
+          <button type="button" disabled={isPending} onClick={saveMetadataLayout} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-950">保存元数据设置</button>
+        </div>
         <div className="mt-5 grid gap-4">
-          <MetadataToggle settingKey="articleMetaShowPublishedAt" fieldName="showPublishedAt" label="显示发布时间" checked={showPublishedAt} isPending={isPending} onSave={save} />
-          <MetadataToggle settingKey="articleMetaShowViewCount" fieldName="showViewCount" label="显示阅读次数" checked={showViewCount} isPending={isPending} onSave={save} />
-          <MetadataToggle settingKey="articleMetaShowReadingTime" fieldName="showReadingTime" label="显示预估阅读时间" checked={showReadingTime} isPending={isPending} onSave={save} />
-          <MetadataToggle settingKey="articleMetaShowWordCount" fieldName="showWordCount" label="显示文章字数" checked={showWordCount} isPending={isPending} onSave={save} />
-          <MetadataToggle settingKey="articleMetaShowCategory" fieldName="showCategory" label="显示分类" checked={showCategory} isPending={isPending} onSave={save} />
-          <MetadataToggle settingKey="articleMetaShowTags" fieldName="showTags" label="显示标签" checked={showTags} isPending={isPending} onSave={save} />
+          {renderMetadataZone(true)}
+          {renderMetadataZone(false)}
         </div>
       </section>
 
       <section className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-950">
-        <h2 className="font-semibold">访问统计与隐私</h2>
-        <p className="mt-1 text-sm text-neutral-500">默认只采集匿名访问事件和匿名访客标识。IP、UA、浏览器指纹、硬件信息、来源 URL 默认不收集，需单独开启。</p>
-        <div className="mt-5 grid gap-4">
-          <MetadataToggle settingKey="analyticsEnabled" fieldName="analyticsEnabled" label="启用访问统计" checked={analyticsEnabled} isPending={isPending} onSave={save} />
-          <MetadataToggle settingKey="analyticsCollectIp" fieldName="analyticsCollectIp" label="采集 IP 地址" checked={analyticsCollectIp} isPending={isPending} onSave={save} />
-          <MetadataToggle settingKey="analyticsCollectUserAgent" fieldName="analyticsCollectUserAgent" label="采集 User-Agent" checked={analyticsCollectUserAgent} isPending={isPending} onSave={save} />
-          <MetadataToggle settingKey="analyticsCollectReferrer" fieldName="analyticsCollectReferrer" label="采集来源 URL" checked={analyticsCollectReferrer} isPending={isPending} onSave={save} />
-          <MetadataToggle settingKey="analyticsCollectFingerprint" fieldName="analyticsCollectFingerprint" label="采集浏览器指纹摘要" checked={analyticsCollectFingerprint} isPending={isPending} onSave={save} />
-          <MetadataToggle settingKey="analyticsCollectHardware" fieldName="analyticsCollectHardware" label="采集硬件信息摘要" checked={analyticsCollectHardware} isPending={isPending} onSave={save} />
-        </div>
+        <form action={(formData) => {
+          const next = Object.fromEntries(ANALYTICS_CONFIGS.map((item) => [item.key, formData.get(item.key) === 'on'])) as Record<string, boolean>
+          setAnalyticsSettings(next)
+          saveMany(ANALYTICS_CONFIGS.map((item) => ({ key: item.key, value: next[item.key] })), '已保存访问统计设置。')
+        }}>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="font-semibold">访问统计与隐私</h2>
+              <p className="mt-1 text-sm text-neutral-500">默认只采集匿名访问事件和匿名访客标识。IP、UA、浏览器指纹、硬件信息、来源 URL 默认不收集，需单独开启。</p>
+            </div>
+            <button disabled={isPending} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-950">保存统计设置</button>
+          </div>
+          <div className="mt-5 grid gap-4">
+            {ANALYTICS_CONFIGS.map((item) => (
+              <label key={item.key} className="flex flex-wrap items-start justify-between gap-3 rounded-md border border-neutral-200 p-4 dark:border-neutral-800">
+                <span>
+                  <span className="block text-sm font-medium">{item.label}</span>
+                  <span className="mt-1 block text-xs text-neutral-500">{item.detail}</span>
+                </span>
+                <input name={item.key} type="checkbox" checked={analyticsSettings[item.key]} onChange={(event) => setAnalyticsSettings((previous) => ({ ...previous, [item.key]: event.target.checked }))} />
+              </label>
+            ))}
+          </div>
+        </form>
       </section>
 
       <section className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-950">
         <h2 className="font-semibold">其他设置</h2>
-        <div className="mt-5 space-y-4">{settings.filter((setting) => !['activeTheme', 'siteName', 'siteDescription', 'siteUrl', 'articleCommentsMode', 'commentModerationRules', 'articleMetaShowPublishedAt', 'articleMetaShowViewCount', 'articleMetaShowReadingTime', 'articleMetaShowWordCount', 'articleMetaShowCategory', 'articleMetaShowTags', 'analyticsEnabled', 'analyticsCollectIp', 'analyticsCollectUserAgent', 'analyticsCollectReferrer', 'analyticsCollectFingerprint', 'analyticsCollectHardware'].includes(setting.key) && !setting.key.startsWith('themeSetting:') && !setting.key.startsWith('publicHeader') && !setting.key.startsWith('publicFooter') && !setting.key.startsWith('adminSidebar')).map((setting) => <form key={setting.id} action={(formData) => save(setting.key, String(formData.get('value') ?? ''))} className="grid gap-2 sm:grid-cols-[12rem_1fr_auto]"><label className="font-mono text-sm sm:pt-2.5">{setting.key}</label><textarea name="value" defaultValue={stringifyValue(setting.value)} rows={2} className="rounded-md border border-neutral-300 bg-white p-3 font-mono text-xs outline-none dark:border-neutral-700 dark:bg-neutral-900" /><button disabled={isPending} className="text-sm text-blue-600">保存</button></form>)}</div>
+        <div className="mt-5 space-y-4">{settings.filter((setting) => !EXCLUDED_SETTING_KEYS.has(setting.key) && !setting.key.startsWith('themeSetting:') && !setting.key.startsWith('publicHeader') && !setting.key.startsWith('publicFooter') && !setting.key.startsWith('adminSidebar')).map((setting) => <form key={setting.id} action={(formData) => save(setting.key, String(formData.get('value') ?? ''))} className="grid gap-2 sm:grid-cols-[12rem_1fr_auto]"><label className="font-mono text-sm sm:pt-2.5">{setting.key}</label><textarea name="value" defaultValue={stringifyValue(setting.value)} rows={2} className="rounded-md border border-neutral-300 bg-white p-3 font-mono text-xs outline-none dark:border-neutral-700 dark:bg-neutral-900" /><button disabled={isPending} className="text-sm text-blue-600">保存</button></form>)}</div>
       </section>
 
       {message && <p className="text-sm text-neutral-500" role="status">{message}</p>}
     </div>
-  )
-}
-
-function MetadataToggle({
-  settingKey,
-  fieldName,
-  label,
-  checked,
-  isPending,
-  onSave,
-}: {
-  settingKey: string
-  fieldName: string
-  label: string
-  checked: boolean
-  isPending: boolean
-  onSave: (key: string, rawValue: string) => void
-}) {
-  return (
-    <form action={(formData) => onSave(settingKey, formData.get(fieldName) === 'on' ? 'true' : 'false')} className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-neutral-200 p-4 dark:border-neutral-800">
-      <label className="inline-flex items-center gap-2 text-sm font-medium">
-        <input name={fieldName} type="checkbox" defaultChecked={checked} />
-        {label}
-      </label>
-      <button disabled={isPending} className="text-sm text-blue-600">保存</button>
-    </form>
   )
 }

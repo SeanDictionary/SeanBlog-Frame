@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import type { ReactNode } from 'react'
 
 import { ArticleContent } from '@/components/article/article-content'
-import { ArticleMeta } from '@/components/article/article-meta'
+import { ArticleMeta, ARTICLE_META_ITEM_IDS, type ArticleMetaItemId } from '@/components/article/article-meta'
 import { ArticleNavigation } from '@/components/article/article-navigation'
 import { ArticleToc } from '@/components/article/article-toc'
 import { CommentList } from '@/components/comment/comment-list'
@@ -49,6 +49,15 @@ function getHeadings(html: string) {
   })
 
   return { contentHtml, headings }
+}
+
+function normalizeArticleMetaOrder(value: unknown) {
+  const ordered = Array.isArray(value)
+    ? value.filter((item, index, items): item is ArticleMetaItemId => typeof item === 'string' && ARTICLE_META_ITEM_IDS.includes(item as ArticleMetaItemId) && items.indexOf(item) === index)
+    : []
+  const orderedSet = new Set(ordered)
+
+  return [...ordered, ...ARTICLE_META_ITEM_IDS.filter((item) => !orderedSet.has(item))]
 }
 
 export async function generateMetadata({ params }: ArticlePageProps): Promise<Metadata> {
@@ -111,7 +120,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
               viewCount={article.viewCount}
               readingMinutes={readingMinutes}
               wordCount={wordCount}
-              visibility={{ showPublishedAt, showViewCount, showReadingTime, showWordCount, showCategory, showTags }}
+              visibility={{ showPublishedAt, showViewCount, showReadingTime, showWordCount, showCategory, showTags, order: normalizeArticleMetaOrder(settings.articleMetaOrder) }}
             />
           </div>
         </header>
