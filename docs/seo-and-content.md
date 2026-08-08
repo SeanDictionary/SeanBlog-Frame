@@ -18,6 +18,9 @@ SEO 是个人博客的核心能力之一。本系统在设计上保证：
 - 编辑器会将未保存内容自动保存到浏览器本地草稿，并在离开页面时提示确认
 - 保存时 Markdown 原文写入 `content/articles/{articleId}/index.md`
 - PostgreSQL 仅保存文章元数据与相对 `contentPath`，不再将正文作为权威内容源存储
+- 后台文章列表的导入/导出使用 `.zip` 文章包：单篇文章导出为 `{slug}.zip`，多篇文章导出为 `articles.zip`；每篇文章包含 `article.json` 元数据、`article.md` 正文，以及可选的 `image/cover.*` 与 `image/article/*` 本地媒体资源
+- 导入 ZIP 时服务端会校验路径穿越、条目数量、文件大小、重复 slug、缺失 `article.json` / `article.md`、本地媒体引用缺失和非法媒体类型；导入成功前不会写入数据库记录
+- 导出 ZIP 时会将本地上传的封面和正文图片复制到文章包，并把正文中的本地图片路径改写为 `image/article/...`；外链图片保持原 URL
 
 ### 2.2 Markdown 编译 Pipeline
 
