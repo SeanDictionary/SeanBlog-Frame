@@ -54,7 +54,7 @@ const DASHBOARD_CARD_SIZE_CLASSES: Record<DashboardCardSize, string> = {
   '1x1': '',
   '1x2': 'sm:col-span-2',
   '2x2': 'min-h-[22rem] sm:col-span-2 sm:row-span-2 sm:min-h-0',
-  '3x2': 'min-h-[22rem] sm:col-span-2 sm:row-span-2 sm:min-h-0 xl:col-span-3',
+  '3x2': 'min-h-[32rem] sm:col-span-2 sm:row-span-3 sm:min-h-0',
 }
 
 type DashboardCardKind = 'summary' | 'articleHeat' | 'comments' | 'create' | 'siteAnalytics'
@@ -349,14 +349,12 @@ function SiteAnalyticsContent({ card, size, linksDisabled }: { card: DashboardCa
 
   if (size === '3x2') {
     return (
-      <div className="grid h-full gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
-        <div className="flex min-w-0 flex-col">
-          <MetricStack card={card} className="" />
-          <CardLink href={card.href} disabled={linksDisabled} className="mt-5 block rounded-lg transition-colors hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 dark:hover:text-blue-300">
-            <MiniLineChart points={card.trend ?? []} />
-          </CardLink>
-        </div>
-        <div className="border-t border-neutral-200 pt-4 dark:border-neutral-800 xl:border-l xl:border-t-0 xl:pl-5 xl:pt-0">
+      <div className="flex h-full flex-col">
+        <MetricStack card={card} className="" />
+        <CardLink href={card.href} disabled={linksDisabled} className="mt-5 block rounded-lg transition-colors hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 dark:hover:text-blue-300">
+          <MiniLineChart points={card.trend ?? []} />
+        </CardLink>
+        <div className="mt-auto border-t border-neutral-200 pt-5 dark:border-neutral-800">
           <AnalyticsInsights items={card.insights ?? []} linksDisabled={linksDisabled} />
         </div>
       </div>
