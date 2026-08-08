@@ -89,6 +89,8 @@ type FormState = {
   isPinned: boolean
   publishedAt: string
   expiresAt: string
+  enableScheduledPublish: boolean
+  enableScheduledExpire: boolean
   metaTitle: string
   metaDescription: string
   metaKeywords: string
@@ -152,6 +154,8 @@ function getInitialState(article?: ArticleFormValues): FormState {
     isPinned: article?.isPinned ?? false,
     publishedAt: toDateTimeLocal(article?.publishedAt),
     expiresAt: toDateTimeLocal(article?.expiresAt),
+    enableScheduledPublish: article?.publishedAt ? new Date(article.publishedAt).getTime() > Date.now() : false,
+    enableScheduledExpire: Boolean(article?.expiresAt),
     metaTitle: article?.metaTitle ?? '',
     metaDescription: article?.metaDescription ?? '',
     metaKeywords: article?.metaKeywords ?? '',
@@ -200,12 +204,12 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
     const expiresAt = form.expiresAt ? new Date(form.expiresAt).getTime() : null
 
     if (form.isPinned) labels.push('置顶')
-    if (form.status === 'PUBLISHED' && publishedAt && publishedAt > now) labels.push('定时发布')
-    if (expiresAt && expiresAt <= now) labels.push('已过期')
-    if (expiresAt && expiresAt > now) labels.push('定时过期')
+    if (form.enableScheduledPublish && publishedAt && publishedAt > now) labels.push('定时发布')
+    if (form.enableScheduledExpire && expiresAt && expiresAt <= now) labels.push('已过期')
+    if (form.enableScheduledExpire && expiresAt && expiresAt > now) labels.push('定时过期')
 
     return labels
-  }, [form.expiresAt, form.isPinned, form.publishedAt, form.status])
+  }, [form.enableScheduledExpire, form.enableScheduledPublish, form.expiresAt, form.isPinned, form.publishedAt, form.status])
 
   const editorGridClass = editorMode === 'split' ? 'lg:grid-cols-2' : 'lg:grid-cols-1'
   const showEditor = editorMode === 'edit' || editorMode === 'split'
@@ -631,7 +635,51 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
     })
   }
 
-  function submit() {
+  function validateSchedule(mode: 'save' | 'publish') {
+    const now = Date.now()
+    let publishedAt: string | null = null
+    let publishTime: number | null = null
+    let expiresAt: string | null = null
+
+    if (form.enableScheduledPublish) {
+      if (!form.publishedAt) {
+        setMessage('开启定时发布后必须填写发布时间。')
+        return null
+      }
+
+      publishTime = new Date(form.publishedAt).getTime()
+      if (Number.isNaN(publishTime) || publishTime <= now) {
+        setMessage('定时发布时间必须大于当前时间。')
+        return null
+      }
+
+      publishedAt = fromDateTimeLocal(form.publishedAt)
+    }
+
+    if (form.enableScheduledExpire) {
+      if (!form.expiresAt) {
+        setMessage('开启定时过期后必须填写过期时间。')
+        return null
+      }
+
+      const expireTime = new Date(form.expiresAt).getTime()
+      if (Number.isNaN(expireTime) || expireTime <= now) {
+        setMessage('定时过期时间必须大于当前时间。')
+        return null
+      }
+
+      if (publishTime && expireTime <= publishTime) {
+        setMessage('定时过期时间必须晚于定时发布时间。')
+        return null
+      }
+
+      expiresAt = fromDateTimeLocal(form.expiresAt)
+    }
+
+    return { publishedAt, expiresAt }
+  }
+
+  function submit(mode: 'save' | 'publish') {
     setMessage(null)
 
     if (!form.slug) {
@@ -644,6 +692,9 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
       return
     }
 
+    const schedule = validateSchedule(mode)
+    if (!schedule) return
+
     startTransition(async () => {
       try {
         const categoryId = await resolveCategoryIdForSubmit()
@@ -654,13 +705,13 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
           excerpt: form.excerpt || null,
           contentMarkdown: form.contentMarkdown,
           coverImage: form.coverImage || null,
-          status: form.status,
+          status: mode === 'publish' ? 'PUBLISHED' : 'DRAFT',
           commentsMode: form.commentsMode,
           categoryId,
           tagIds,
           isPinned: form.isPinned,
-          publishedAt: fromDateTimeLocal(form.publishedAt),
-          expiresAt: fromDateTimeLocal(form.expiresAt),
+          publishedAt: schedule.publishedAt,
+          expiresAt: schedule.expiresAt,
           metaTitle: form.metaTitle || null,
           metaDescription: form.metaDescription || null,
           metaKeywords: form.metaKeywords || null,
@@ -690,7 +741,7 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
   }
 
   return (
-    <form action={submit} className="space-y-7">
+    <form onSubmit={(event) => { event.preventDefault(); submit('save') }} className="space-y-7">
       {pendingDraft && (
         <section className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800 dark:border-blue-900/70 dark:bg-blue-950/40 dark:text-blue-200">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -793,14 +844,12 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
             {statusSummary.map((item) => <span key={item} className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">{item}</span>)}
           </div>
         </div>
-        <label className="grid gap-1.5 text-sm font-medium">
-          发布状态
-          <select name="status" value={form.status} onChange={(event) => updateField('status', event.target.value as ArticleStatus)} className="h-10 rounded-md border border-neutral-300 bg-white px-3 font-normal outline-none dark:border-neutral-700 dark:bg-neutral-900">
-            <option value="DRAFT">草稿</option>
-            <option value="PUBLISHED">发布</option>
-            <option value="ARCHIVED">归档</option>
-          </select>
-        </label>
+        <div className="grid gap-3 text-sm font-medium">
+          发布控制
+          <div className="rounded-md border border-neutral-200 p-4 text-sm text-neutral-500 dark:border-neutral-800">
+            文章状态由底部“保存草稿 / 发布文章”按钮控制，归档请在文章列表批量操作中处理。
+          </div>
+        </div>
         <label className="grid gap-1.5 text-sm font-medium">
           评论
           <select name="commentsMode" value={form.commentsMode} onChange={(event) => updateField('commentsMode', event.target.value as ArticleCommentsMode)} className="h-10 rounded-md border border-neutral-300 bg-white px-3 font-normal outline-none dark:border-neutral-700 dark:bg-neutral-900">
@@ -809,16 +858,40 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
             <option value="disabled">关闭评论</option>
           </select>
         </label>
-        <label className="grid gap-1.5 text-sm font-medium">
-          发布时间
-          <input type="datetime-local" name="publishedAt" value={form.publishedAt} onChange={(event) => updateField('publishedAt', event.target.value)} className="h-10 rounded-md border border-neutral-300 bg-white px-3 font-normal outline-none dark:border-neutral-700 dark:bg-neutral-900" />
-          <span className="text-xs font-normal text-neutral-500">设为未来时间时，文章会在时间到达后公开。</span>
-        </label>
-        <label className="grid gap-1.5 text-sm font-medium">
-          过期时间
-          <input type="datetime-local" name="expiresAt" value={form.expiresAt} onChange={(event) => updateField('expiresAt', event.target.value)} className="h-10 rounded-md border border-neutral-300 bg-white px-3 font-normal outline-none dark:border-neutral-700 dark:bg-neutral-900" />
-          <span className="text-xs font-normal text-neutral-500">时间到达后自动从公开页面隐藏。</span>
-        </label>
+        <div className="grid gap-3 rounded-md border border-neutral-200 p-4 dark:border-neutral-800">
+          <label className="inline-flex items-center gap-2 text-sm font-medium">
+            <input type="checkbox" checked={form.enableScheduledPublish} onChange={(event) => {
+              const checked = event.target.checked
+              updateField('enableScheduledPublish', checked)
+              if (!checked) updateField('publishedAt', '')
+            }} />
+            定时发布
+          </label>
+          {form.enableScheduledPublish && (
+            <label className="grid gap-1.5 text-sm font-medium">
+              发布时间
+              <input required type="datetime-local" name="publishedAt" value={form.publishedAt} onChange={(event) => updateField('publishedAt', event.target.value)} className="h-10 rounded-md border border-neutral-300 bg-white px-3 font-normal outline-none dark:border-neutral-700 dark:bg-neutral-900" />
+              <span className="text-xs font-normal text-neutral-500">开启后必须填写，且时间必须大于当前时间。</span>
+            </label>
+          )}
+        </div>
+        <div className="grid gap-3 rounded-md border border-neutral-200 p-4 dark:border-neutral-800">
+          <label className="inline-flex items-center gap-2 text-sm font-medium">
+            <input type="checkbox" checked={form.enableScheduledExpire} onChange={(event) => {
+              const checked = event.target.checked
+              updateField('enableScheduledExpire', checked)
+              if (!checked) updateField('expiresAt', '')
+            }} />
+            定时过期
+          </label>
+          {form.enableScheduledExpire && (
+            <label className="grid gap-1.5 text-sm font-medium">
+              过期时间
+              <input required type="datetime-local" name="expiresAt" value={form.expiresAt} onChange={(event) => updateField('expiresAt', event.target.value)} className="h-10 rounded-md border border-neutral-300 bg-white px-3 font-normal outline-none dark:border-neutral-700 dark:bg-neutral-900" />
+              <span className="text-xs font-normal text-neutral-500">开启后必须填写，且必须大于当前时间；如果同时定时发布，则必须晚于发布时间。</span>
+            </label>
+          )}
+        </div>
         <div className="grid gap-3 text-sm font-medium sm:col-span-2">
           分类
           <div className="flex flex-wrap gap-2">
@@ -929,7 +1002,8 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
       </details>
 
       <div className="flex flex-wrap items-center gap-4">
-        <button type="submit" disabled={isPending || Boolean(slugError)} className="rounded-md bg-neutral-950 px-5 py-2.5 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950">{isPending ? '正在保存…' : '保存文章'}</button>
+        <button type="submit" disabled={isPending || Boolean(slugError)} className="rounded-md border border-neutral-300 px-5 py-2.5 text-sm font-medium disabled:opacity-60 dark:border-neutral-700">保存草稿</button>
+        <button type="button" onClick={() => submit('publish')} disabled={isPending || Boolean(slugError)} className="rounded-md bg-neutral-950 px-5 py-2.5 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950">{isPending ? '正在保存…' : '发布文章'}</button>
         <div className="text-sm text-neutral-500" role="status">
           <p>{message ?? (dirty ? '有未保存内容。' : '没有未保存内容。')}</p>
           <p className="mt-1 text-xs">最近数据库保存：{formatDateTime(article?.updatedAt)} · 本地草稿保存：{formatDateTime(lastDraftSavedAt)}</p>
