@@ -294,20 +294,36 @@ export function ArticleManagementTable({ articles, total, filters }: ArticleMana
     <div className="space-y-5">
       <section className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <label className="relative block md:w-96">
-            <span className="sr-only">实时搜索文章</span>
-            <i className="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-neutral-400" aria-hidden="true" />
-            <input
-              value={searchText}
-              onChange={(event) => setSearchText(event.target.value)}
-              placeholder="搜索标题、摘要、正文，结果会自动刷新"
-              className="h-10 w-full rounded-xl border border-neutral-300 bg-white pl-9 pr-3 text-sm outline-none transition-colors focus:border-blue-600 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-blue-400"
-            />
-          </label>
-          <div className="flex flex-wrap items-center gap-2 text-sm text-neutral-500">
-            <span>共 {total} 篇</span>
-            <span className="hidden text-neutral-300 dark:text-neutral-700 sm:inline">/</span>
-            <span>已选择 {selectedCount} 篇</span>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="relative block md:w-96">
+              <span className="sr-only">实时搜索文章</span>
+              <i className="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-neutral-400" aria-hidden="true" />
+              <input
+                value={searchText}
+                onChange={(event) => setSearchText(event.target.value)}
+                placeholder="搜索标题、摘要、正文，结果会自动刷新"
+                className="h-10 w-full rounded-xl border border-neutral-300 bg-white pl-9 pr-3 text-sm outline-none transition-colors focus:border-blue-600 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-blue-400"
+              />
+            </label>
+            <div className="flex flex-wrap items-center gap-2 text-sm text-neutral-500">
+              <span>已选 {selectedCount}</span>
+              <span className="hidden text-neutral-300 dark:text-neutral-700 sm:inline">/</span>
+              <span>{total} 篇</span>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" disabled={isPending || !selectedCount} onClick={() => runBulkAction('publish')} className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-neutral-700">批量发布</button>
+            <button type="button" disabled={isPending || !selectedCount} onClick={() => runBulkAction('draft')} className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-neutral-700">设为草稿</button>
+            <button type="button" disabled={isPending || !selectedCount} onClick={() => runBulkAction('archive')} className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-neutral-700">批量归档</button>
+            <button type="button" disabled={isPending || !selectedCount} onClick={() => runBulkAction('delete')} className="rounded-md border border-red-200 px-3 py-1.5 text-sm text-red-600 disabled:opacity-50 dark:border-red-900/70">批量删除</button>
+            <button type="button" disabled={isPending || !selectedCount} onClick={exportSelectedArticles} className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-neutral-700">导出 ZIP</button>
+            <label className="cursor-pointer rounded-md border border-neutral-300 px-3 py-1.5 text-sm dark:border-neutral-700">
+              导入 ZIP
+              <input ref={importInputRef} type="file" accept="application/zip,.zip" className="sr-only" onChange={(event) => {
+                const file = event.currentTarget.files?.[0]
+                if (file) importArticles(file)
+              }} />
+            </label>
           </div>
         </div>
         {(filters.category || filters.tag || filters.status) && (
@@ -321,23 +337,6 @@ export function ArticleManagementTable({ articles, total, filters }: ArticleMana
         )}
       </section>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-950">
-        <p className="text-sm text-neutral-500">勾选文章后可批量修改、删除或按所选范围导出 ZIP。</p>
-        <div className="flex flex-wrap gap-2">
-          <button type="button" disabled={isPending || !selectedCount} onClick={() => runBulkAction('publish')} className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-neutral-700">批量发布</button>
-          <button type="button" disabled={isPending || !selectedCount} onClick={() => runBulkAction('draft')} className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-neutral-700">设为草稿</button>
-          <button type="button" disabled={isPending || !selectedCount} onClick={() => runBulkAction('archive')} className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-neutral-700">批量归档</button>
-          <button type="button" disabled={isPending || !selectedCount} onClick={() => runBulkAction('delete')} className="rounded-md border border-red-200 px-3 py-1.5 text-sm text-red-600 disabled:opacity-50 dark:border-red-900/70">批量删除</button>
-          <button type="button" disabled={isPending || !selectedCount} onClick={exportSelectedArticles} className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-neutral-700">导出 ZIP</button>
-          <label className="cursor-pointer rounded-md border border-neutral-300 px-3 py-1.5 text-sm dark:border-neutral-700">
-            导入 ZIP
-            <input ref={importInputRef} type="file" accept="application/zip,.zip" className="sr-only" onChange={(event) => {
-              const file = event.currentTarget.files?.[0]
-              if (file) importArticles(file)
-            }} />
-          </label>
-        </div>
-      </div>
       {message && <p className="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-300" role="status">{message}</p>}
 
       <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950">
