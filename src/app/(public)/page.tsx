@@ -80,8 +80,11 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     ),
     'pinned-articles': pinned.length > 0 ? (
       <section className="mb-12">
-        <p className="mb-2 font-mono text-xs uppercase tracking-[0.18em] text-accent">置顶内容</p>
-        <div>{pinned.map((article) => <ArticleCard key={article.id} article={article} pinned priority />)}</div>
+        <div className="mb-2 inline-flex items-center gap-1 text-xs text-accent">
+          <i className="fa-solid fa-thumbtack text-[0.625rem]" aria-hidden="true" />
+          置顶文章
+        </div>
+        <div>{pinned.map((article) => <ArticleCard key={article.id} article={article} priority />)}</div>
       </section>
     ) : null,
     'article-list': (

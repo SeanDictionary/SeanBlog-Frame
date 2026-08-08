@@ -20,7 +20,6 @@ type Article = {
 
 type ArticleCardProps = {
   article: Article
-  pinned?: boolean
   priority?: boolean
   renderTitle?: (title: string) => ReactNode
   renderExcerpt?: (excerpt: string) => ReactNode
@@ -38,18 +37,12 @@ function formatPublishedDate(date: Date | null) {
   }).format(date)
 }
 
-export function ArticleCard({ article, pinned = false, priority = false, renderTitle, renderExcerpt }: ArticleCardProps) {
+export function ArticleCard({ article, priority = false, renderTitle, renderExcerpt }: ArticleCardProps) {
   const publishedDate = formatPublishedDate(article.publishedAt)
 
   return (
     <article className="group relative grid gap-4 border-t border-border py-6 first:border-t-0 sm:grid-cols-[7.5rem_minmax(0,1fr)] sm:gap-8">
       <div className="flex items-baseline gap-2 text-xs text-text-tertiary sm:block">
-        {pinned && (
-          <span className="mb-2 inline-flex items-center gap-1 text-accent">
-            <i className="fa-solid fa-thumbtack text-[0.625rem]" aria-hidden="true" />
-            置顶
-          </span>
-        )}
         {publishedDate && (
           <time dateTime={article.publishedAt?.toISOString()}>{publishedDate}</time>
         )}
