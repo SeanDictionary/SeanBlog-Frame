@@ -791,10 +791,29 @@ function getAdminArticleOrderBy(sort: AdminArticleSort, order: 'asc' | 'desc'): 
 }
 
 async function articleMatchesQuery(
-  article: ArticleContentSource & { title: string; excerpt: string | null },
+  article: ArticleContentSource & {
+    title: string
+    excerpt: string | null
+    category?: { name: string; slug: string } | null
+    tags?: Array<{ tag?: { name: string; slug: string }; name?: string; slug?: string }>
+  },
   searchTerms: string[],
 ) {
-  if (textIncludesAllSearchTerms(article.title, searchTerms) || (article.excerpt && textIncludesAllSearchTerms(article.excerpt, searchTerms))) {
+  const tagText = article.tags
+    ?.map((item) => {
+      const tag = item.tag ?? item
+      return `${tag.name ?? ''} ${tag.slug ?? ''}`
+    })
+    .join(' ') ?? ''
+  const searchableMetadata = [
+    article.title,
+    article.excerpt,
+    article.category?.name,
+    article.category?.slug,
+    tagText,
+  ].filter(Boolean).join(' ')
+
+  if (textIncludesAllSearchTerms(searchableMetadata, searchTerms)) {
     return true
   }
 

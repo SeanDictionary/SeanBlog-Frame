@@ -119,13 +119,15 @@ function createQueryString(filters: ArticleManagementTableProps['filters'], over
   return params.toString()
 }
 
-function TaxonomyLink({ type, slug, children }: { type: 'category' | 'tag'; slug: string; children: React.ReactNode }) {
+function TaxonomyLink({ type, slug, label }: { type: 'category' | 'tag'; slug: string; label: string }) {
+  const params = new URLSearchParams({ q: label, [type]: slug })
+
   return (
     <Link
-      href={(`/admin/articles?${type}=${encodeURIComponent(slug)}`) as Route}
-      className="rounded-full border border-neutral-200 px-2 py-1 text-xs text-neutral-600 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 dark:border-neutral-800 dark:text-neutral-400 dark:hover:border-blue-900/60 dark:hover:bg-blue-950/40 dark:hover:text-blue-300"
+      href={(`/admin/articles?${params.toString()}`) as Route}
+      className="transition-colors hover:text-blue-600 hover:underline dark:hover:text-blue-300"
     >
-      {children}
+      {label}
     </Link>
   )
 }
@@ -179,6 +181,9 @@ export function ArticleManagementTable({ articles, total, filters }: ArticleMana
       if (trimmedSearch) params.set('q', trimmedSearch)
       else params.delete('q')
 
+      params.delete('category')
+      params.delete('tag')
+      params.delete('status')
       params.delete('page')
       const queryString = params.toString()
       const nextHref = (queryString ? `${pathname}?${queryString}` : pathname) as Route
@@ -188,6 +193,22 @@ export function ArticleManagementTable({ articles, total, filters }: ArticleMana
 
     return () => window.clearTimeout(timeout)
   }, [pathname, router, searchParams, searchText])
+
+  function clearSearch() {
+    const params = new URLSearchParams(searchParams.toString())
+
+    params.delete('q')
+    params.delete('category')
+    params.delete('tag')
+    params.delete('status')
+    params.delete('page')
+    const queryString = params.toString()
+    const nextHref = (queryString ? `${pathname}?${queryString}` : pathname) as Route
+
+    lastAppliedSearchRef.current = ''
+    setSearchText('')
+    router.replace(nextHref, { scroll: false })
+  }
 
   function toggleArticle(id: string) {
     setSelectedIds((previous) => {
@@ -301,9 +322,19 @@ export function ArticleManagementTable({ articles, total, filters }: ArticleMana
               <input
                 value={searchText}
                 onChange={(event) => setSearchText(event.target.value)}
-                placeholder="搜索标题、摘要、正文，结果会自动刷新"
-                className="h-10 w-full rounded-xl border border-neutral-300 bg-white pl-9 pr-3 text-sm outline-none transition-colors focus:border-blue-600 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-blue-400"
+                placeholder="搜索标题、分类、标签或正文，结果会自动刷新"
+                className="h-10 w-full rounded-xl border border-neutral-300 bg-white pl-9 pr-9 text-sm outline-none transition-colors focus:border-blue-600 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-blue-400"
               />
+              {searchText && (
+                <button
+                  type="button"
+                  onClick={clearSearch}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400 transition-colors hover:text-neutral-700 dark:hover:text-neutral-200"
+                  aria-label="清除搜索"
+                >
+                  <i className="fa-solid fa-xmark" aria-hidden="true" />
+                </button>
+              )}
             </label>
             <div className="flex flex-wrap items-center gap-2 text-sm text-neutral-500">
               <span>已选 {selectedCount}</span>
@@ -326,15 +357,6 @@ export function ArticleManagementTable({ articles, total, filters }: ArticleMana
             </label>
           </div>
         </div>
-        {(filters.category || filters.tag || filters.status) && (
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-neutral-500">
-            <span>当前结果：</span>
-            {filters.category && <span className="rounded-full bg-neutral-100 px-2 py-1 dark:bg-neutral-900">分类 {filters.category}</span>}
-            {filters.tag && <span className="rounded-full bg-neutral-100 px-2 py-1 dark:bg-neutral-900">标签 {filters.tag}</span>}
-            {filters.status && <span className="rounded-full bg-neutral-100 px-2 py-1 dark:bg-neutral-900">状态 {filters.status}</span>}
-            <Link href="/admin/articles" className="text-blue-600 hover:underline dark:text-blue-300">查看全部</Link>
-          </div>
-        )}
       </section>
 
       {message && <p className="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-300" role="status">{message}</p>}
@@ -370,9 +392,20 @@ export function ArticleManagementTable({ articles, total, filters }: ArticleMana
                     </td>
                     <td className="px-4 py-4 align-top"><div className="flex flex-wrap gap-1.5">{statusBadges(article).map((badge) => <span key={badge.label} className={`rounded-full px-2 py-1 text-xs ${badge.className}`}>{badge.label}</span>)}</div></td>
                     <td className="px-4 py-4 align-top">
-                      <div className="flex max-w-56 flex-wrap gap-1.5">
-                        {article.category ? <TaxonomyLink type="category" slug={article.category.slug}>{article.category.name}</TaxonomyLink> : <span className="text-neutral-500">未分类</span>}
-                        {article.tags.map((tag) => <TaxonomyLink key={tag.id} type="tag" slug={tag.slug}>{tag.name}</TaxonomyLink>)}
+                      <div className="max-w-56 space-y-1 text-neutral-500">
+                        <p>
+                          {article.category ? <TaxonomyLink type="category" slug={article.category.slug} label={article.category.name} /> : <span>未分类</span>}
+                        </p>
+                        <p className="text-xs">
+                          {article.tags.length > 0
+                            ? article.tags.map((tag, index) => (
+                                <span key={tag.id}>
+                                  {index > 0 && <span className="mx-1 text-neutral-300 dark:text-neutral-700">/</span>}
+                                  <TaxonomyLink type="tag" slug={tag.slug} label={tag.name} />
+                                </span>
+                              ))
+                            : <span>无标签</span>}
+                        </p>
                       </div>
                     </td>
                     <td className="px-4 py-4 align-top text-neutral-500">{article.viewCount}</td>
