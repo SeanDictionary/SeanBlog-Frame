@@ -66,16 +66,11 @@ export default async function AdminArticlesPage({
         </Link>
       </header>
 
-      {notice && (
-        <p className="mb-5 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700 dark:border-green-900/60 dark:bg-green-950/40 dark:text-green-300" role="status">
-          {notice}
-        </p>
-      )}
-
       <ArticleManagementTable
         articles={result.items.map(serializeArticle)}
         total={result.meta.total}
         filters={filters}
+        initialNotice={notice}
       />
     </div>
   )

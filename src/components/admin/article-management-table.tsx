@@ -5,6 +5,8 @@ import type { Route } from 'next'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
+import { useAdminToast, type AdminToastLevel } from '@/components/admin/admin-toast-provider'
+
 type ArticleStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
 type BulkAction = 'publish' | 'draft' | 'archive' | 'delete'
 type SortField = 'updatedAt' | 'publishedAt' | 'createdAt' | 'viewCount' | 'visitorCount' | 'title'
@@ -35,6 +37,7 @@ type ArticleManagementTableProps = {
     sort: string
     order: string
   }
+  initialNotice?: string | null
 }
 
 const statusLabels: Record<ArticleStatus, string> = {
@@ -149,13 +152,19 @@ function SortHeader({ field, label, filters }: { field: SortField; label: string
   )
 }
 
-export function ArticleManagementTable({ articles, total, filters }: ArticleManagementTableProps) {
+function resolveNoticeLevel(message: string): AdminToastLevel {
+  if (message.includes('失败') || message.includes('错误') || message.includes('请先')) return 'error'
+  if (message.includes('已') || message.includes('成功')) return 'success'
+  return 'info'
+}
+
+export function ArticleManagementTable({ articles, total, filters, initialNotice }: ArticleManagementTableProps) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const toast = useAdminToast()
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [searchText, setSearchText] = useState(filters.q ?? '')
-  const [message, setMessage] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const importInputRef = useRef<HTMLInputElement | null>(null)
   const lastAppliedSearchRef = useRef(filters.q ?? '')
@@ -164,6 +173,10 @@ export function ArticleManagementTable({ articles, total, filters }: ArticleMana
   const allSelected = articles.length > 0 && visibleSelectedCount === articles.length
   const selectedCount = selectedIds.size
   const selectedIdList = useMemo(() => [...selectedIds], [selectedIds])
+
+  useEffect(() => {
+    if (initialNotice) toast.notify(initialNotice, resolveNoticeLevel(initialNotice))
+  }, [initialNotice, toast])
 
   useEffect(() => {
     setSearchText(filters.q ?? '')
@@ -234,7 +247,7 @@ export function ArticleManagementTable({ articles, total, filters }: ArticleMana
 
   function runBulkAction(action: BulkAction) {
     if (!selectedCount) {
-      setMessage('请先选择文章。')
+      toast.error('请先选择文章。')
       return
     }
 
@@ -255,16 +268,18 @@ export function ArticleManagementTable({ articles, total, filters }: ArticleMana
           throw new Error(data.error?.message ?? '批量操作失败。')
         }
 
-        window.location.assign(`/admin/articles?bulk=${data.count ?? selectedCount}`)
+        toast.success(`已批量处理 ${data.count ?? selectedCount} 篇文章。`)
+        setSelectedIds(new Set())
+        router.refresh()
       } catch (error) {
-        setMessage(error instanceof Error ? error.message : '批量操作失败。')
+        toast.error(error instanceof Error ? error.message : '批量操作失败。')
       }
     })
   }
 
   function exportSelectedArticles() {
     if (!selectedCount) {
-      setMessage('请先选择要导出的文章。')
+      toast.error('请先选择要导出的文章。')
       return
     }
 
@@ -280,9 +295,9 @@ export function ArticleManagementTable({ articles, total, filters }: ArticleMana
         }
 
         downloadBlob(await response.blob(), getDispositionFilename(response.headers.get('Content-Disposition'), selectedCount === 1 ? 'article.zip' : 'articles.zip'))
-        setMessage(`已导出 ${selectedCount} 篇文章。`)
+        toast.success(`已导出 ${selectedCount} 篇文章。`)
       } catch (error) {
-        setMessage(error instanceof Error ? error.message : '导出失败。')
+        toast.error(error instanceof Error ? error.message : '导出失败。')
       }
     })
   }
@@ -300,11 +315,11 @@ export function ArticleManagementTable({ articles, total, filters }: ArticleMana
         }
 
         const importedNames = data.articles?.map((article) => article.title || article.slug).join('、')
-        setMessage(importedNames ? `导入成功：${importedNames}` : `已导入 ${data.count ?? 0} 篇文章。`)
+        toast.success(importedNames ? `导入成功：${importedNames}` : `已导入 ${data.count ?? 0} 篇文章。`)
         setSelectedIds(new Set())
         router.refresh()
       } catch (error) {
-        setMessage(error instanceof Error ? error.message : '导入失败，请确认 ZIP 文件结构正确。')
+        toast.error(error instanceof Error ? error.message : '导入失败，请确认 ZIP 文件结构正确。')
       } finally {
         if (importInputRef.current) importInputRef.current.value = ''
       }
@@ -322,7 +337,7 @@ export function ArticleManagementTable({ articles, total, filters }: ArticleMana
               <input
                 value={searchText}
                 onChange={(event) => setSearchText(event.target.value)}
-                placeholder="搜索标题、分类、标签或正文，结果会自动刷新"
+                placeholder="搜索标题、正文、标签或分类"
                 className="h-10 w-full rounded-xl border border-neutral-300 bg-white pl-9 pr-9 text-sm outline-none transition-colors focus:border-blue-600 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-blue-400"
               />
               {searchText && (
@@ -358,8 +373,6 @@ export function ArticleManagementTable({ articles, total, filters }: ArticleMana
           </div>
         </div>
       </section>
-
-      {message && <p className="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-300" role="status">{message}</p>}
 
       <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950">
         {articles.length > 0 ? (
@@ -400,6 +413,7 @@ export function ArticleManagementTable({ articles, total, filters }: ArticleMana
                           {article.tags.length > 0
                             ? article.tags.map((tag, index) => (
                                 <span key={tag.id}>
+                                  {index === 0 && <span className="text-neutral-300 dark:text-neutral-600"># </span>}
                                   {index > 0 && <span className="mx-1 text-neutral-300 dark:text-neutral-700">/</span>}
                                   <TaxonomyLink type="tag" slug={tag.slug} label={tag.name} />
                                 </span>
