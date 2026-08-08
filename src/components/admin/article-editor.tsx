@@ -106,6 +106,8 @@ const statusLabels: Record<ArticleStatus, string> = {
   ARCHIVED: '归档',
 }
 
+const COVER_IMAGE_MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp'])
+
 function toDateTimeLocal(value?: Date | string | null) {
   if (!value) return ''
 
@@ -408,6 +410,11 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
   }
 
   async function uploadCoverImage(file: File) {
+    if (!COVER_IMAGE_MIME_TYPES.has(file.type)) {
+      setMessage('头图仅支持 png、jpg、jpeg、gif、webp 图片。')
+      return
+    }
+
     setMessage('正在上传头图…')
 
     try {
@@ -419,20 +426,18 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
     }
   }
 
-  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.currentTarget.files?.[0]
-    if (file) {
-      void uploadCoverImage(file)
-    }
-    event.currentTarget.value = ''
-  }
-
   function handleCoverPaste(event: React.ClipboardEvent<HTMLInputElement>) {
     const file = Array.from(event.clipboardData.files).find((item) => item.type.startsWith('image/'))
-    if (file) {
-      event.preventDefault()
-      void uploadCoverImage(file)
+    if (!file) return
+
+    event.preventDefault()
+
+    if (!COVER_IMAGE_MIME_TYPES.has(file.type)) {
+      setMessage('头图仅支持 png、jpg、jpeg、gif、webp 图片。')
+      return
     }
+
+    void uploadCoverImage(file)
   }
 
   function insertMarkdownAtCursor(markdown: string) {
@@ -644,20 +649,10 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
           <textarea name="excerpt" value={form.excerpt} onChange={(event) => updateField('excerpt', event.target.value)} rows={3} className="rounded-md border border-neutral-300 bg-white p-3 font-normal outline-none focus:border-blue-600 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-blue-400" />
         </label>
         <label className="grid gap-1.5 text-sm font-medium">
-          头图 URL <span className="font-normal text-neutral-500">（可手填 URL，也可上传或粘贴图片）</span>
-          <input name="coverImage" value={form.coverImage} onChange={(event) => updateField('coverImage', event.target.value)} onPaste={handleCoverPaste} maxLength={2048} placeholder="https://example.com/cover.jpg 或粘贴图片" className="h-10 rounded-md border border-neutral-300 bg-white px-3 font-normal outline-none focus:border-blue-600 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-blue-400" />
+          头图 URL <span className="font-normal text-neutral-500">（可手填 URL，也可直接在输入框中粘贴图片上传）</span>
+          <input name="coverImage" value={form.coverImage} onChange={(event) => updateField('coverImage', event.target.value)} onPaste={handleCoverPaste} maxLength={2048} placeholder="https://example.com/cover.jpg 或粘贴 png/jpg/gif/webp 图片" className="h-10 rounded-md border border-neutral-300 bg-white px-3 font-normal outline-none focus:border-blue-600 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-blue-400" />
+          <span className="text-xs font-normal text-neutral-500">支持直接输入图片 URL；粘贴本地图片时仅支持 .png、.jpg、.jpeg、.gif、.webp。</span>
         </label>
-        <div className="grid gap-3 rounded-md border border-dashed border-neutral-300 p-4 dark:border-neutral-700 sm:grid-cols-[1fr_auto] sm:items-center">
-          <div>
-            <p className="text-sm font-medium">上传头图</p>
-            <p className="mt-1 text-xs text-neutral-500">支持 jpg、png、webp、gif、avif，最大 5 MB。正文编辑区也支持粘贴图片并自动插入 Markdown。</p>
-          </div>
-          <label className="inline-flex cursor-pointer items-center justify-center rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800">
-            选择图片
-            <input type="file" accept="image/*" onChange={handleFileChange} className="sr-only" />
-          </label>
-        </div>
-        {form.coverImage && <img src={form.coverImage} alt="文章头图预览" className="h-44 w-full rounded-md border border-neutral-200 object-cover dark:border-neutral-800" />}
 
         <div className="grid gap-3">
           <div className="flex flex-wrap items-center justify-between gap-3">

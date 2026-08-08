@@ -123,6 +123,9 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
               visibility={{ showPublishedAt, showViewCount, showReadingTime, showWordCount, showCategory, showTags, order: normalizeArticleMetaOrder(settings.articleMetaOrder) }}
             />
           </div>
+          {article.coverImage && (
+            <img src={article.coverImage} alt="" className="mt-8 aspect-video w-full rounded-(--radius) border border-border object-cover" />
+          )}
         </header>
       ),
       'article-content': <ArticleContent html={contentHtml} />,
