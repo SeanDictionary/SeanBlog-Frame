@@ -241,7 +241,7 @@ function MetricStack({ card, label, value, className = '' }: { card: DashboardCa
 
 function MetricLink({ card, disabled }: { card: DashboardCard; disabled?: boolean }) {
   return (
-    <CardLink href={card.href} disabled={disabled} className="flex h-full w-full rounded-lg transition-colors hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 dark:hover:bg-neutral-900">
+    <CardLink href={card.href} disabled={disabled} className="-m-2 flex h-[calc(100%+1rem)] w-[calc(100%+1rem)] rounded-lg p-2 transition-colors hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 dark:hover:bg-neutral-900">
       <MetricStack card={card} />
     </CardLink>
   )
@@ -325,8 +325,12 @@ function CommentsContent({ card, linksDisabled }: { card: DashboardCard; linksDi
   )
 }
 
-function CreateArticleContent({ card }: { card: DashboardCard }) {
-  return <MetricStack card={card} value={card.label} label="点击进入编辑器" />
+function CreateArticleContent({ card, linksDisabled }: { card: DashboardCard; linksDisabled?: boolean }) {
+  return (
+    <CardLink href={card.href} disabled={linksDisabled} className="-m-2 flex h-[calc(100%+1rem)] w-[calc(100%+1rem)] rounded-lg p-2 transition-colors hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 dark:hover:bg-neutral-900">
+      <MetricStack card={card} value={card.label} label="点击进入编辑器" />
+    </CardLink>
+  )
 }
 
 function AnalyticsInsights({ items, linksDisabled }: { items: DashboardCardInsight[]; linksDisabled?: boolean }) {
@@ -378,7 +382,7 @@ function SiteAnalyticsContent({ card, size, linksDisabled }: { card: DashboardCa
 function DashboardCardContent({ card, size, kind, linksDisabled }: { card: DashboardCard; size: DashboardCardSize; kind: DashboardCardKind; linksDisabled?: boolean }) {
   if (kind === 'articleHeat') return <ArticleHeatContent card={card} size={size} linksDisabled={linksDisabled} />
   if (kind === 'comments') return <CommentsContent card={card} linksDisabled={linksDisabled} />
-  if (kind === 'create') return <CreateArticleContent card={card} />
+  if (kind === 'create') return <CreateArticleContent card={card} linksDisabled={linksDisabled} />
   if (kind === 'siteAnalytics') return <SiteAnalyticsContent card={card} size={size} linksDisabled={linksDisabled} />
   return <SummaryCardContent card={card} size={size} linksDisabled={linksDisabled} />
 }
@@ -456,15 +460,11 @@ function DashboardStatCard({
     </>
   )
 
-  if (!sorting && !action && kind === 'create') {
+  if (!sorting && !action) {
     return (
-      <Link
-        href={card.href}
-        className={`${cardClassName} block text-left hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-950`}
-        aria-label={card.label}
-      >
+      <section className={`${cardClassName} block text-left`}>
         {cardContent}
-      </Link>
+      </section>
     )
   }
 

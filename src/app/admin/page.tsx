@@ -114,7 +114,7 @@ export default async function AdminDashboardPage() {
     }),
     prisma.article.findMany({
       orderBy: [{ viewCount: 'desc' }, { updatedAt: 'desc' }],
-      take: 5,
+      take: 6,
       select: { id: true, slug: true, title: true, viewCount: true },
     }),
     prisma.article.aggregate({ _sum: { viewCount: true } }),
