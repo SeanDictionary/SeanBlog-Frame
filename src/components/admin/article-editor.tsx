@@ -97,6 +97,7 @@ type FormState = {
 type DraftSnapshot = {
   form: FormState
   selectedTags: string[]
+  pendingCategoryName?: string
   updatedAt: string
 }
 
@@ -173,6 +174,7 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
   const [message, setMessage] = useState<string | null>(null)
   const [slugError, setSlugError] = useState<string | null>(null)
   const [newCategoryName, setNewCategoryName] = useState('')
+  const [pendingCategoryName, setPendingCategoryName] = useState('')
   const [newTagName, setNewTagName] = useState('')
   const [slugTouched, setSlugTouched] = useState(Boolean(article?.slug))
   const [editorMode, setEditorMode] = useState<EditorMode>('split')
@@ -248,6 +250,7 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
       const snapshot: DraftSnapshot = {
         form,
         selectedTags: [...selectedTags],
+        pendingCategoryName,
         updatedAt: new Date().toISOString(),
       }
 
@@ -256,7 +259,7 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
     }, 900)
 
     return () => window.clearTimeout(timeout)
-  }, [dirty, draftStorageKey, form, selectedTags])
+  }, [dirty, draftStorageKey, form, pendingCategoryName, selectedTags])
 
   useEffect(() => {
     if (!slugTouched) {
@@ -371,6 +374,7 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
 
     setForm(pendingDraft.form)
     setSelectedTags(new Set(pendingDraft.selectedTags))
+    setPendingCategoryName(pendingDraft.pendingCategoryName ?? '')
     setLastDraftSavedAt(new Date(pendingDraft.updatedAt))
     setPendingDraft(null)
     markDirty()
@@ -473,6 +477,49 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
       })
   }
 
+  function selectCategory(categoryId: string) {
+    setPendingCategoryName('')
+    updateField('categoryId', categoryId)
+  }
+
+  function stageNewCategory() {
+    const name = newCategoryName.trim()
+    if (!name) {
+      setMessage('请输入分类名称。')
+      return
+    }
+
+    setPendingCategoryName(name)
+    setNewCategoryName('')
+    updateField('categoryId', '')
+    setMessage(`已选择待创建分类「${name}」，保存文章时才会创建。`)
+  }
+
+  async function resolveCategoryIdForSubmit() {
+    const name = pendingCategoryName.trim()
+    if (!name) return form.categoryId || null
+
+    const existing = categoryOptions.find((category) => category.name.trim().toLocaleLowerCase() === name.toLocaleLowerCase())
+    if (existing) return existing.id
+
+    const response = await fetch('/api/admin/categories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    })
+    const data = (await response.json()) as TaxonomyResponse
+
+    if (!response.ok || !data.category) {
+      throw new Error(data.error?.message ?? '创建分类失败。')
+    }
+
+    setCategoryOptions((previous) => [...previous, data.category!].sort((left, right) => left.name.localeCompare(right.name, 'zh-CN')))
+    setPendingCategoryName('')
+    updateField('categoryId', data.category.id)
+
+    return data.category.id
+  }
+
   function createTaxonomy(kind: 'category' | 'tag') {
     const name = (kind === 'category' ? newCategoryName : newTagName).trim()
     if (!name) {
@@ -557,25 +604,26 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
     }
 
     startTransition(async () => {
-      const payload = {
-        title: form.title,
-        slug: form.slug,
-        excerpt: form.excerpt || null,
-        contentMarkdown: form.contentMarkdown,
-        coverImage: form.coverImage || null,
-        status: form.status,
-        commentsMode: form.commentsMode,
-        categoryId: form.categoryId || null,
-        tagIds: [...selectedTags],
-        isPinned: form.isPinned,
-        publishedAt: fromDateTimeLocal(form.publishedAt),
-        expiresAt: fromDateTimeLocal(form.expiresAt),
-        metaTitle: form.metaTitle || null,
-        metaDescription: form.metaDescription || null,
-        metaKeywords: form.metaKeywords || null,
-      }
-
       try {
+        const categoryId = await resolveCategoryIdForSubmit()
+        const payload = {
+          title: form.title,
+          slug: form.slug,
+          excerpt: form.excerpt || null,
+          contentMarkdown: form.contentMarkdown,
+          coverImage: form.coverImage || null,
+          status: form.status,
+          commentsMode: form.commentsMode,
+          categoryId,
+          tagIds: [...selectedTags],
+          isPinned: form.isPinned,
+          publishedAt: fromDateTimeLocal(form.publishedAt),
+          expiresAt: fromDateTimeLocal(form.expiresAt),
+          metaTitle: form.metaTitle || null,
+          metaDescription: form.metaDescription || null,
+          metaKeywords: form.metaKeywords || null,
+        }
+
         const endpoint = article?.id ? `/api/admin/articles/${article.id}` : '/api/admin/articles'
         const response = await fetch(endpoint, {
           method: article?.id ? 'PATCH' : 'POST',
@@ -729,19 +777,32 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
           <input type="datetime-local" name="expiresAt" value={form.expiresAt} onChange={(event) => updateField('expiresAt', event.target.value)} className="h-10 rounded-md border border-neutral-300 bg-white px-3 font-normal outline-none dark:border-neutral-700 dark:bg-neutral-900" />
           <span className="text-xs font-normal text-neutral-500">时间到达后自动从公开页面隐藏。</span>
         </label>
-        <label className="grid gap-1.5 text-sm font-medium">
+        <div className="grid gap-3 text-sm font-medium sm:col-span-2">
           分类
-          <select name="categoryId" value={form.categoryId} onChange={(event) => updateField('categoryId', event.target.value)} className="h-10 rounded-md border border-neutral-300 bg-white px-3 font-normal outline-none dark:border-neutral-700 dark:bg-neutral-900">
-            <option value="">未分类</option>
-            {categoryOptions.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-          </select>
-        </label>
-        <div className="grid gap-2 text-sm font-medium">
-          快速新增分类
-          <div className="flex gap-2">
-            <input value={newCategoryName} onChange={(event) => setNewCategoryName(event.target.value)} placeholder="分类名称" className="h-10 min-w-0 flex-1 rounded-md border border-neutral-300 bg-white px-3 font-normal outline-none dark:border-neutral-700 dark:bg-neutral-900" />
-            <button type="button" onClick={() => createTaxonomy('category')} disabled={isTaxonomyPending} className="rounded-md border border-neutral-300 px-3 text-sm font-medium transition-colors hover:bg-neutral-100 disabled:opacity-60 dark:border-neutral-700 dark:hover:bg-neutral-800">新增</button>
+          <div className="flex flex-wrap gap-2">
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-neutral-300 px-3 py-1.5 text-sm dark:border-neutral-700">
+              <input type="radio" name="categoryId" checked={!form.categoryId && !pendingCategoryName} onChange={() => selectCategory('')} />
+              未分类
+            </label>
+            {categoryOptions.map((category) => (
+              <label key={category.id} className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-neutral-300 px-3 py-1.5 text-sm dark:border-neutral-700">
+                <input type="radio" name="categoryId" checked={form.categoryId === category.id && !pendingCategoryName} onChange={() => selectCategory(category.id)} />
+                {category.name}
+              </label>
+            ))}
+            {pendingCategoryName && (
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-blue-300 bg-blue-50 px-3 py-1.5 text-sm text-blue-700 dark:border-blue-900/70 dark:bg-blue-950/40 dark:text-blue-300">
+                <input type="radio" name="categoryId" checked readOnly />
+                待创建：{pendingCategoryName}
+                <button type="button" onClick={() => { setPendingCategoryName(''); markDirty() }} className="text-blue-500 hover:text-blue-800 dark:hover:text-blue-200" aria-label="移除待创建分类">×</button>
+              </label>
+            )}
           </div>
+          <div className="flex max-w-md gap-2">
+            <input value={newCategoryName} onChange={(event) => setNewCategoryName(event.target.value)} placeholder="新增分类名称（保存文章时创建）" className="h-10 min-w-0 flex-1 rounded-md border border-neutral-300 bg-white px-3 font-normal outline-none dark:border-neutral-700 dark:bg-neutral-900" />
+            <button type="button" onClick={stageNewCategory} className="rounded-md border border-neutral-300 px-3 text-sm font-medium transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800">添加</button>
+          </div>
+          <p className="text-xs font-normal text-neutral-500">新增分类会先作为待创建项显示，只有保存文章时才写入数据库。</p>
         </div>
         <label className="inline-flex items-center gap-2 text-sm font-medium"><input name="isPinned" type="checkbox" checked={form.isPinned} onChange={(event) => updateField('isPinned', event.target.checked)} /> 置顶文章</label>
         <div className="sm:col-span-2">
