@@ -281,7 +281,6 @@ function ArticleHeatContent({ card, size, linksDisabled }: { card: DashboardCard
         <div>
           <MetricStack card={card} className="" />
         </div>
-        <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-500 dark:bg-neutral-900 dark:text-neutral-400">历史累计</span>
       </div>
 
       <ul className="mt-5 flex-1 space-y-3 border-t border-neutral-200 pt-4 dark:border-neutral-800">
