@@ -225,7 +225,7 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
           <h3 className="text-sm font-semibold">{visible ? '显示' : '不显示'}</h3>
           <span className="text-xs text-neutral-500">{items.length} 项</span>
         </div>
-        <div className="space-y-2">
+        <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
           {items.length > 0 ? items.map((item) => {
             const config = ARTICLE_META_CONFIGS.find((meta) => meta.id === item.id)!
 
@@ -242,22 +242,17 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
                   if (!draggedMetaId) return
 
                   const rect = event.currentTarget.getBoundingClientRect()
-                  const placement = event.clientY < rect.top + rect.height / 2 ? 'before' : 'after'
+                  const placement = event.clientX < rect.left + rect.width / 2 ? 'before' : 'after'
                   moveMetadataItem(draggedMetaId, visible, item.id, placement)
                   setDraggedMetaId(null)
                 }}
-                className={`cursor-grab rounded-md border border-neutral-200 bg-white px-3 py-3 active:cursor-grabbing dark:border-neutral-800 dark:bg-neutral-950 ${draggedMetaId === item.id ? 'opacity-50' : ''}`}
+                className={`inline-flex shrink-0 cursor-grab items-center gap-2 rounded-full border border-neutral-200 bg-white px-3 py-2 text-sm font-medium active:cursor-grabbing dark:border-neutral-800 dark:bg-neutral-950 ${draggedMetaId === item.id ? 'opacity-50' : ''}`}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-medium">{config.label}</p>
-                    <p className="mt-1 text-xs text-neutral-500">{config.detail}</p>
-                  </div>
-                  <i className="fa-solid fa-grip-vertical mt-1 text-xs text-neutral-400" aria-hidden="true" />
-                </div>
+                <span>{config.label}</span>
+                <i className="fa-solid fa-grip-vertical text-xs text-neutral-400" aria-hidden="true" />
               </div>
             )
-          }) : <p className="rounded-md border border-dashed border-neutral-200 px-3 py-5 text-center text-sm text-neutral-500 dark:border-neutral-800">拖到这里</p>}
+          }) : <p className="min-w-36 rounded-full border border-dashed border-neutral-200 px-3 py-2 text-center text-sm text-neutral-500 dark:border-neutral-800">拖到这里</p>}
         </div>
       </div>
     )
