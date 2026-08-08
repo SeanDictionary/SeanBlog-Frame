@@ -98,6 +98,7 @@ type DraftSnapshot = {
   form: FormState
   selectedTags: string[]
   pendingCategoryName?: string
+  pendingTagNames?: string[]
   updatedAt: string
 }
 
@@ -171,11 +172,12 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
   const [categoryOptions, setCategoryOptions] = useState(categories)
   const [tagOptions, setTagOptions] = useState(tags)
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set(article?.tagIds ?? []))
+  const [pendingTagNames, setPendingTagNames] = useState<string[]>([])
   const [message, setMessage] = useState<string | null>(null)
   const [slugError, setSlugError] = useState<string | null>(null)
   const [newCategoryName, setNewCategoryName] = useState('')
   const [pendingCategoryName, setPendingCategoryName] = useState('')
-  const [newTagName, setNewTagName] = useState('')
+  const [tagQuery, setTagQuery] = useState('')
   const [slugTouched, setSlugTouched] = useState(Boolean(article?.slug))
   const [editorMode, setEditorMode] = useState<EditorMode>('split')
   const [previewHtml, setPreviewHtml] = useState(article?.contentHtml ?? '')
@@ -184,7 +186,6 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
   const [lastDraftSavedAt, setLastDraftSavedAt] = useState<Date | null>(null)
   const [dirty, setDirty] = useState(false)
   const [isPending, startTransition] = useTransition()
-  const [isTaxonomyPending, startTaxonomyTransition] = useTransition()
   const [isSlugPending, startSlugTransition] = useTransition()
   const [isRevisionPending, startRevisionTransition] = useTransition()
   const markdownTextareaRef = useRef<HTMLTextAreaElement | null>(null)
@@ -209,6 +210,12 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
   const editorGridClass = editorMode === 'split' ? 'lg:grid-cols-2' : 'lg:grid-cols-1'
   const showEditor = editorMode === 'edit' || editorMode === 'split'
   const showPreview = editorMode === 'preview' || editorMode === 'split'
+  const selectedTagItems = useMemo(() => tagOptions.filter((tag) => selectedTags.has(tag.id)), [selectedTags, tagOptions])
+  const tagQueryText = tagQuery.trim()
+  const tagSuggestions = tagQueryText
+    ? tagOptions.filter((tag) => !selectedTags.has(tag.id) && tag.name.toLocaleLowerCase().includes(tagQueryText.toLocaleLowerCase())).slice(0, 6)
+    : []
+  const recentTags = tagOptions.filter((tag) => !selectedTags.has(tag.id)).slice(0, 8)
 
   function markDirty() {
     dirtyRef.current = true
@@ -251,6 +258,7 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
         form,
         selectedTags: [...selectedTags],
         pendingCategoryName,
+        pendingTagNames,
         updatedAt: new Date().toISOString(),
       }
 
@@ -259,7 +267,7 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
     }, 900)
 
     return () => window.clearTimeout(timeout)
-  }, [dirty, draftStorageKey, form, pendingCategoryName, selectedTags])
+  }, [dirty, draftStorageKey, form, pendingCategoryName, pendingTagNames, selectedTags])
 
   useEffect(() => {
     if (!slugTouched) {
@@ -375,6 +383,7 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
     setForm(pendingDraft.form)
     setSelectedTags(new Set(pendingDraft.selectedTags))
     setPendingCategoryName(pendingDraft.pendingCategoryName ?? '')
+    setPendingTagNames(pendingDraft.pendingTagNames ?? [])
     setLastDraftSavedAt(new Date(pendingDraft.updatedAt))
     setPendingDraft(null)
     markDirty()
@@ -385,6 +394,47 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
     window.localStorage.removeItem(draftStorageKey)
     setPendingDraft(null)
     setMessage('已忽略本地草稿。')
+  }
+
+  function addExistingTag(tagId: string) {
+    setSelectedTags((previous) => new Set(previous).add(tagId))
+    markDirty()
+  }
+
+  function removeExistingTag(tagId: string) {
+    setSelectedTags((previous) => {
+      const next = new Set(previous)
+      next.delete(tagId)
+      return next
+    })
+    markDirty()
+  }
+
+  function addPendingTag(name: string) {
+    const normalized = name.trim()
+    if (!normalized) return
+
+    const existing = tagOptions.find((tag) => tag.name.trim().toLocaleLowerCase() === normalized.toLocaleLowerCase())
+    if (existing) {
+      addExistingTag(existing.id)
+      setTagQuery('')
+      return
+    }
+
+    setPendingTagNames((previous) => previous.some((item) => item.toLocaleLowerCase() === normalized.toLocaleLowerCase()) ? previous : [...previous, normalized])
+    setTagQuery('')
+    markDirty()
+  }
+
+  function removePendingTag(name: string) {
+    setPendingTagNames((previous) => previous.filter((item) => item !== name))
+    markDirty()
+  }
+
+  function commitTagQuery(rawValue = tagQuery) {
+    const value = rawValue.trim()
+    if (!value) return
+    addPendingTag(value)
   }
 
   function toggleTag(tagId: string) {
@@ -520,44 +570,35 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
     return data.category.id
   }
 
-  function createTaxonomy(kind: 'category' | 'tag') {
-    const name = (kind === 'category' ? newCategoryName : newTagName).trim()
-    if (!name) {
-      setMessage(kind === 'category' ? '请输入分类名称。' : '请输入标签名称。')
-      return
+  async function resolveTagIdsForSubmit() {
+    const resolvedIds = new Set(selectedTags)
+
+    for (const name of pendingTagNames) {
+      const existing = tagOptions.find((tag) => tag.name.trim().toLocaleLowerCase() === name.toLocaleLowerCase())
+      if (existing) {
+        resolvedIds.add(existing.id)
+        continue
+      }
+
+      const response = await fetch('/api/admin/tags', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      })
+      const data = (await response.json()) as TaxonomyResponse
+
+      if (!response.ok || !data.tag) {
+        throw new Error(data.error?.message ?? `创建标签「${name}」失败。`)
+      }
+
+      resolvedIds.add(data.tag.id)
+      setTagOptions((previous) => [...previous, data.tag!].sort((left, right) => left.name.localeCompare(right.name, 'zh-CN')))
     }
 
-    startTaxonomyTransition(async () => {
-      try {
-        const response = await fetch(`/api/admin/${kind === 'category' ? 'categories' : 'tags'}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name }),
-        })
-        const data = (await response.json()) as TaxonomyResponse
-        const item = kind === 'category' ? data.category : data.tag
+    setPendingTagNames([])
+    setSelectedTags(resolvedIds)
 
-        if (!response.ok || !item) {
-          throw new Error(data.error?.message ?? '创建失败。')
-        }
-
-        if (kind === 'category') {
-          setCategoryOptions((previous) => [...previous, item].sort((left, right) => left.name.localeCompare(right.name, 'zh-CN')))
-          updateField('categoryId', item.id)
-          setNewCategoryName('')
-          setMessage(`已创建并选中分类「${item.name}」。`)
-          return
-        }
-
-        setTagOptions((previous) => [...previous, item].sort((left, right) => left.name.localeCompare(right.name, 'zh-CN')))
-        setSelectedTags((previous) => new Set(previous).add(item.id))
-        markDirty()
-        setNewTagName('')
-        setMessage(`已创建并选中标签「${item.name}」。`)
-      } catch (error) {
-        setMessage(error instanceof Error ? error.message : '创建失败。')
-      }
-    })
+    return [...resolvedIds]
   }
 
   function restoreRevision(revisionId: string) {
@@ -606,6 +647,7 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
     startTransition(async () => {
       try {
         const categoryId = await resolveCategoryIdForSubmit()
+        const tagIds = await resolveTagIdsForSubmit()
         const payload = {
           title: form.title,
           slug: form.slug,
@@ -615,7 +657,7 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
           status: form.status,
           commentsMode: form.commentsMode,
           categoryId,
-          tagIds: [...selectedTags],
+          tagIds,
           isPinned: form.isPinned,
           publishedAt: fromDateTimeLocal(form.publishedAt),
           expiresAt: fromDateTimeLocal(form.expiresAt),
@@ -807,11 +849,50 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
         <label className="inline-flex items-center gap-2 text-sm font-medium"><input name="isPinned" type="checkbox" checked={form.isPinned} onChange={(event) => updateField('isPinned', event.target.checked)} /> 置顶文章</label>
         <div className="sm:col-span-2">
           <p className="mb-2 text-sm font-medium">标签</p>
-          <div className="flex flex-wrap gap-2">{tagOptions.map((tag) => <label key={tag.id} className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-neutral-300 px-3 py-1.5 text-sm dark:border-neutral-700"><input type="checkbox" checked={selectedTags.has(tag.id)} onChange={() => toggleTag(tag.id)} /> {tag.name}</label>)}</div>
-          <div className="mt-3 flex max-w-md gap-2">
-            <input value={newTagName} onChange={(event) => setNewTagName(event.target.value)} placeholder="新增标签名称" className="h-10 min-w-0 flex-1 rounded-md border border-neutral-300 bg-white px-3 text-sm outline-none dark:border-neutral-700 dark:bg-neutral-900" />
-            <button type="button" onClick={() => createTaxonomy('tag')} disabled={isTaxonomyPending} className="rounded-md border border-neutral-300 px-3 text-sm font-medium transition-colors hover:bg-neutral-100 disabled:opacity-60 dark:border-neutral-700 dark:hover:bg-neutral-800">新增标签</button>
+          <div className="flex flex-wrap gap-2">
+            {selectedTagItems.map((tag) => (
+              <span key={tag.id} className="inline-flex items-center gap-2 rounded-full bg-neutral-100 px-3 py-1.5 text-sm text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
+                {tag.name}
+                <button type="button" onClick={() => removeExistingTag(tag.id)} className="text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-50" aria-label={`移除标签 ${tag.name}`}>×</button>
+              </span>
+            ))}
+            {pendingTagNames.map((name) => (
+              <span key={name} className="inline-flex items-center gap-2 rounded-full border border-blue-300 bg-blue-50 px-3 py-1.5 text-sm text-blue-700 dark:border-blue-900/70 dark:bg-blue-950/40 dark:text-blue-300">
+                待创建：{name}
+                <button type="button" onClick={() => removePendingTag(name)} className="text-blue-500 hover:text-blue-800 dark:hover:text-blue-200" aria-label={`移除待创建标签 ${name}`}>×</button>
+              </span>
+            ))}
+            {selectedTagItems.length === 0 && pendingTagNames.length === 0 && <span className="text-sm text-neutral-500">尚未选择标签。</span>}
           </div>
+          <div className="relative mt-3 max-w-xl">
+            <input
+              value={tagQuery}
+              onChange={(event) => setTagQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ',') {
+                  event.preventDefault()
+                  commitTagQuery(event.currentTarget.value)
+                }
+              }}
+              placeholder="输入标签名称，按回车或逗号确认"
+              className="h-10 w-full rounded-md border border-neutral-300 bg-white px-3 text-sm outline-none dark:border-neutral-700 dark:bg-neutral-900"
+            />
+            {tagQueryText && (
+              <div className="absolute z-10 mt-2 w-full overflow-hidden rounded-md border border-neutral-200 bg-white text-sm shadow-lg dark:border-neutral-800 dark:bg-neutral-950">
+                {tagSuggestions.map((tag) => (
+                  <button key={tag.id} type="button" onClick={() => { addExistingTag(tag.id); setTagQuery('') }} className="block w-full px-3 py-2 text-left hover:bg-neutral-100 dark:hover:bg-neutral-900">{tag.name}</button>
+                ))}
+                {!tagOptions.some((tag) => tag.name.trim().toLocaleLowerCase() === tagQueryText.toLocaleLowerCase()) && (
+                  <button type="button" onClick={() => addPendingTag(tagQueryText)} className="block w-full px-3 py-2 text-left text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40">创建：{tagQueryText}</button>
+                )}
+              </div>
+            )}
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+            <span className="text-xs text-neutral-500">最近使用</span>
+            {recentTags.length > 0 ? recentTags.map((tag) => <button key={tag.id} type="button" onClick={() => addExistingTag(tag.id)} className="rounded-full border border-neutral-300 px-3 py-1 text-xs hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800">{tag.name}</button>) : <span className="text-xs text-neutral-500">暂无可选标签</span>}
+          </div>
+          <p className="mt-2 text-xs text-neutral-500">新标签会先作为待创建项显示，只有保存文章时才写入数据库。</p>
         </div>
       </section>
 
