@@ -1,8 +1,11 @@
--- CreateEnum
-CREATE TYPE "UserRole" AS ENUM ('ADMIN', 'EDITOR', 'VISITOR');
+-- CreateSchema
+CREATE SCHEMA IF NOT EXISTS "public";
 
 -- CreateEnum
 CREATE TYPE "ArticleStatus" AS ENUM ('DRAFT', 'PUBLISHED', 'ARCHIVED');
+
+-- CreateEnum
+CREATE TYPE "ArticleCommentsMode" AS ENUM ('ENABLED', 'READ_ONLY', 'DISABLED');
 
 -- CreateEnum
 CREATE TYPE "CommentStatus" AS ENUM ('PENDING', 'APPROVED', 'SPAM', 'TRASHED');
@@ -10,14 +13,8 @@ CREATE TYPE "CommentStatus" AS ENUM ('PENDING', 'APPROVED', 'SPAM', 'TRASHED');
 -- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "email" TEXT NOT NULL,
-    "emailVerified" TIMESTAMP(3),
-    "passwordHash" TEXT,
-    "image" TEXT,
-    "bio" TEXT,
-    "role" "UserRole" NOT NULL DEFAULT 'VISITOR',
-    "bannedAt" TIMESTAMP(3),
+    "username" TEXT NOT NULL,
+    "passwordHash" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -30,7 +27,6 @@ CREATE TABLE "Category" (
     "name" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
     "description" TEXT,
-    "sortOrder" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -42,6 +38,7 @@ CREATE TABLE "Tag" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
+    "description" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -54,20 +51,22 @@ CREATE TABLE "Article" (
     "title" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
     "excerpt" TEXT,
-    "contentMarkdown" TEXT NOT NULL,
-    "contentHtml" TEXT NOT NULL,
+    "contentPath" TEXT,
+    "contentMarkdown" TEXT,
+    "contentHtml" TEXT,
     "coverImage" TEXT,
     "status" "ArticleStatus" NOT NULL DEFAULT 'DRAFT',
+    "commentsMode" "ArticleCommentsMode" NOT NULL DEFAULT 'ENABLED',
     "metaTitle" TEXT,
     "metaDescription" TEXT,
     "metaKeywords" TEXT,
     "isPinned" BOOLEAN NOT NULL DEFAULT false,
     "publishedAt" TIMESTAMP(3),
     "viewCount" INTEGER NOT NULL DEFAULT 0,
+    "visitorCount" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "categoryId" TEXT,
-    "authorId" TEXT NOT NULL,
 
     CONSTRAINT "Article_pkey" PRIMARY KEY ("id")
 );
@@ -87,60 +86,25 @@ CREATE TABLE "Comment" (
     "status" "CommentStatus" NOT NULL DEFAULT 'PENDING',
     "ip" TEXT,
     "userAgent" TEXT,
+    "guestName" TEXT,
+    "guestEmail" TEXT,
+    "isSpam" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "articleId" TEXT NOT NULL,
-    "authorId" TEXT,
-    "guestName" TEXT,
-    "guestEmail" TEXT,
     "parentId" TEXT,
-    "isSpam" BOOLEAN NOT NULL DEFAULT false,
 
     CONSTRAINT "Comment_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "Account" (
-    "id" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
-    "type" TEXT NOT NULL,
-    "provider" TEXT NOT NULL,
-    "providerAccountId" TEXT NOT NULL,
-    "refresh_token" TEXT,
-    "access_token" TEXT,
-    "expires_at" INTEGER,
-    "token_type" TEXT,
-    "scope" TEXT,
-    "id_token" TEXT,
-    "session_state" TEXT,
-
-    CONSTRAINT "Account_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "Session" (
-    "id" TEXT NOT NULL,
-    "sessionToken" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
-    "expires" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "Session_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "VerificationToken" (
-    "identifier" TEXT NOT NULL,
-    "token" TEXT NOT NULL,
-    "expires" TIMESTAMP(3) NOT NULL
 );
 
 -- CreateTable
 CREATE TABLE "ArticleRevision" (
     "id" TEXT NOT NULL,
     "articleId" TEXT NOT NULL,
+    "contentPath" TEXT,
+    "contentMarkdown" TEXT,
+    "contentHtml" TEXT,
     "title" TEXT NOT NULL,
-    "contentMarkdown" TEXT NOT NULL,
-    "contentHtml" TEXT NOT NULL,
     "version" INTEGER NOT NULL,
     "changeNote" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -151,7 +115,6 @@ CREATE TABLE "ArticleRevision" (
 -- CreateTable
 CREATE TABLE "Media" (
     "id" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
     "filename" TEXT NOT NULL,
     "url" TEXT NOT NULL,
     "key" TEXT NOT NULL,
@@ -173,14 +136,30 @@ CREATE TABLE "SiteSetting" (
     CONSTRAINT "SiteSetting_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
-CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+-- CreateTable
+CREATE TABLE "AnalyticsEvent" (
+    "id" TEXT NOT NULL,
+    "path" TEXT NOT NULL,
+    "contentType" TEXT NOT NULL,
+    "articleId" TEXT,
+    "categoryId" TEXT,
+    "tagId" TEXT,
+    "visitorHash" TEXT,
+    "sessionId" TEXT,
+    "referrer" TEXT,
+    "country" TEXT,
+    "ipAddress" TEXT,
+    "userAgent" TEXT,
+    "browserFingerprint" TEXT,
+    "hardware" TEXT,
+    "durationSeconds" INTEGER,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AnalyticsEvent_pkey" PRIMARY KEY ("id")
+);
 
 -- CreateIndex
-CREATE INDEX "User_role_idx" ON "User"("role");
-
--- CreateIndex
-CREATE INDEX "User_bannedAt_idx" ON "User"("bannedAt");
+CREATE UNIQUE INDEX "User_username_key" ON "User"("username");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Category_name_key" ON "Category"("name");
@@ -210,9 +189,6 @@ CREATE INDEX "Article_status_publishedAt_idx" ON "Article"("status", "publishedA
 CREATE INDEX "Article_categoryId_idx" ON "Article"("categoryId");
 
 -- CreateIndex
-CREATE INDEX "Article_authorId_idx" ON "Article"("authorId");
-
--- CreateIndex
 CREATE INDEX "Article_isPinned_publishedAt_idx" ON "Article"("isPinned", "publishedAt");
 
 -- CreateIndex
@@ -225,28 +201,13 @@ CREATE INDEX "Comment_articleId_status_createdAt_idx" ON "Comment"("articleId", 
 CREATE INDEX "Comment_parentId_idx" ON "Comment"("parentId");
 
 -- CreateIndex
-CREATE INDEX "Comment_authorId_idx" ON "Comment"("authorId");
-
--- CreateIndex
 CREATE INDEX "Comment_guestEmail_idx" ON "Comment"("guestEmail");
-
--- CreateIndex
-CREATE UNIQUE INDEX "Account_provider_providerAccountId_key" ON "Account"("provider", "providerAccountId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "Session_sessionToken_key" ON "Session"("sessionToken");
-
--- CreateIndex
-CREATE UNIQUE INDEX "VerificationToken_token_key" ON "VerificationToken"("token");
-
--- CreateIndex
-CREATE UNIQUE INDEX "VerificationToken_identifier_token_key" ON "VerificationToken"("identifier", "token");
 
 -- CreateIndex
 CREATE INDEX "ArticleRevision_articleId_version_idx" ON "ArticleRevision"("articleId", "version");
 
 -- CreateIndex
-CREATE INDEX "Media_userId_idx" ON "Media"("userId");
+CREATE UNIQUE INDEX "Media_key_key" ON "Media"("key");
 
 -- CreateIndex
 CREATE INDEX "Media_createdAt_idx" ON "Media"("createdAt");
@@ -254,11 +215,26 @@ CREATE INDEX "Media_createdAt_idx" ON "Media"("createdAt");
 -- CreateIndex
 CREATE UNIQUE INDEX "SiteSetting_key_key" ON "SiteSetting"("key");
 
--- AddForeignKey
-ALTER TABLE "Article" ADD CONSTRAINT "Article_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "Category"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+-- CreateIndex
+CREATE INDEX "AnalyticsEvent_createdAt_idx" ON "AnalyticsEvent"("createdAt");
+
+-- CreateIndex
+CREATE INDEX "AnalyticsEvent_articleId_createdAt_idx" ON "AnalyticsEvent"("articleId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "AnalyticsEvent_categoryId_createdAt_idx" ON "AnalyticsEvent"("categoryId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "AnalyticsEvent_tagId_createdAt_idx" ON "AnalyticsEvent"("tagId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "AnalyticsEvent_contentType_createdAt_idx" ON "AnalyticsEvent"("contentType", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "AnalyticsEvent_visitorHash_idx" ON "AnalyticsEvent"("visitorHash");
 
 -- AddForeignKey
-ALTER TABLE "Article" ADD CONSTRAINT "Article_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Article" ADD CONSTRAINT "Article_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "Category"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ArticleTag" ADD CONSTRAINT "ArticleTag_articleId_fkey" FOREIGN KEY ("articleId") REFERENCES "Article"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -270,19 +246,16 @@ ALTER TABLE "ArticleTag" ADD CONSTRAINT "ArticleTag_tagId_fkey" FOREIGN KEY ("ta
 ALTER TABLE "Comment" ADD CONSTRAINT "Comment_articleId_fkey" FOREIGN KEY ("articleId") REFERENCES "Article"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Comment" ADD CONSTRAINT "Comment_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "Comment" ADD CONSTRAINT "Comment_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "Comment"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Account" ADD CONSTRAINT "Account_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Session" ADD CONSTRAINT "Session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ArticleRevision" ADD CONSTRAINT "ArticleRevision_articleId_fkey" FOREIGN KEY ("articleId") REFERENCES "Article"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Media" ADD CONSTRAINT "Media_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "AnalyticsEvent" ADD CONSTRAINT "AnalyticsEvent_articleId_fkey" FOREIGN KEY ("articleId") REFERENCES "Article"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AnalyticsEvent" ADD CONSTRAINT "AnalyticsEvent_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "Category"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AnalyticsEvent" ADD CONSTRAINT "AnalyticsEvent_tagId_fkey" FOREIGN KEY ("tagId") REFERENCES "Tag"("id") ON DELETE SET NULL ON UPDATE CASCADE;
