@@ -30,7 +30,6 @@ export default async function EditArticlePage({ params }: EditArticlePageProps) 
           status: article.status,
           commentsMode: fromPrismaArticleCommentsMode(article.commentsMode),
           publishedAt: article.publishedAt,
-          expiresAt: article.expiresAt,
           updatedAt: article.updatedAt,
           revisions: article.revisions,
           categoryId: article.categoryId,

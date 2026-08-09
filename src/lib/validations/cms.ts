@@ -83,7 +83,6 @@ export const articleInputSchema = z
     categoryId: optionalTrimmedString,
     tagIds: tagIdsSchema.default([]),
     publishedAt: z.coerce.date().nullable().optional(),
-    expiresAt: z.coerce.date().nullable().optional(),
     changeNote: optionalTrimmedString,
   })
   .strict()

@@ -7,9 +7,5 @@ export function getPublicArticleWhere(now = new Date()) {
       not: null,
       lte: now,
     },
-    OR: [
-      { expiresAt: null },
-      { expiresAt: { gt: now } },
-    ],
   } satisfies Prisma.ArticleWhereInput
 }

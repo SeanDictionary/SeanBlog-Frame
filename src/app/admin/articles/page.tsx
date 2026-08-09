@@ -30,7 +30,6 @@ function serializeArticle(article: Awaited<ReturnType<typeof listAdminArticles>>
     ...article,
     tags: normalizedTags,
     publishedAt: article.publishedAt?.toISOString() ?? null,
-    expiresAt: article.expiresAt?.toISOString() ?? null,
     updatedAt: article.updatedAt.toISOString(),
   }
 }

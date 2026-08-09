@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 
 import Link from 'next/link'
 
+import { useAdminToast } from '@/components/admin/admin-toast-provider'
 import type { ArticleCommentsMode } from '@/lib/comment-settings'
 import { createSlugFromTitle } from '@/lib/content/pinyin-slug'
 
@@ -32,7 +33,6 @@ type ArticleFormValues = {
   tagIds?: string[]
   isPinned?: boolean
   publishedAt?: Date | string | null
-  expiresAt?: Date | string | null
   updatedAt?: Date | string | null
   revisions?: ArticleRevisionSummary[]
   metaTitle?: string | null
@@ -90,9 +90,7 @@ type FormState = {
   categoryId: string
   isPinned: boolean
   publishedAt: string
-  expiresAt: string
   enableScheduledPublish: boolean
-  enableScheduledExpire: boolean
   metaTitle: string
   metaDescription: string
   metaKeywords: string
@@ -113,6 +111,8 @@ const statusLabels: Record<ArticleStatus, string> = {
 }
 
 const COVER_IMAGE_MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp'])
+const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const URL_PATTERN = /^https?:\/\/|^\//
 
 function toDateTimeLocal(value?: Date | string | null) {
   if (!value) return ''
@@ -155,9 +155,7 @@ function getInitialState(article?: ArticleFormValues): FormState {
     categoryId: article?.categoryId ?? '',
     isPinned: article?.isPinned ?? false,
     publishedAt: toDateTimeLocal(article?.publishedAt),
-    expiresAt: toDateTimeLocal(article?.expiresAt),
     enableScheduledPublish: article?.publishedAt ? new Date(article.publishedAt).getTime() > Date.now() : false,
-    enableScheduledExpire: Boolean(article?.expiresAt),
     metaTitle: article?.metaTitle ?? '',
     metaDescription: article?.metaDescription ?? '',
     metaKeywords: article?.metaKeywords ?? '',
@@ -194,6 +192,7 @@ function EditorAccordionSection({ title, summary, defaultOpen = false, children 
 
 export function ArticleEditor({ article, categories, tags }: ArticleEditorProps) {
   const [form, setForm] = useState<FormState>(() => getInitialState(article))
+  const toast = useAdminToast()
   const [categoryOptions, setCategoryOptions] = useState(categories)
   const [tagOptions, setTagOptions] = useState(tags)
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set(article?.tagIds ?? []))
@@ -222,15 +221,12 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
     const labels = [statusLabels[form.status]]
     const now = Date.now()
     const publishedAt = form.publishedAt ? new Date(form.publishedAt).getTime() : null
-    const expiresAt = form.expiresAt ? new Date(form.expiresAt).getTime() : null
 
     if (form.isPinned) labels.push('置顶')
     if (form.enableScheduledPublish && publishedAt && publishedAt > now) labels.push('定时发布')
-    if (form.enableScheduledExpire && expiresAt && expiresAt <= now) labels.push('已过期')
-    if (form.enableScheduledExpire && expiresAt && expiresAt > now) labels.push('定时过期')
 
     return labels
-  }, [form.enableScheduledExpire, form.enableScheduledPublish, form.expiresAt, form.isPinned, form.publishedAt, form.status])
+  }, [form.enableScheduledPublish, form.isPinned, form.publishedAt, form.status])
 
   const showPreview = editorMode === 'preview'
   const selectedTagItems = useMemo(() => tagOptions.filter((tag) => selectedTags.has(tag.id)), [selectedTags, tagOptions])
@@ -239,6 +235,21 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
     ? tagOptions.filter((tag) => !selectedTags.has(tag.id) && tag.name.toLocaleLowerCase().includes(tagQueryText.toLocaleLowerCase())).slice(0, 6)
     : []
   const recentTags = tagOptions.filter((tag) => !selectedTags.has(tag.id)).slice(0, 8)
+
+  function showInfo(message: string) {
+    setMessage(message)
+    toast.info(message)
+  }
+
+  function showSuccess(message: string) {
+    setMessage(message)
+    toast.success(message)
+  }
+
+  function showError(message: string) {
+    setMessage(message)
+    toast.error(message)
+  }
 
   function markDirty() {
     dirtyRef.current = true
@@ -272,6 +283,14 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
       window.localStorage.removeItem(draftStorageKey)
     }
   }, [article?.id, article?.updatedAt, draftStorageKey])
+
+  useEffect(() => {
+    const textarea = markdownTextareaRef.current
+    if (!textarea || showPreview) return
+
+    textarea.style.height = 'auto'
+    textarea.style.height = `${textarea.scrollHeight}px`
+  }, [form.contentMarkdown, showPreview])
 
   useEffect(() => {
     if (!dirty) return
@@ -430,13 +449,13 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
     setLastDraftSavedAt(new Date(pendingDraft.updatedAt))
     setPendingDraft(null)
     markDirty()
-    setMessage('已恢复本地自动保存草稿，请检查后保存。')
+    showSuccess('已恢复本地自动保存草稿，请检查后保存。')
   }
 
   function discardDraft() {
     window.localStorage.removeItem(draftStorageKey)
     setPendingDraft(null)
-    setMessage('已忽略本地草稿。')
+    showInfo('已忽略本地草稿。')
   }
 
   function addExistingTag(tagId: string) {
@@ -508,18 +527,18 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
 
   async function uploadCoverImage(file: File) {
     if (!COVER_IMAGE_MIME_TYPES.has(file.type)) {
-      setMessage('头图仅支持 png、jpg、jpeg、gif、webp 图片。')
+      showError('头图仅支持 png、jpg、jpeg、gif、webp 图片。')
       return
     }
 
-    setMessage('正在上传头图…')
+    showInfo('正在上传头图…')
 
     try {
       const url = await uploadImage(file)
       updateField('coverImage', url)
-      setMessage('头图已上传并填入 URL。')
+      showSuccess('头图已上传并填入 URL。')
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : '头图上传失败。')
+      showError(error instanceof Error ? error.message : '头图上传失败。')
     }
   }
 
@@ -530,7 +549,7 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
     event.preventDefault()
 
     if (!COVER_IMAGE_MIME_TYPES.has(file.type)) {
-      setMessage('头图仅支持 png、jpg、jpeg、gif、webp 图片。')
+      showError('头图仅支持 png、jpg、jpeg、gif、webp 图片。')
       return
     }
 
@@ -557,16 +576,16 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
     if (!file) return
 
     event.preventDefault()
-    setMessage('正在上传并插入图片…')
+    showInfo('正在上传并插入图片…')
 
     void uploadImage(file)
       .then((url) => {
         const timestamp = new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14)
         insertMarkdownAtCursor(`![${timestamp}](${url})`)
-        setMessage('图片已上传并插入 Markdown。')
+        showSuccess('图片已上传并插入 Markdown。')
       })
       .catch((error) => {
-        setMessage(error instanceof Error ? error.message : '图片上传失败。')
+        showError(error instanceof Error ? error.message : '图片上传失败。')
       })
   }
 
@@ -578,14 +597,14 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
   function stageNewCategory() {
     const name = newCategoryName.trim()
     if (!name) {
-      setMessage('请输入分类名称。')
+      showError('请输入分类名称。')
       return
     }
 
     setPendingCategoryName(name)
     setNewCategoryName('')
     updateField('categoryId', '')
-    setMessage(`已选择待创建分类「${name}」，保存文章时才会创建。`)
+    showInfo(`已选择待创建分类「${name}」，保存文章时才会创建。`)
   }
 
   async function resolveCategoryIdForSubmit() {
@@ -667,69 +686,103 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
         }))
         setPreviewHtml(data.revision.contentHtml)
         markDirty()
-        setMessage(`已恢复 ${formatDateTime(data.revision.createdAt)} 的历史版本到编辑器，请保存后生效。`)
+        showSuccess(`已恢复 ${formatDateTime(data.revision.createdAt)} 的历史版本到编辑器，请保存后生效。`)
       } catch (error) {
-        setMessage(error instanceof Error ? error.message : '读取历史版本失败。')
+        showError(error instanceof Error ? error.message : '读取历史版本失败。')
       }
     })
+  }
+
+  function parseLocalDateTime(value: string, label: string) {
+    const timestamp = new Date(value).getTime()
+
+    if (!value || Number.isNaN(timestamp)) {
+      showError(`${label}格式无效，请重新选择。`)
+      return null
+    }
+
+    return timestamp
+  }
+
+  function validateRequiredFields() {
+    const title = form.title.trim()
+    const slug = form.slug.trim()
+    const markdown = form.contentMarkdown.trim()
+    const coverImage = form.coverImage.trim()
+
+    if (!title) {
+      showError('标题不能为空，请先填写文章标题。')
+      return false
+    }
+
+    if (title.length > 200) {
+      showError('标题不能超过 200 个字符。')
+      return false
+    }
+
+    if (!slug) {
+      setSlugError('Slug 必填。')
+      showError('Slug 不能为空，请先填写或根据标题生成 Slug。')
+      return false
+    }
+
+    if (!SLUG_PATTERN.test(slug)) {
+      setSlugError('Slug 只能包含小写字母、数字和连字符。')
+      showError('Slug 格式无效，只能包含小写字母、数字和连字符，且不能以连字符开头或结尾。')
+      return false
+    }
+
+    if (isSlugPending) {
+      showError('Slug 正在校验，请稍后再保存。')
+      return false
+    }
+
+    if (slugError) {
+      showError(slugError)
+      return false
+    }
+
+    if (!markdown) {
+      showError('正文不能为空，请先填写文章内容。')
+      return false
+    }
+
+    if (coverImage && !URL_PATTERN.test(coverImage)) {
+      showError('头图 URL 格式无效，请输入 http(s) 链接或站内 /uploads 路径。')
+      return false
+    }
+
+    return true
   }
 
   function validateSchedule(mode: 'save' | 'publish') {
     const now = Date.now()
     let publishedAt: string | null = null
     let publishTime: number | null = null
-    let expiresAt: string | null = null
 
     if (form.enableScheduledPublish) {
       if (!form.publishedAt) {
-        setMessage('开启定时发布后必须填写发布时间。')
+        showError('开启定时发布后必须填写发布时间。')
         return null
       }
 
-      publishTime = new Date(form.publishedAt).getTime()
-      if (Number.isNaN(publishTime) || publishTime <= now) {
-        setMessage('定时发布时间必须大于当前时间。')
+      publishTime = parseLocalDateTime(form.publishedAt, '定时发布时间')
+      if (publishTime === null) return null
+
+      if (publishTime <= now) {
+        showError('定时发布时间必须大于当前时间。')
         return null
       }
 
       publishedAt = fromDateTimeLocal(form.publishedAt)
     }
-
-    if (form.enableScheduledExpire) {
-      if (!form.expiresAt) {
-        setMessage('开启定时过期后必须填写过期时间。')
-        return null
-      }
-
-      const expireTime = new Date(form.expiresAt).getTime()
-      if (Number.isNaN(expireTime) || expireTime <= now) {
-        setMessage('定时过期时间必须大于当前时间。')
-        return null
-      }
-
-      if (publishTime && expireTime <= publishTime) {
-        setMessage('定时过期时间必须晚于定时发布时间。')
-        return null
-      }
-
-      expiresAt = fromDateTimeLocal(form.expiresAt)
-    }
-
-    return { publishedAt, expiresAt }
+    return { publishedAt }
   }
 
   function submit(mode: 'save' | 'publish') {
     setMessage(null)
 
-    if (!form.slug) {
-      setSlugError('Slug 必填。')
-      return
-    }
-
-    if (slugError) {
-      setMessage('请先修正 Slug 错误。')
-      return
-    }
+    if (!validateRequiredFields()) return
 
     const schedule = validateSchedule(mode)
     if (!schedule) return
@@ -750,7 +803,6 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
           tagIds,
           isPinned: form.isPinned,
           publishedAt: schedule.publishedAt,
-          expiresAt: schedule.expiresAt,
           metaTitle: form.metaTitle || null,
           metaDescription: form.metaDescription || null,
           metaKeywords: form.metaKeywords || null,
@@ -774,34 +826,36 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
         setDirty(false)
         window.location.assign('/admin/articles?saved=1')
       } catch (error) {
-        setMessage(error instanceof Error ? error.message : '保存失败。')
+        showError(error instanceof Error ? error.message : '保存失败。')
       }
     })
   }
 
   return (
-    <form onSubmit={(event) => { event.preventDefault(); submit('save') }} className="-m-8 min-h-screen bg-neutral-50 text-neutral-950 dark:bg-neutral-900 dark:text-neutral-50 lg:-m-12 lg:pr-80">
-      <main className="mx-auto min-h-screen w-full max-w-5xl px-6 py-8 sm:px-10 lg:px-14 lg:py-10">
+    <form noValidate onSubmit={(event) => { event.preventDefault(); submit('save') }} className="-m-8 min-h-screen bg-neutral-50 text-neutral-950 dark:bg-neutral-900 dark:text-neutral-50 lg:-m-12 lg:h-screen lg:overflow-hidden">
+      <div className="fixed right-4 top-4 z-40 flex flex-wrap items-center justify-end gap-2 rounded-full p-1.5 lg:right-[21rem]">
+        <div className="inline-flex rounded-full border border-neutral-300 bg-white/70 p-1 text-xs dark:border-neutral-700 dark:bg-neutral-950/70" aria-label="编辑器视图模式">
+          {(['edit', 'preview'] as EditorMode[]).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => setEditorMode(mode)}
+              className={`rounded-full px-3 py-1.5 font-medium transition-colors ${editorMode === mode ? 'bg-neutral-950 text-white dark:bg-neutral-100 dark:text-neutral-950' : 'text-neutral-600 hover:text-neutral-950 dark:text-neutral-300 dark:hover:text-neutral-50'}`}
+            >
+              {mode === 'edit' ? '编辑' : '预览'}
+            </button>
+          ))}
+        </div>
+        <button type="submit" disabled={isPending} className="rounded-full border border-neutral-300 bg-white/70 px-4 py-2 text-sm font-medium transition-colors hover:bg-white disabled:opacity-60 dark:border-neutral-700 dark:bg-neutral-950/70 dark:hover:bg-neutral-900">保存草稿</button>
+        <button type="button" onClick={() => submit('publish')} disabled={isPending} className="rounded-full bg-neutral-950 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950 dark:hover:bg-neutral-300">{isPending ? '正在保存…' : '发布文章'}</button>
+      </div>
+
+      <main className="min-h-screen lg:mr-80 lg:h-screen lg:overflow-y-auto">
+        <div className="mx-auto w-full max-w-5xl px-6 pb-8 pt-24 sm:px-10 lg:px-14 lg:pb-10 lg:pt-10">
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <Link href="/admin/articles" className="text-sm text-neutral-500 transition-colors hover:text-neutral-950 dark:hover:text-neutral-50">
             ← 返回文章列表
           </Link>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex rounded-full border border-neutral-300 bg-white/70 p-1 text-xs dark:border-neutral-700 dark:bg-neutral-950/70" aria-label="编辑器视图模式">
-              {(['edit', 'preview'] as EditorMode[]).map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => setEditorMode(mode)}
-                  className={`rounded-full px-3 py-1.5 font-medium transition-colors ${editorMode === mode ? 'bg-neutral-950 text-white dark:bg-neutral-100 dark:text-neutral-950' : 'text-neutral-600 hover:text-neutral-950 dark:text-neutral-300 dark:hover:text-neutral-50'}`}
-                >
-                  {mode === 'edit' ? '编辑' : '预览'}
-                </button>
-              ))}
-            </div>
-            <button type="submit" disabled={isPending || Boolean(slugError)} className="rounded-full border border-neutral-300 bg-white/70 px-4 py-2 text-sm font-medium transition-colors hover:bg-white disabled:opacity-60 dark:border-neutral-700 dark:bg-neutral-950/70 dark:hover:bg-neutral-900">保存草稿</button>
-            <button type="button" onClick={() => submit('publish')} disabled={isPending || Boolean(slugError)} className="rounded-full bg-neutral-950 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950 dark:hover:bg-neutral-300">{isPending ? '正在保存…' : '发布文章'}</button>
-          </div>
         </div>
 
         {pendingDraft && (
@@ -834,37 +888,39 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
           <span>本地草稿保存：{formatDateTime(lastDraftSavedAt)}</span>
         </div>
 
-        <section className="mt-10 min-h-[calc(100vh-20rem)]">
-          {showPreview ? (
-            <div className="min-h-[calc(100vh-20rem)] bg-transparent pb-24">
-              <p className="mb-6 text-xs text-neutral-500" role="status">{previewStatus}</p>
-              {previewHtml ? <div className="article-content" dangerouslySetInnerHTML={{ __html: previewHtml }} /> : <p className="text-sm text-neutral-500">输入 Markdown 后显示预览。</p>}
-            </div>
-          ) : (
-            <textarea
-              ref={markdownTextareaRef}
-              name="contentMarkdown"
-              value={form.contentMarkdown}
-              onChange={(event) => updateField('contentMarkdown', event.target.value)}
-              onPaste={handleMarkdownPaste}
-              required
-              rows={28}
-              placeholder="从这里开始写正文…"
-              className="min-h-[calc(100vh-20rem)] w-full resize-y border-0 bg-transparent px-0 pb-24 font-mono text-base font-normal leading-8 text-neutral-900 outline-none placeholder:text-neutral-300 focus:ring-0 dark:text-neutral-100 dark:placeholder:text-neutral-700"
-            />
-          )}
+        <section className="mt-10 grid min-h-[calc(100vh-20rem)]">
+          <div className={`col-start-1 row-start-1 min-h-[calc(100vh-20rem)] bg-transparent pb-24 transition-all duration-300 ease-out ${showPreview ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-3 opacity-0'}`} aria-hidden={!showPreview}>
+            <p className="mb-6 text-xs text-neutral-500" role="status">{previewStatus}</p>
+            {previewHtml ? <div className="article-content" dangerouslySetInnerHTML={{ __html: previewHtml }} /> : <p className="text-sm text-neutral-500">输入 Markdown 后显示预览。</p>}
+          </div>
+          <textarea
+            ref={markdownTextareaRef}
+            name="contentMarkdown"
+            value={form.contentMarkdown}
+            onChange={(event) => updateField('contentMarkdown', event.target.value)}
+            onPaste={handleMarkdownPaste}
+            required
+            rows={1}
+            placeholder="从这里开始写正文…"
+            className={`col-start-1 row-start-1 min-h-[calc(100vh-20rem)] w-full resize-none overflow-hidden border-0 bg-transparent px-0 pb-24 font-mono text-base font-normal leading-8 text-neutral-900 outline-none placeholder:text-neutral-300 transition-all duration-300 ease-out focus:ring-0 dark:text-neutral-100 dark:placeholder:text-neutral-700 ${showPreview ? 'pointer-events-none -translate-y-3 opacity-0' : 'translate-y-0 opacity-100'}`}
+            aria-hidden={showPreview}
+            tabIndex={showPreview ? -1 : undefined}
+          />
         </section>
+        </div>
       </main>
 
-      <aside className="border-t border-neutral-200 bg-neutral-50/95 dark:border-neutral-800 dark:bg-neutral-950/95 lg:fixed lg:right-0 lg:top-0 lg:z-20 lg:h-screen lg:w-80 lg:overflow-y-auto lg:border-l lg:border-t-0">
-        <div className="px-4 py-5">
-          <div className="mb-4 flex items-center justify-between gap-3">
+      <aside className="border-t border-neutral-200 bg-neutral-50/95 dark:border-neutral-800 dark:bg-neutral-950/95 lg:fixed lg:right-0 lg:top-0 lg:z-20 lg:h-screen lg:w-80 lg:overflow-hidden lg:border-l lg:border-t-0">
+        <div className="sticky top-0 z-10 border-b border-neutral-200 bg-neutral-50/95 px-4 py-5 backdrop-blur dark:border-neutral-800 dark:bg-neutral-950/95">
+          <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs uppercase tracking-[0.24em] text-neutral-400">Article settings</p>
               <h2 className="mt-1 text-base font-semibold">文章设置</h2>
             </div>
             <span className="rounded-full bg-neutral-100 px-2 py-1 text-xs text-neutral-500 dark:bg-neutral-900">{statusSummary.join(' / ')}</span>
           </div>
+        </div>
+        <div className="px-4 pb-5 lg:h-[calc(100vh-5.5rem)] lg:overflow-y-auto">
 
           <EditorAccordionSection title="发布" summary="状态、评论、定时" defaultOpen>
             <div>
@@ -896,23 +952,6 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
                   发布时间
                   <input required type="datetime-local" name="publishedAt" value={form.publishedAt} onChange={(event) => updateField('publishedAt', event.target.value)} className="h-10 rounded-md border border-neutral-300 bg-white px-3 font-normal outline-none dark:border-neutral-700 dark:bg-neutral-900" />
                   <span className="text-xs font-normal text-neutral-500">开启后必须填写，且时间必须大于当前时间。</span>
-                </label>
-              )}
-            </div>
-            <div className="grid gap-3 rounded-md border border-neutral-200 p-3 dark:border-neutral-800">
-              <label className="inline-flex items-center gap-2 text-sm font-medium">
-                <input type="checkbox" checked={form.enableScheduledExpire} onChange={(event) => {
-                  const checked = event.target.checked
-                  updateField('enableScheduledExpire', checked)
-                  if (!checked) updateField('expiresAt', '')
-                }} />
-                定时过期
-              </label>
-              {form.enableScheduledExpire && (
-                <label className="grid gap-1.5 text-sm font-medium">
-                  过期时间
-                  <input required type="datetime-local" name="expiresAt" value={form.expiresAt} onChange={(event) => updateField('expiresAt', event.target.value)} className="h-10 rounded-md border border-neutral-300 bg-white px-3 font-normal outline-none dark:border-neutral-700 dark:bg-neutral-900" />
-                  <span className="text-xs font-normal text-neutral-500">开启后必须填写，且必须大于当前时间；如果同时定时发布，则必须晚于发布时间。</span>
                 </label>
               )}
             </div>

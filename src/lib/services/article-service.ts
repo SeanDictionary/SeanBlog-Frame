@@ -99,10 +99,6 @@ function buildArticleData(input: ArticleInput | ArticleUpdateInput, options: { g
     data.publishedAt = input.publishedAt
   }
 
-  if (input.expiresAt !== undefined) {
-    data.expiresAt = input.expiresAt
-  }
-
   if (input.metaTitle !== undefined) {
     data.metaTitle = input.metaTitle
   }
@@ -306,7 +302,6 @@ type ArticleArchiveMetadata = {
   metaKeywords?: string | null
   isPinned?: boolean
   publishedAt?: string | null
-  expiresAt?: string | null
   category?: { name: string; slug: string; description?: string | null } | null
   tags?: Array<{ name: string; slug: string }>
 }
@@ -414,7 +409,6 @@ function parseArchiveMetadata(value: unknown, metadataPath: string): ArticleArch
     metaKeywords: normalizeOptionalString(record.metaKeywords),
     isPinned: record.isPinned === true,
     publishedAt: normalizeOptionalString(record.publishedAt),
-    expiresAt: normalizeOptionalString(record.expiresAt),
     category: category
       ? {
           name: normalizeOptionalString(category.name) ?? '',
@@ -627,7 +621,6 @@ function buildArchiveImportInput(metadata: ArticleArchiveMetadata, markdown: str
     categoryId,
     tagIds,
     publishedAt: metadata.publishedAt ? new Date(metadata.publishedAt) : null,
-    expiresAt: metadata.expiresAt ? new Date(metadata.expiresAt) : null,
   }
 }
 
@@ -753,7 +746,6 @@ async function collectArticleExportEntries(article: Awaited<ReturnType<typeof ge
     metaKeywords: article.metaKeywords,
     isPinned: article.isPinned,
     publishedAt: article.publishedAt?.toISOString() ?? null,
-    expiresAt: article.expiresAt?.toISOString() ?? null,
     category: article.category
       ? {
           name: article.category.name,

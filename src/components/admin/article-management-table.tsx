@@ -18,7 +18,6 @@ type ArticleRow = {
   status: ArticleStatus
   isPinned: boolean
   publishedAt: string | null
-  expiresAt: string | null
   viewCount: number
   visitorCount: number
   updatedAt: string
@@ -72,7 +71,6 @@ function statusBadges(article: ArticleRow) {
     { label: statusLabels[article.status], className: statusStyles[article.status] },
   ]
   const publishedAt = article.publishedAt ? new Date(article.publishedAt).getTime() : null
-  const expiresAt = article.expiresAt ? new Date(article.expiresAt).getTime() : null
 
   if (article.isPinned) {
     badges.push({ label: '置顶', className: 'bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300' })
@@ -80,12 +78,6 @@ function statusBadges(article: ArticleRow) {
 
   if (article.status === 'PUBLISHED' && publishedAt && publishedAt > now) {
     badges.push({ label: '待发布', className: 'bg-purple-50 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300' })
-  }
-
-  if (expiresAt && expiresAt <= now) {
-    badges.push({ label: '已过期', className: 'bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-300' })
-  } else if (expiresAt) {
-    badges.push({ label: '定时过期', className: 'bg-cyan-50 text-cyan-700 dark:bg-cyan-950/50 dark:text-cyan-300' })
   }
 
   return badges
