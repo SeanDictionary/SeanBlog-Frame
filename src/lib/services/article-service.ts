@@ -42,12 +42,12 @@ type ArticleContentSource = {
 }
 
 type ArticleWithTags<T> = T & {
-  tags: Array<{ tag: { id: string; name: string; slug: string } }>
+  tags: Array<{ tag: { id: string; name: string; slug: string; description: string | null } }>
 }
 
 type PublicArticleSummaryRecord = Prisma.ArticleGetPayload<{ select: typeof publicArticleSummarySelect }>
 type PublicArticleListItem = Omit<PublicArticleSummaryRecord, keyof ArticleContentSource | 'tags'> & {
-  tags: Array<{ id: string; name: string; slug: string }>
+  tags: Array<{ id: string; name: string; slug: string; description: string | null }>
 }
 type PaginatedPublicArticles = {
   items: PublicArticleListItem[]
@@ -141,8 +141,8 @@ async function readMarkdownFromStorage(article: ArticleContentSource) {
 }
 
 function withoutContentSource<
-  T extends ArticleContentSource & { tags: Array<{ tag: { id: string; name: string; slug: string } }> }
->(article: T): Omit<T, keyof ArticleContentSource | 'tags'> & { tags: Array<{ id: string; name: string; slug: string }> } {
+  T extends ArticleContentSource & { tags: Array<{ tag: { id: string; name: string; slug: string; description: string | null } }> }
+>(article: T): Omit<T, keyof ArticleContentSource | 'tags'> & { tags: Array<{ id: string; name: string; slug: string; description: string | null }> } {
   const { contentPath: _contentPath, legacyContentMarkdown: _legacyContentMarkdown, tags, ...rest } = article
 
   return {
@@ -303,7 +303,7 @@ type ArticleArchiveMetadata = {
   isPinned?: boolean
   publishedAt?: string | null
   category?: { name: string; slug: string; description?: string | null } | null
-  tags?: Array<{ name: string; slug: string }>
+  tags?: Array<{ name: string; slug: string; description?: string | null }>
 }
 
 type ParsedArticleArchive = {
@@ -421,7 +421,8 @@ function parseArchiveMetadata(value: unknown, metadataPath: string): ArticleArch
       const tagRecord = tag as Record<string, unknown>
       const name = normalizeOptionalString(tagRecord.name)
       const tagSlug = normalizeOptionalString(tagRecord.slug)
-      return name && tagSlug ? [{ name, slug: tagSlug }] : []
+      const description = normalizeOptionalString(tagRecord.description)
+      return name && tagSlug ? [{ name, slug: tagSlug, description }] : []
     }),
   }
 }
@@ -524,7 +525,7 @@ async function findOrCreateTags(tags: NonNullable<ArticleArchiveMetadata['tags']
       continue
     }
 
-    const created = await client.tag.create({ data: { name: tag.name, slug }, select: { id: true } })
+    const created = await client.tag.create({ data: { name: tag.name, slug, description: tag.description ?? null }, select: { id: true } })
     tagIds.push(created.id)
   }
 
@@ -752,7 +753,7 @@ async function collectArticleExportEntries(article: Awaited<ReturnType<typeof ge
           slug: article.category.slug,
         }
       : null,
-    tags: article.tags.map((tag) => ({ name: tag.name, slug: tag.slug })),
+    tags: article.tags.map((tag) => ({ name: tag.name, slug: tag.slug, description: tag.description ?? null })),
   }
 
   return [

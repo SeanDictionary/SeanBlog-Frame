@@ -1,14 +1,19 @@
 'use client'
 
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
 import type { Route } from 'next'
-import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
+import Link from 'next/link'
+import { useEffect, useMemo, useState } from 'react'
 
 type AdminNavigationItem = {
   href: Route
   label: string
   icon: string
+  children?: Array<{
+    href: Route
+    label: string
+    icon: string
+  }>
 }
 
 type AdminSidebarClientProps = {
@@ -19,9 +24,16 @@ type AdminSidebarClientProps = {
   signOutAction: () => Promise<void>
 }
 
+function isNavigationItemActive(pathname: string, item: AdminNavigationItem) {
+  if (pathname === item.href || (item.href !== '/admin' && pathname.startsWith(`${item.href}/`))) return true
+  return item.children?.some((child) => pathname === child.href || pathname.startsWith(`${child.href}/`)) ?? false
+}
+
 export function AdminSidebarClient({ navigation, userName, title = 'SeanBlog Admin', showViewSite = true, signOutAction }: AdminSidebarClientProps) {
   const pathname = usePathname()
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const activeParentHref = useMemo(() => navigation.find((item) => isNavigationItemActive(pathname, item) && item.children)?.href ?? null, [navigation, pathname])
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => activeParentHref ? new Set([activeParentHref]) : new Set())
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(max-width: 767px)')
@@ -32,6 +44,25 @@ export function AdminSidebarClient({ navigation, userName, title = 'SeanBlog Adm
 
     return () => mediaQuery.removeEventListener('change', syncCollapsedState)
   }, [])
+
+  useEffect(() => {
+    if (!activeParentHref) return
+    setOpenGroups((previous) => {
+      if (previous.has(activeParentHref)) return previous
+      const next = new Set(previous)
+      next.add(activeParentHref)
+      return next
+    })
+  }, [activeParentHref])
+
+  function toggleGroup(href: Route) {
+    setOpenGroups((previous) => {
+      const next = new Set(previous)
+      if (next.has(href)) next.delete(href)
+      else next.add(href)
+      return next
+    })
+  }
 
   return (
     <aside className={`sb-admin-sidebar sticky top-0 flex h-screen shrink-0 flex-col overflow-hidden border-r border-neutral-200 bg-white px-4 py-5 dark:border-neutral-800 dark:bg-neutral-950 ${isCollapsed ? 'w-20' : 'w-64'}`}>
@@ -56,27 +87,74 @@ export function AdminSidebarClient({ navigation, userName, title = 'SeanBlog Adm
 
       <nav className="scrollbar-themed -mx-1 mt-10 min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-1" aria-label="后台导航">
         <div className="space-y-1">
-        {navigation.map((item) => {
-          const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(`${item.href}/`))
+          {navigation.map((item) => {
+            const isActive = isNavigationItemActive(pathname, item)
+            const hasChildren = Boolean(item.children?.length)
+            const isOpen = openGroups.has(item.href)
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              title={isCollapsed ? item.label : undefined}
-              aria-label={isCollapsed ? item.label : undefined}
-              aria-current={isActive ? 'page' : undefined}
-              className={`grid h-9 min-w-0 grid-cols-[2.5rem_minmax(0,1fr)] items-center overflow-hidden rounded-md text-sm transition-colors ${isCollapsed ? 'justify-items-center' : 'pr-3'} ${
-                isActive
-                  ? 'bg-neutral-100 text-neutral-950 dark:bg-neutral-900 dark:text-neutral-50'
-                  : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-950 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-neutral-50'
-              }`}
-            >
-              <i className={`${item.icon} w-4 justify-self-center text-center text-sm`} aria-hidden="true" />
-              {!isCollapsed && <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-left">{item.label}</span>}
-            </Link>
-          )
-        })}
+            if (hasChildren) {
+              return (
+                <div key={item.href}>
+                  <button
+                    type="button"
+                    onClick={() => isCollapsed ? setIsCollapsed(false) : toggleGroup(item.href)}
+                    title={isCollapsed ? item.label : undefined}
+                    aria-label={isCollapsed ? item.label : undefined}
+                    aria-expanded={isOpen && !isCollapsed}
+                    className={`grid h-9 w-full min-w-0 grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center overflow-hidden rounded-md text-sm transition-colors ${isCollapsed ? 'justify-items-center' : 'pr-3'} ${
+                      isActive
+                        ? 'bg-neutral-100 text-neutral-950 dark:bg-neutral-900 dark:text-neutral-50'
+                        : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-950 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-neutral-50'
+                    }`}
+                  >
+                    <i className={`${item.icon} w-4 justify-self-center text-center text-sm`} aria-hidden="true" />
+                    {!isCollapsed && <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-left">{item.label}</span>}
+                    {!isCollapsed && <i className={`fa-solid fa-chevron-down text-[10px] transition-transform ${isOpen ? 'rotate-180' : ''}`} aria-hidden="true" />}
+                  </button>
+                  {!isCollapsed && isOpen && (
+                    <div className="ml-4 mt-1 space-y-1 border-l border-neutral-200 pl-3 dark:border-neutral-800">
+                      {item.children!.map((child) => {
+                        const childActive = pathname === child.href || pathname.startsWith(`${child.href}/`)
+                        return (
+                          <Link
+                            key={child.href}
+                            href={child.href}
+                            aria-current={childActive ? 'page' : undefined}
+                            className={`grid h-8 grid-cols-[1.75rem_minmax(0,1fr)] items-center rounded-md text-sm transition-colors ${
+                              childActive
+                                ? 'bg-neutral-100 text-neutral-950 dark:bg-neutral-900 dark:text-neutral-50'
+                                : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-neutral-50'
+                            }`}
+                          >
+                            <i className={`${child.icon} justify-self-center text-xs`} aria-hidden="true" />
+                            <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-left">{child.label}</span>
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            }
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                title={isCollapsed ? item.label : undefined}
+                aria-label={isCollapsed ? item.label : undefined}
+                aria-current={isActive ? 'page' : undefined}
+                className={`grid h-9 min-w-0 grid-cols-[2.5rem_minmax(0,1fr)] items-center overflow-hidden rounded-md text-sm transition-colors ${isCollapsed ? 'justify-items-center' : 'pr-3'} ${
+                  isActive
+                    ? 'bg-neutral-100 text-neutral-950 dark:bg-neutral-900 dark:text-neutral-50'
+                    : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-950 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-neutral-50'
+                }`}
+              >
+                <i className={`${item.icon} w-4 justify-self-center text-center text-sm`} aria-hidden="true" />
+                {!isCollapsed && <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-left">{item.label}</span>}
+              </Link>
+            )
+          })}
         </div>
       </nav>
 

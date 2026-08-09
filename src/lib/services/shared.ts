@@ -4,18 +4,21 @@ export const categorySummarySelect = {
   id: true,
   name: true,
   slug: true,
+  description: true,
 } satisfies Prisma.CategorySelect
 
 export type TagSummary = {
   id: string
   name: string
   slug: string
+  description: string | null
 }
 
 export const tagSummarySelect = {
   id: true,
   name: true,
   slug: true,
+  description: true,
 } satisfies Prisma.TagSelect
 
 export const publicArticleSummarySelect = {

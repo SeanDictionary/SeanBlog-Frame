@@ -44,6 +44,7 @@ type Option = {
   id: string
   name: string
   slug?: string
+  description?: string | null
 }
 
 type ArticleEditorProps = {

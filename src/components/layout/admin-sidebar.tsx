@@ -5,10 +5,18 @@ import { getSiteSettingsMap } from '@/lib/services/setting-service'
 import { signOut } from '@/lib/auth'
 import { AdminSidebarClient } from '@/components/layout/admin-sidebar-client'
 
-const adminNavigation: Array<{ href: Route; label: string; icon: string }> = [
+const adminNavigation: Array<{ href: Route; label: string; icon: string; children?: Array<{ href: Route; label: string; icon: string }> }> = [
   { href: '/admin', label: '概览', icon: 'fa-solid fa-chart-line' },
   { href: '/admin/articles', label: '文章', icon: 'fa-regular fa-file-lines' },
-  { href: '/admin/taxonomy' as Route, label: '分类标签', icon: 'fa-solid fa-folder-tree' },
+  {
+    href: '/admin/taxonomy' as Route,
+    label: '分类标签',
+    icon: 'fa-solid fa-folder-tree',
+    children: [
+      { href: '/admin/categories' as Route, label: '分类', icon: 'fa-solid fa-folder' },
+      { href: '/admin/tags' as Route, label: '标签', icon: 'fa-solid fa-tags' },
+    ],
+  },
   { href: '/admin/comments', label: '评论', icon: 'fa-regular fa-comments' },
   { href: '/admin/analytics' as Route, label: '统计', icon: 'fa-solid fa-chart-simple' },
   { href: '/admin/personalization' as Route, label: '个性化', icon: 'fa-solid fa-palette' },
