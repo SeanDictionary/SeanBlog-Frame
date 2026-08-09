@@ -177,7 +177,7 @@ function EditorAccordionSection({ title, summary, defaultOpen = false, children 
   return (
     <section className="border-t border-neutral-200 first:border-t-0 dark:border-neutral-800">
       <button type="button" onClick={() => setOpen((current) => !current)} aria-expanded={open} className="flex w-full items-center justify-between gap-3 py-4 text-left text-sm font-medium">
-        <span>{title}</span>
+        <span className="mt-1 text-lg font-semibold">{title}</span>
         <span className="ml-auto text-xs font-normal text-neutral-400">{summary}</span>
         <i className={`fa-solid fa-chevron-down text-[10px] text-neutral-400 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
       </button>
@@ -833,7 +833,7 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
 
   return (
     <form noValidate onSubmit={(event) => { event.preventDefault(); submit('save') }} className="-m-8 min-h-screen bg-neutral-50 text-neutral-950 dark:bg-neutral-900 dark:text-neutral-50 lg:-m-12 lg:h-screen lg:overflow-hidden">
-      <div className="fixed right-4 top-4 z-40 flex flex-wrap items-center justify-end gap-2 rounded-full p-1.5 lg:right-[21rem]">
+      <div className="fixed right-4 top-4 z-40 flex flex-wrap items-center justify-end gap-2 rounded-full p-1.5 lg:right-84">
         <div className="inline-flex rounded-full border border-neutral-300 bg-white/70 p-1 text-xs dark:border-neutral-700 dark:bg-neutral-950/70" aria-label="编辑器视图模式">
           {(['edit', 'preview'] as EditorMode[]).map((mode) => (
             <button
@@ -852,84 +852,75 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
 
       <main className="min-h-screen lg:mr-80 lg:h-screen lg:overflow-y-auto">
         <div className="mx-auto w-full max-w-5xl px-6 pb-8 pt-24 sm:px-10 lg:px-14 lg:pb-10 lg:pt-10">
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-          <Link href="/admin/articles" className="text-sm text-neutral-500 transition-colors hover:text-neutral-950 dark:hover:text-neutral-50">
-            ← 返回文章列表
-          </Link>
-        </div>
-
-        {pendingDraft && (
-          <section className="mb-8 rounded-2xl border border-blue-200 bg-blue-50/80 p-4 text-sm text-blue-800 dark:border-blue-900/70 dark:bg-blue-950/40 dark:text-blue-200">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <p>检测到 {formatDateTime(pendingDraft.updatedAt)} 的本地自动保存草稿。</p>
-              <div className="flex gap-2">
-                <button type="button" onClick={restoreDraft} className="rounded-full bg-blue-700 px-3 py-1.5 text-white">恢复草稿</button>
-                <button type="button" onClick={discardDraft} className="rounded-full border border-blue-300 px-3 py-1.5 dark:border-blue-800">忽略</button>
-              </div>
-            </div>
-          </section>
-        )}
-
-        <input
-          name="title"
-          value={form.title}
-          onChange={(event) => updateField('title', event.target.value)}
-          required
-          maxLength={200}
-          placeholder="写下文章标题"
-          className="w-full border-0 bg-transparent px-0 text-4xl font-semibold tracking-tight text-neutral-950 outline-none placeholder:text-neutral-300 focus:ring-0 dark:text-neutral-50 dark:placeholder:text-neutral-700 sm:text-5xl lg:text-6xl"
-        />
-
-        <div className="mt-5 flex flex-wrap items-center gap-3 text-sm text-neutral-500" role="status">
-          <span>{message ?? (dirty ? '有未保存内容。' : '没有未保存内容。')}</span>
-          <span className="hidden text-neutral-300 dark:text-neutral-700 sm:inline">/</span>
-          <span>最近数据库保存：{formatDateTime(article?.updatedAt)}</span>
-          <span className="hidden text-neutral-300 dark:text-neutral-700 sm:inline">/</span>
-          <span>本地草稿保存：{formatDateTime(lastDraftSavedAt)}</span>
-        </div>
-
-        <section className="mt-10 grid min-h-[calc(100vh-20rem)]">
-          <div className={`col-start-1 row-start-1 min-h-[calc(100vh-20rem)] bg-transparent pb-24 transition-all duration-300 ease-out ${showPreview ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-3 opacity-0'}`} aria-hidden={!showPreview}>
-            <p className="mb-6 text-xs text-neutral-500" role="status">{previewStatus}</p>
-            {previewHtml ? <div className="article-content" dangerouslySetInnerHTML={{ __html: previewHtml }} /> : <p className="text-sm text-neutral-500">输入 Markdown 后显示预览。</p>}
+          <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+            <Link href="/admin/articles" className="text-sm text-neutral-500 transition-colors hover:text-neutral-950 dark:hover:text-neutral-50">
+              ← 返回文章列表
+            </Link>
           </div>
-          <textarea
-            ref={markdownTextareaRef}
-            name="contentMarkdown"
-            value={form.contentMarkdown}
-            onChange={(event) => updateField('contentMarkdown', event.target.value)}
-            onPaste={handleMarkdownPaste}
+
+          {pendingDraft && (
+            <section className="mb-8 rounded-2xl border border-blue-200 bg-blue-50/80 p-4 text-sm text-blue-800 dark:border-blue-900/70 dark:bg-blue-950/40 dark:text-blue-200">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p>检测到 {formatDateTime(pendingDraft.updatedAt)} 的本地自动保存草稿。</p>
+                <div className="flex gap-2">
+                  <button type="button" onClick={restoreDraft} className="rounded-full bg-blue-700 px-3 py-1.5 text-white">恢复草稿</button>
+                  <button type="button" onClick={discardDraft} className="rounded-full border border-blue-300 px-3 py-1.5 dark:border-blue-800">忽略</button>
+                </div>
+              </div>
+            </section>
+          )}
+
+          <input
+            name="title"
+            value={form.title}
+            onChange={(event) => updateField('title', event.target.value)}
             required
-            rows={1}
-            placeholder="从这里开始写正文…"
-            className={`col-start-1 row-start-1 min-h-[calc(100vh-20rem)] w-full resize-none overflow-hidden border-0 bg-transparent px-0 pb-24 font-mono text-base font-normal leading-8 text-neutral-900 outline-none placeholder:text-neutral-300 transition-all duration-300 ease-out focus:ring-0 dark:text-neutral-100 dark:placeholder:text-neutral-700 ${showPreview ? 'pointer-events-none -translate-y-3 opacity-0' : 'translate-y-0 opacity-100'}`}
-            aria-hidden={showPreview}
-            tabIndex={showPreview ? -1 : undefined}
+            maxLength={200}
+            placeholder="文章标题"
+            className="w-full border-0 bg-transparent px-0 text-4xl font-semibold tracking-tight text-neutral-950 outline-none placeholder:text-neutral-300 focus:ring-0 dark:text-neutral-50 dark:placeholder:text-neutral-700 sm:text-5xl lg:text-6xl"
           />
-        </section>
+
+          <div className="mt-5 flex flex-wrap items-center gap-3 text-sm text-neutral-500" role="status">
+            <span>{message ?? (dirty ? '有未保存内容。' : '没有未保存内容。')}</span>
+            <span className="hidden text-neutral-300 dark:text-neutral-700 sm:inline">/</span>
+            <span>最近数据库保存：{formatDateTime(article?.updatedAt)}</span>
+            <span className="hidden text-neutral-300 dark:text-neutral-700 sm:inline">/</span>
+            <span>本地草稿保存：{formatDateTime(lastDraftSavedAt)}</span>
+          </div>
+
+          <section className="mt-10 grid min-h-[calc(100vh-20rem)]">
+            <div className={`col-start-1 row-start-1 min-h-[calc(100vh-20rem)] bg-transparent pb-24 transition-all duration-300 ease-out ${showPreview ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-3 opacity-0'}`} aria-hidden={!showPreview}>
+              <p className="mb-6 text-xs text-neutral-500" role="status">{previewStatus}</p>
+              {previewHtml ? <div className="article-content" dangerouslySetInnerHTML={{ __html: previewHtml }} /> : <p className="text-sm text-neutral-500">输入 Markdown 后显示预览。</p>}
+            </div>
+            <textarea
+              ref={markdownTextareaRef}
+              name="contentMarkdown"
+              value={form.contentMarkdown}
+              onChange={(event) => updateField('contentMarkdown', event.target.value)}
+              onPaste={handleMarkdownPaste}
+              required
+              rows={1}
+              placeholder="从这里开始写正文…"
+              className={`col-start-1 row-start-1 min-h-[calc(100vh-20rem)] w-full resize-none overflow-hidden border-0 bg-transparent px-0 pb-24 font-mono text-base font-normal leading-8 text-neutral-900 outline-none placeholder:text-neutral-300 transition-all duration-300 ease-out focus:ring-0 dark:text-neutral-100 dark:placeholder:text-neutral-700 ${showPreview ? 'pointer-events-none -translate-y-3 opacity-0' : 'translate-y-0 opacity-100'}`}
+              aria-hidden={showPreview}
+              tabIndex={showPreview ? -1 : undefined}
+            />
+          </section>
         </div>
       </main>
 
       <aside className="border-t border-neutral-200 bg-neutral-50/95 dark:border-neutral-800 dark:bg-neutral-950/95 lg:fixed lg:right-0 lg:top-0 lg:z-20 lg:h-screen lg:w-80 lg:overflow-hidden lg:border-l lg:border-t-0">
         <div className="sticky top-0 z-10 border-b border-neutral-200 bg-neutral-50/95 px-4 py-5 backdrop-blur dark:border-neutral-800 dark:bg-neutral-950/95">
+          <p className="text-xs uppercase tracking-[0.24em] text-neutral-400">Article settings</p>
           <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs uppercase tracking-[0.24em] text-neutral-400">Article settings</p>
-              <h2 className="mt-1 text-base font-semibold">文章设置</h2>
-            </div>
-            <span className="rounded-full bg-neutral-100 px-2 py-1 text-xs text-neutral-500 dark:bg-neutral-900">{statusSummary.join(' / ')}</span>
+            <h2 className="mt-1 text-xl font-semibold">文章设置</h2>
+            <span className="rounded-full bg-neutral-100 px-2 py-1 text-sm text-neutral-500 dark:bg-neutral-900">{statusSummary.join(' / ')}</span>
           </div>
         </div>
         <div className="px-4 pb-5 lg:h-[calc(100vh-5.5rem)] lg:overflow-y-auto">
 
           <EditorAccordionSection title="发布" summary="状态、评论、定时" defaultOpen>
-            <div>
-              <p className="mb-2 text-sm font-medium">当前组合状态</p>
-              <div className="flex flex-wrap gap-2">
-                {statusSummary.map((item) => <span key={item} className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">{item}</span>)}
-              </div>
-            </div>
-            <p className="rounded-md border border-neutral-200 p-3 text-sm text-neutral-500 dark:border-neutral-800">文章状态由“保存草稿 / 发布文章”按钮控制，归档请在文章列表批量操作中处理。</p>
             <label className="grid gap-1.5 text-sm font-medium">
               评论
               <select name="commentsMode" value={form.commentsMode} onChange={(event) => updateField('commentsMode', event.target.value as ArticleCommentsMode)} className="h-10 rounded-md border border-neutral-300 bg-white px-3 font-normal outline-none dark:border-neutral-700 dark:bg-neutral-900">
@@ -938,29 +929,30 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
                 <option value="disabled">关闭评论</option>
               </select>
             </label>
-            <div className="grid gap-3 rounded-md border border-neutral-200 p-3 dark:border-neutral-800">
-              <label className="inline-flex items-center gap-2 text-sm font-medium">
-                <input type="checkbox" checked={form.enableScheduledPublish} onChange={(event) => {
-                  const checked = event.target.checked
-                  updateField('enableScheduledPublish', checked)
-                  if (!checked) updateField('publishedAt', '')
-                }} />
-                定时发布
-              </label>
-              {form.enableScheduledPublish && (
-                <label className="grid gap-1.5 text-sm font-medium">
-                  发布时间
-                  <input required type="datetime-local" name="publishedAt" value={form.publishedAt} onChange={(event) => updateField('publishedAt', event.target.value)} className="h-10 rounded-md border border-neutral-300 bg-white px-3 font-normal outline-none dark:border-neutral-700 dark:bg-neutral-900" />
-                  <span className="text-xs font-normal text-neutral-500">开启后必须填写，且时间必须大于当前时间。</span>
-                </label>
-              )}
-            </div>
             <label className="inline-flex items-center gap-2 text-sm font-medium"><input name="isPinned" type="checkbox" checked={form.isPinned} onChange={(event) => updateField('isPinned', event.target.checked)} /> 置顶文章</label>
+            <label className="inline-flex items-center gap-2 text-sm font-medium">
+              <input type="checkbox" checked={form.enableScheduledPublish} onChange={(event) => {
+                const checked = event.target.checked
+                updateField('enableScheduledPublish', checked)
+                if (!checked) updateField('publishedAt', '')
+              }} />
+              定时发布
+            </label>
+            {form.enableScheduledPublish && (
+              <label className="grid gap-1.5 text-sm font-medium">
+                <div className="flex items-center gap-1">
+                  发布时间<span className="text-xs font-normal text-neutral-500">（必填）</span>
+                </div>
+                <input required type="datetime-local" name="publishedAt" value={form.publishedAt} onChange={(event) => updateField('publishedAt', event.target.value)} className="h-10 rounded-md border border-neutral-300 bg-white px-3 font-normal outline-none dark:border-neutral-700 dark:bg-neutral-900" />
+              </label>
+            )}
           </EditorAccordionSection>
 
           <EditorAccordionSection title="基础信息" summary="Slug、摘要、头图" defaultOpen>
             <label className="grid gap-1.5 text-sm font-medium">
-              Slug <span className="font-normal text-neutral-500">（标题变化时自动生成，可手动修改）</span>
+              <div className="flex items-center gap-1">
+                Slug <span className="font-normal text-neutral-500">（自动生成）</span>
+              </div>
               <input
                 name="slug"
                 value={form.slug}
@@ -979,17 +971,20 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
               </span>
             </label>
             <label className="grid gap-1.5 text-sm font-medium">
-              摘要
+              <div className="flex items-center gap-1">
+                摘要 <span className="font-normal text-neutral-500">（可选）</span>
+              </div>
               <textarea name="excerpt" value={form.excerpt} onChange={(event) => updateField('excerpt', event.target.value)} rows={3} className="rounded-md border border-neutral-300 bg-white p-3 font-normal outline-none focus:border-blue-600 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-blue-400" />
             </label>
             <label className="grid gap-1.5 text-sm font-medium">
-              头图 URL <span className="font-normal text-neutral-500">（可手填 URL，也可直接在输入框中粘贴图片上传）</span>
-              <input name="coverImage" value={form.coverImage} onChange={(event) => updateField('coverImage', event.target.value)} onPaste={handleCoverPaste} maxLength={2048} placeholder="https://example.com/cover.jpg 或粘贴 png/jpg/gif/webp 图片" className="h-10 rounded-md border border-neutral-300 bg-white px-3 font-normal outline-none focus:border-blue-600 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-blue-400" />
-              <span className="text-xs font-normal text-neutral-500">支持直接输入图片 URL；粘贴本地图片时仅支持 .png、.jpg、.jpeg、.gif、.webp。</span>
+              <div className="flex items-center gap-1">
+                文章头图<span className="font-normal text-neutral-500">（填写url或粘贴图片）</span>
+              </div>
+              <input name="coverImage" value={form.coverImage} onChange={(event) => updateField('coverImage', event.target.value)} onPaste={handleCoverPaste} maxLength={2048} placeholder="https://xxx.com/xxx.jpg 或 粘贴图片" className="h-10 rounded-md border border-neutral-300 bg-white px-3 font-normal outline-none focus:border-blue-600 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-blue-400" />
             </label>
           </EditorAccordionSection>
 
-          <EditorAccordionSection title="分类与标签" summary="归档组织" defaultOpen>
+          <EditorAccordionSection title="分类与标签" summary="选择分类、标签" defaultOpen>
             <div className="grid gap-3 text-sm font-medium">
               分类
               <div className="flex flex-wrap gap-2">
@@ -1006,16 +1001,23 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
                 {pendingCategoryName && (
                   <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-blue-300 bg-blue-50 px-3 py-1.5 text-sm text-blue-700 dark:border-blue-900/70 dark:bg-blue-950/40 dark:text-blue-300">
                     <input type="radio" name="categoryId" checked readOnly />
-                    待创建：{pendingCategoryName}
+                    新建：{pendingCategoryName}
                     <button type="button" onClick={() => { setPendingCategoryName(''); markDirty() }} className="text-blue-500 hover:text-blue-800 dark:hover:text-blue-200" aria-label="移除待创建分类">×</button>
                   </label>
                 )}
               </div>
-              <div className="flex gap-2">
-                <input value={newCategoryName} onChange={(event) => setNewCategoryName(event.target.value)} placeholder="新增分类名称（保存文章时创建）" className="h-10 min-w-0 flex-1 rounded-md border border-neutral-300 bg-white px-3 font-normal outline-none dark:border-neutral-700 dark:bg-neutral-900" />
-                <button type="button" onClick={stageNewCategory} className="rounded-md border border-neutral-300 px-3 text-sm font-medium transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800">添加</button>
-              </div>
-              <p className="text-xs font-normal text-neutral-500">新增分类会先作为待创建项显示，只有保存文章时才写入数据库。</p>
+              <input
+                value={newCategoryName}
+                onChange={(event) => setNewCategoryName(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    stageNewCategory()
+                  }
+                }}
+                placeholder="新增分类，回车确认"
+                className="h-10 w-full rounded-md border border-neutral-300 bg-white px-3 font-normal outline-none dark:border-neutral-700 dark:bg-neutral-900"
+              />
             </div>
             <div>
               <p className="mb-2 text-sm font-medium">标签</p>
@@ -1028,7 +1030,7 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
                 ))}
                 {pendingTagNames.map((name) => (
                   <span key={name} className="inline-flex items-center gap-2 rounded-full border border-blue-300 bg-blue-50 px-3 py-1.5 text-sm text-blue-700 dark:border-blue-900/70 dark:bg-blue-950/40 dark:text-blue-300">
-                    待创建：{name}
+                    新建：{name}
                     <button type="button" onClick={() => removePendingTag(name)} className="text-blue-500 hover:text-blue-800 dark:hover:text-blue-200" aria-label={`移除待创建标签 ${name}`}>×</button>
                   </span>
                 ))}
@@ -1039,12 +1041,12 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
                   value={tagQuery}
                   onChange={(event) => setTagQuery(event.target.value)}
                   onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ',') {
+                    if (event.key === 'Enter') {
                       event.preventDefault()
                       commitTagQuery(event.currentTarget.value)
                     }
                   }}
-                  placeholder="输入标签名称，按回车或逗号确认"
+                  placeholder="输入标签名称，回车确认"
                   className="h-10 w-full rounded-md border border-neutral-300 bg-white px-3 text-sm outline-none dark:border-neutral-700 dark:bg-neutral-900"
                 />
                 {tagQueryText && (
@@ -1059,10 +1061,8 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
                 )}
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-                <span className="text-xs text-neutral-500">最近使用</span>
                 {recentTags.length > 0 ? recentTags.map((tag) => <button key={tag.id} type="button" onClick={() => addExistingTag(tag.id)} className="rounded-full border border-neutral-300 px-3 py-1 text-xs hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800">{tag.name}</button>) : <span className="text-xs text-neutral-500">暂无可选标签</span>}
               </div>
-              <p className="mt-2 text-xs text-neutral-500">新标签会先作为待创建项显示，只有保存文章时才写入数据库。</p>
             </div>
           </EditorAccordionSection>
 
@@ -1074,7 +1074,6 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
 
           {article?.id && article.revisions && article.revisions.length > 0 && (
             <EditorAccordionSection title="版本管理" summary={`共 ${article.revisions.length} 条`}>
-              <p className="text-sm text-neutral-500">恢复历史版本会填入编辑器，保存后才会覆盖当前文章。</p>
               <div className="max-h-72 overflow-y-auto divide-y divide-neutral-100 dark:divide-neutral-900">
                 {article.revisions.map((revision) => (
                   <div key={revision.id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
