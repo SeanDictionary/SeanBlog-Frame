@@ -64,6 +64,7 @@ const labels = {
 
 const emptyForm: FormState = { name: '', slug: '', description: '' }
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const DEFAULT_CATEGORY_SLUG = 'uncategorized'
 
 function getInitialForm(item?: Taxonomy | null): FormState {
   return item
@@ -116,6 +117,7 @@ export function TaxonomyManager({ type, initialItems }: TaxonomyManagerProps) {
   const [isSlugPending, startSlugTransition] = useTransition()
   const importInputRef = useRef<HTMLInputElement | null>(null)
   const selectedItem = items.find((item) => item.id === selectedId) ?? null
+  const isSelectedDefaultCategory = type === 'categories' && selectedItem?.slug === DEFAULT_CATEGORY_SLUG
   const copy = labels[type]
   const selectedCount = selectedIds.size
 
@@ -307,6 +309,11 @@ export function TaxonomyManager({ type, initialItems }: TaxonomyManagerProps) {
   function deleteItems(ids: string[]) {
     if (!ids.length) return
 
+    if (type === 'categories' && ids.some((id) => items.find((item) => item.id === id)?.slug === DEFAULT_CATEGORY_SLUG)) {
+      setMessage('默认分类“未分类”不可删除。')
+      return
+    }
+
     const names = ids
       .map((id) => items.find((item) => item.id === id)?.name)
       .filter(Boolean)
@@ -468,7 +475,7 @@ export function TaxonomyManager({ type, initialItems }: TaxonomyManagerProps) {
             <h2 className="mt-1 text-xl font-semibold">{detailTitle}</h2>
           </div>
           {selectedItem && (
-            <button type="button" onClick={() => deleteItems([selectedItem.id])} disabled={isPending} className="rounded-full border border-red-200 px-3 py-1.5 text-sm text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50 dark:border-red-900/70 dark:hover:bg-red-950/30">
+            <button type="button" onClick={() => deleteItems([selectedItem.id])} disabled={isPending || isSelectedDefaultCategory} className="rounded-full border border-red-200 px-3 py-1.5 text-sm text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50 dark:border-red-900/70 dark:hover:bg-red-950/30">
               删除
             </button>
           )}
@@ -482,7 +489,8 @@ export function TaxonomyManager({ type, initialItems }: TaxonomyManagerProps) {
               onChange={(event) => updateForm('name', event.target.value)}
               required
               maxLength={80}
-              className="h-10 rounded-lg border border-neutral-300 bg-white px-3 font-normal outline-none transition-colors focus:border-blue-600 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-blue-400"
+              disabled={isSelectedDefaultCategory}
+              className="h-10 rounded-lg border border-neutral-300 bg-white px-3 font-normal outline-none transition-colors focus:border-blue-600 disabled:bg-neutral-100 disabled:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-blue-400 dark:disabled:bg-neutral-900/60"
             />
           </label>
           <label className="grid gap-1.5 text-sm font-medium">
@@ -497,7 +505,8 @@ export function TaxonomyManager({ type, initialItems }: TaxonomyManagerProps) {
               maxLength={120}
               aria-invalid={Boolean(slugError)}
               aria-describedby={`${type}-slug-help`}
-              className="h-10 rounded-lg border border-neutral-300 bg-white px-3 font-mono text-sm font-normal outline-none transition-colors focus:border-blue-600 aria-invalid:border-red-500 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-blue-400"
+              disabled={isSelectedDefaultCategory}
+              className="h-10 rounded-lg border border-neutral-300 bg-white px-3 font-mono text-sm font-normal outline-none transition-colors focus:border-blue-600 aria-invalid:border-red-500 disabled:bg-neutral-100 disabled:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-blue-400 dark:disabled:bg-neutral-900/60"
             />
             <span id={`${type}-slug-help`} className={`text-xs ${slugError ? 'text-red-600' : 'text-neutral-500'}`}>
               {slugError ?? (isSlugPending ? '正在校验 Slug…' : 'Slug 可用。')}

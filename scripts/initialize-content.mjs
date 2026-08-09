@@ -4,6 +4,11 @@ import path from 'node:path'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '@prisma/client'
 
+const DEFAULT_CATEGORY = {
+  name: '未分类',
+  slug: 'uncategorized',
+}
+
 const WELCOME_ARTICLE = {
   title: '欢迎使用 SeanBlog Frame',
   slug: 'welcome-to-seanblog-frame',
@@ -41,10 +46,6 @@ function getArticleContentPath(articleId) {
   return `content/articles/${articleId}/index.md`
 }
 
-function getArticleRevisionContentPath(articleId, revisionId) {
-  return `content/articles/${articleId}/revisions/${revisionId}.md`
-}
-
 async function writeMarkdown(contentPath, markdown) {
   const absolutePath = path.resolve(process.cwd(), ...contentPath.split('/'))
 
@@ -59,11 +60,20 @@ async function removeArticleContent(articleId) {
   })
 }
 
+async function ensureDefaultCategory(prisma) {
+  return prisma.category.upsert({
+    where: { slug: DEFAULT_CATEGORY.slug },
+    update: { name: DEFAULT_CATEGORY.name },
+    create: DEFAULT_CATEGORY,
+  })
+}
+
 export async function createWelcomeArticleIfMissing() {
   const prisma = createPrisma()
   let articleId = null
 
   try {
+    const defaultCategory = await ensureDefaultCategory(prisma)
     const existingArticleCount = await prisma.article.count()
 
     if (existingArticleCount > 0) {
@@ -78,6 +88,7 @@ export async function createWelcomeArticleIfMissing() {
         excerpt: WELCOME_ARTICLE.excerpt,
         status: 'PUBLISHED',
         publishedAt: new Date(),
+        categoryId: defaultCategory.id,
       },
     })
     articleId = article.id
@@ -85,27 +96,10 @@ export async function createWelcomeArticleIfMissing() {
     const contentPath = getArticleContentPath(article.id)
     await writeMarkdown(contentPath, WELCOME_ARTICLE.markdown)
 
-    const revision = await prisma.articleRevision.create({
-      data: {
-        articleId: article.id,
-        title: article.title,
-        version: 1,
-        changeNote: 'Initial welcome article',
-      },
+    await prisma.article.update({
+      where: { id: article.id },
+      data: { contentPath },
     })
-    const revisionContentPath = getArticleRevisionContentPath(article.id, revision.id)
-    await writeMarkdown(revisionContentPath, WELCOME_ARTICLE.markdown)
-
-    await prisma.$transaction([
-      prisma.article.update({
-        where: { id: article.id },
-        data: { contentPath },
-      }),
-      prisma.articleRevision.update({
-        where: { id: revision.id },
-        data: { contentPath: revisionContentPath },
-      }),
-    ])
 
     console.log(`Welcome article created: ${WELCOME_ARTICLE.slug}`)
     return true

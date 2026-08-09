@@ -114,6 +114,7 @@ const statusLabels: Record<ArticleStatus, string> = {
 const COVER_IMAGE_MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp'])
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const URL_PATTERN = /^https?:\/\/|^\//
+const DEFAULT_CATEGORY_SLUG = 'uncategorized'
 
 function toDateTimeLocal(value?: Date | string | null) {
   if (!value) return ''
@@ -144,7 +145,7 @@ function formatDateTime(value?: Date | string | null) {
   })
 }
 
-function getInitialState(article?: ArticleFormValues): FormState {
+function getInitialState(article?: ArticleFormValues, defaultCategoryId = ''): FormState {
   return {
     title: article?.title ?? '',
     slug: article?.slug ?? '',
@@ -153,7 +154,7 @@ function getInitialState(article?: ArticleFormValues): FormState {
     coverImage: article?.coverImage ?? '',
     status: article?.status ?? 'DRAFT',
     commentsMode: article?.commentsMode ?? 'enabled',
-    categoryId: article?.categoryId ?? '',
+    categoryId: article ? article.categoryId ?? '' : defaultCategoryId,
     isPinned: article?.isPinned ?? false,
     publishedAt: toDateTimeLocal(article?.publishedAt),
     enableScheduledPublish: article?.publishedAt ? new Date(article.publishedAt).getTime() > Date.now() : false,
@@ -192,7 +193,8 @@ function EditorAccordionSection({ title, summary, defaultOpen = false, children 
 }
 
 export function ArticleEditor({ article, categories, tags }: ArticleEditorProps) {
-  const [form, setForm] = useState<FormState>(() => getInitialState(article))
+  const defaultCategoryId = categories.find((category) => category.slug === DEFAULT_CATEGORY_SLUG)?.id ?? ''
+  const [form, setForm] = useState<FormState>(() => getInitialState(article, defaultCategoryId))
   const toast = useAdminToast()
   const [categoryOptions, setCategoryOptions] = useState(categories)
   const [tagOptions, setTagOptions] = useState(tags)
@@ -989,10 +991,6 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
             <div className="grid gap-3 text-sm font-medium">
               分类
               <div className="flex flex-wrap gap-2">
-                <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-neutral-300 px-3 py-1.5 text-sm dark:border-neutral-700">
-                  <input type="radio" name="categoryId" checked={!form.categoryId && !pendingCategoryName} onChange={() => selectCategory('')} />
-                  未分类
-                </label>
                 {categoryOptions.map((category) => (
                   <label key={category.id} className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-neutral-300 px-3 py-1.5 text-sm dark:border-neutral-700">
                     <input type="radio" name="categoryId" checked={form.categoryId === category.id && !pendingCategoryName} onChange={() => selectCategory(category.id)} />
