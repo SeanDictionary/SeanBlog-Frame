@@ -41,6 +41,10 @@ function getArticleContentPath(articleId) {
   return `content/articles/${articleId}/index.md`
 }
 
+function getArticleRevisionContentPath(articleId, revisionId) {
+  return `content/articles/${articleId}/revisions/${revisionId}.md`
+}
+
 async function writeMarkdown(contentPath, markdown) {
   const absolutePath = path.resolve(process.cwd(), ...contentPath.split('/'))
 
@@ -74,7 +78,6 @@ export async function createWelcomeArticleIfMissing() {
         excerpt: WELCOME_ARTICLE.excerpt,
         status: 'PUBLISHED',
         publishedAt: new Date(),
-        categoryId: null,
       },
     })
     articleId = article.id
@@ -82,12 +85,29 @@ export async function createWelcomeArticleIfMissing() {
     const contentPath = getArticleContentPath(article.id)
     await writeMarkdown(contentPath, WELCOME_ARTICLE.markdown)
 
-    await prisma.article.update({
-      where: { id: article.id },
-      data: { contentPath },
+    const revision = await prisma.articleRevision.create({
+      data: {
+        articleId: article.id,
+        title: article.title,
+        version: 1,
+        changeNote: 'Initial welcome article',
+      },
     })
+    const revisionContentPath = getArticleRevisionContentPath(article.id, revision.id)
+    await writeMarkdown(revisionContentPath, WELCOME_ARTICLE.markdown)
 
-    console.log(`Welcome article created as uncategorized: ${WELCOME_ARTICLE.slug}`)
+    await prisma.$transaction([
+      prisma.article.update({
+        where: { id: article.id },
+        data: { contentPath },
+      }),
+      prisma.articleRevision.update({
+        where: { id: revision.id },
+        data: { contentPath: revisionContentPath },
+      }),
+    ])
+
+    console.log(`Welcome article created: ${WELCOME_ARTICLE.slug}`)
     return true
   } catch (error) {
     if (articleId) {
