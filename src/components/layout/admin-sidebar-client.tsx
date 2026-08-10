@@ -94,7 +94,7 @@ export function AdminSidebarClient({ navigation, userName, title = 'SeanBlog Adm
 
             if (hasChildren) {
               return (
-                <div key={item.href} className={isCollapsed && isOpen ? 'rounded-xl bg-neutral-100 py-1 dark:bg-neutral-900' : undefined}>
+                <div key={item.href} className={isCollapsed && isOpen ? 'rounded-xl bg-neutral-100 dark:bg-neutral-900' : undefined}>
                   <button
                     type="button"
                     onClick={() => toggleGroup(item.href)}
@@ -112,7 +112,7 @@ export function AdminSidebarClient({ navigation, userName, title = 'SeanBlog Adm
                     {!isCollapsed && <i className={`fa-solid fa-chevron-down text-[10px] transition-transform ${isOpen ? 'rotate-180' : ''}`} aria-hidden="true" />}
                   </button>
                   {isOpen && (
-                    <div className={isCollapsed ? 'mt-1 grid gap-1' : 'ml-4 mt-1 space-y-1 border-l border-neutral-200 pl-3 dark:border-neutral-800'}>
+                    <div className={isCollapsed ? 'grid' : 'ml-4 space-y-1 border-l border-neutral-200 pl-3 dark:border-neutral-800'}>
                       {item.children!.map((child) => {
                         const childActive = pathname === child.href || pathname.startsWith(`${child.href}/`)
                         return (
@@ -122,7 +122,7 @@ export function AdminSidebarClient({ navigation, userName, title = 'SeanBlog Adm
                             title={isCollapsed ? child.label : undefined}
                             aria-label={isCollapsed ? child.label : undefined}
                             aria-current={childActive ? 'page' : undefined}
-                            className={`grid items-center rounded-md text-sm transition-colors ${isCollapsed ? 'h-9 grid-cols-[2.5rem] justify-items-center' : 'h-8 grid-cols-[1.75rem_minmax(0,1fr)]'} ${
+                            className={`grid pt-1 pb-1 items-center text-sm transition-colors ${isCollapsed ? 'h-9 grid-cols-[2.5rem] justify-items-center' : 'h-8 grid-cols-[1.75rem_minmax(0,1fr)]'} ${
                               childActive
                                 ? 'bg-white text-neutral-950 shadow-sm dark:bg-neutral-950 dark:text-neutral-50'
                                 : 'text-neutral-500 hover:bg-white hover:text-neutral-950 dark:text-neutral-400 dark:hover:bg-neutral-950 dark:hover:text-neutral-50'
