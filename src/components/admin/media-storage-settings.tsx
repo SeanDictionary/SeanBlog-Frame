@@ -17,6 +17,24 @@ type ApiResponse = {
   setting?: Setting
 }
 
+type StorageDraft = {
+  mediaObjectStorageEndpoint: string
+  mediaObjectStorageBucket: string
+  mediaObjectStorageRegion: string
+  mediaObjectStoragePublicUrl: string
+  mediaObjectStorageAccessKeyId: string
+  mediaObjectStorageSecretAccessKey: string
+}
+
+const storageFieldLabels: Array<{ key: keyof StorageDraft; label: string; placeholder?: string; type?: string }> = [
+  { key: 'mediaObjectStorageEndpoint', label: 'Endpoint', placeholder: 'https://s3.example.com' },
+  { key: 'mediaObjectStorageBucket', label: 'Bucket' },
+  { key: 'mediaObjectStorageRegion', label: 'Region', placeholder: 'auto / us-east-1' },
+  { key: 'mediaObjectStoragePublicUrl', label: '公开访问域名', placeholder: 'https://cdn.example.com' },
+  { key: 'mediaObjectStorageAccessKeyId', label: 'Access Key ID' },
+  { key: 'mediaObjectStorageSecretAccessKey', label: 'Secret Access Key', type: 'password' },
+]
+
 function settingValue(settings: Setting[], key: string, fallback = '') {
   const value = settings.find((setting) => setting.key === key)?.value
   return typeof value === 'string' ? value : fallback
@@ -27,21 +45,26 @@ function settingEnabled(settings: Setting[], key: string, fallback = false) {
   return typeof value === 'boolean' ? value : fallback
 }
 
+function buildDraft(settings: Setting[]): StorageDraft {
+  return Object.fromEntries(storageFieldLabels.map((field) => [field.key, settingValue(settings, field.key)])) as StorageDraft
+}
+
 export function MediaStorageSettings({ initialSettings }: MediaStorageSettingsProps) {
   const [settings, setSettings] = useState(initialSettings)
+  const [enabled, setEnabled] = useState(() => settingEnabled(initialSettings, 'mediaObjectStorageEnabled'))
+  const [draft, setDraft] = useState(() => buildDraft(initialSettings))
   const [message, setMessage] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
-  function save(formData: FormData) {
-    const entries = [
-      ['mediaObjectStorageEnabled', formData.get('mediaObjectStorageEnabled') === 'on'],
-      ['mediaObjectStorageEndpoint', String(formData.get('mediaObjectStorageEndpoint') ?? '')],
-      ['mediaObjectStorageBucket', String(formData.get('mediaObjectStorageBucket') ?? '')],
-      ['mediaObjectStorageRegion', String(formData.get('mediaObjectStorageRegion') ?? '')],
-      ['mediaObjectStoragePublicUrl', String(formData.get('mediaObjectStoragePublicUrl') ?? '')],
-      ['mediaObjectStorageAccessKeyId', String(formData.get('mediaObjectStorageAccessKeyId') ?? '')],
-      ['mediaObjectStorageSecretAccessKey', String(formData.get('mediaObjectStorageSecretAccessKey') ?? '')],
-    ] as const
+  function updateDraft(key: keyof StorageDraft, value: string) {
+    setDraft((previous) => ({ ...previous, [key]: value }))
+  }
+
+  function save() {
+    const entries: Array<[string, string | boolean]> = [
+      ['mediaObjectStorageEnabled', enabled],
+      ...storageFieldLabels.map((field) => [field.key, draft[field.key]] as [string, string]),
+    ]
 
     startTransition(async () => {
       setMessage(null)
@@ -64,7 +87,7 @@ export function MediaStorageSettings({ initialSettings }: MediaStorageSettingsPr
             : [...previous, data.setting!])
         }
 
-        setMessage('对象存储配置已保存。当前默认仍使用本地上传；开启后可供后续存储适配器读取。')
+        setMessage(enabled ? '对象存储配置已保存。开启后可供后续存储适配器读取。' : '对象存储已关闭，原配置已保留。')
       } catch (error) {
         setMessage(error instanceof Error ? error.message : '对象存储设置保存失败。')
       }
@@ -76,28 +99,40 @@ export function MediaStorageSettings({ initialSettings }: MediaStorageSettingsPr
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="font-semibold">对象存储配置</h2>
-          <p className="mt-1 text-sm text-neutral-500">默认不启用。这里先保存对象存储连接信息，便于后续把媒体上传切换到 S3/R2/OSS 等服务。</p>
+          <p className="mt-1 text-sm text-neutral-500">默认不启用；关闭时隐藏连接配置并保留已填写信息。</p>
         </div>
-        <span className={`rounded-full px-2.5 py-1 text-xs ${settingEnabled(settings, 'mediaObjectStorageEnabled') ? 'bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-300' : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'}`}>
-          {settingEnabled(settings, 'mediaObjectStorageEnabled') ? '已启用' : '默认关闭'}
+        <span className={`rounded-full px-2.5 py-1 text-xs ${enabled ? 'bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-300' : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'}`}>
+          {enabled ? '已启用' : '默认关闭'}
         </span>
       </div>
 
-      <form action={save} className="mt-5 grid gap-4 md:grid-cols-2">
-        <label className="inline-flex items-center gap-2 text-sm font-medium md:col-span-2">
-          <input name="mediaObjectStorageEnabled" type="checkbox" defaultChecked={settingEnabled(settings, 'mediaObjectStorageEnabled')} />
+      <div className="mt-5 grid gap-4">
+        <label className="inline-flex items-center gap-2 text-sm font-medium">
+          <input type="checkbox" checked={enabled} onChange={(event) => setEnabled(event.target.checked)} />
           启用对象存储配置
         </label>
-        <label className="grid gap-1.5 text-sm">Endpoint<input name="mediaObjectStorageEndpoint" defaultValue={settingValue(settings, 'mediaObjectStorageEndpoint')} placeholder="https://s3.example.com" className="h-10 rounded-md border border-neutral-300 bg-white px-3 font-mono text-sm outline-none dark:border-neutral-700 dark:bg-neutral-900" /></label>
-        <label className="grid gap-1.5 text-sm">Bucket<input name="mediaObjectStorageBucket" defaultValue={settingValue(settings, 'mediaObjectStorageBucket')} className="h-10 rounded-md border border-neutral-300 bg-white px-3 font-mono text-sm outline-none dark:border-neutral-700 dark:bg-neutral-900" /></label>
-        <label className="grid gap-1.5 text-sm">Region<input name="mediaObjectStorageRegion" defaultValue={settingValue(settings, 'mediaObjectStorageRegion')} placeholder="auto / us-east-1" className="h-10 rounded-md border border-neutral-300 bg-white px-3 font-mono text-sm outline-none dark:border-neutral-700 dark:bg-neutral-900" /></label>
-        <label className="grid gap-1.5 text-sm">公开访问域名<input name="mediaObjectStoragePublicUrl" defaultValue={settingValue(settings, 'mediaObjectStoragePublicUrl')} placeholder="https://cdn.example.com" className="h-10 rounded-md border border-neutral-300 bg-white px-3 font-mono text-sm outline-none dark:border-neutral-700 dark:bg-neutral-900" /></label>
-        <label className="grid gap-1.5 text-sm">Access Key ID<input name="mediaObjectStorageAccessKeyId" defaultValue={settingValue(settings, 'mediaObjectStorageAccessKeyId')} className="h-10 rounded-md border border-neutral-300 bg-white px-3 font-mono text-sm outline-none dark:border-neutral-700 dark:bg-neutral-900" /></label>
-        <label className="grid gap-1.5 text-sm">Secret Access Key<input name="mediaObjectStorageSecretAccessKey" type="password" defaultValue={settingValue(settings, 'mediaObjectStorageSecretAccessKey')} className="h-10 rounded-md border border-neutral-300 bg-white px-3 font-mono text-sm outline-none dark:border-neutral-700 dark:bg-neutral-900" /></label>
-        <div className="md:col-span-2">
-          <button disabled={isPending} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950">保存对象存储配置</button>
+
+        {enabled && (
+          <div className="grid gap-4 md:grid-cols-2">
+            {storageFieldLabels.map((field) => (
+              <label key={field.key} className="grid gap-1.5 text-sm">
+                {field.label}
+                <input
+                  value={draft[field.key]}
+                  onChange={(event) => updateDraft(field.key, event.target.value)}
+                  type={field.type ?? 'text'}
+                  placeholder={field.placeholder}
+                  className="h-10 rounded-md border border-neutral-300 bg-white px-3 font-mono text-sm outline-none dark:border-neutral-700 dark:bg-neutral-900"
+                />
+              </label>
+            ))}
+          </div>
+        )}
+
+        <div>
+          <button type="button" disabled={isPending} onClick={save} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950">保存对象存储设置</button>
         </div>
-      </form>
+      </div>
 
       {message && <p className="mt-4 text-sm text-neutral-500" role="status">{message}</p>}
     </section>

@@ -163,6 +163,12 @@ export const mediaInputSchema = z
   })
   .strict()
 
+export const mediaBulkDeleteSchema = z
+  .object({
+    ids: z.array(z.string().trim().min(1)).min(1).max(100),
+  })
+  .strict()
+
 export const settingInputSchema = z
   .object({
     value: settingValueSchema,
