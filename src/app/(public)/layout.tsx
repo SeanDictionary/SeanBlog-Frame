@@ -4,7 +4,7 @@ import { AnalyticsTracker } from '@/components/analytics/analytics-tracker'
 import { SiteFooter } from '@/components/layout/site-footer'
 import { SiteHeader } from '@/components/layout/site-header'
 import { getSiteSettingsMap } from '@/lib/services/setting-service'
-import { readThemeCss, readThemeManifest } from '@/lib/theme'
+import { readThemeCss, readThemeManifest, readThemePart } from '@/lib/theme'
 
 function normalizeActiveTheme(value: unknown) {
   return typeof value === 'string' && value !== 'default' ? value : 'seanblog-default'
@@ -35,17 +35,23 @@ export default async function PublicLayout({
   const activeTheme = normalizeActiveTheme(settings.activeTheme)
   const customThemeCss = await readThemeCss(activeTheme) ?? await readThemeCss('seanblog-default')
   const themeOptionsCss = await buildThemeOptionsCss(activeTheme, settings) ?? await buildThemeOptionsCss('seanblog-default', settings)
+  const [headerPart, footerPart] = await Promise.all([
+    readThemePart(activeTheme, 'header'),
+    readThemePart(activeTheme, 'footer'),
+  ])
+  const showHeader = headerPart?.blocks?.includes('SiteHeader') ?? true
+  const showFooter = footerPart?.blocks?.includes('SiteFooter') ?? true
 
   return (
     <div className="flex min-h-screen flex-col">
       {customThemeCss && <style>{customThemeCss}</style>}
       {themeOptionsCss && <style>{themeOptionsCss}</style>}
-      <SiteHeader settings={settings} />
+      {showHeader && <SiteHeader settings={settings} />}
       <main className="flex-1">{children}</main>
       <Suspense fallback={null}>
         <AnalyticsTracker />
       </Suspense>
-      <SiteFooter settings={settings} />
+      {showFooter && <SiteFooter settings={settings} />}
     </div>
   )
 }

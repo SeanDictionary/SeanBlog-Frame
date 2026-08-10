@@ -3,7 +3,6 @@ export function orderThemeSlots(defaultSlots: string[], themeSlots?: string[] | 
 
   const known = new Set(defaultSlots)
   const ordered = themeSlots.filter((slot) => known.has(slot))
-  const missing = defaultSlots.filter((slot) => !ordered.includes(slot))
 
-  return [...ordered, ...missing]
+  return ordered.length ? ordered : defaultSlots
 }

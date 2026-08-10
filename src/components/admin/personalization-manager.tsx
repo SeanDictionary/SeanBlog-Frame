@@ -113,8 +113,6 @@ export function PersonalizationManager({ initialSettings, availableThemes }: Per
       ['publicHeaderShowSearch', formData.get('publicHeaderShowSearch') === 'on'],
       ['publicFooterText', String(formData.get('publicFooterText') ?? '')],
       ['publicFooterShowRss', formData.get('publicFooterShowRss') === 'on'],
-      ['adminSidebarTitle', String(formData.get('adminSidebarTitle') ?? '')],
-      ['adminSidebarShowViewSite', formData.get('adminSidebarShowViewSite') === 'on'],
     ] as const
 
     startTransition(async () => {
@@ -224,7 +222,8 @@ export function PersonalizationManager({ initialSettings, availableThemes }: Per
               <div className="mt-4 flex items-start justify-between gap-3">
                 <div><h3 className="text-sm font-semibold">{theme.name}</h3><p className="mt-1 text-xs text-neutral-500">{theme.author ?? '未知作者'} · v{theme.version}</p>{theme.slug === activeTheme && <p className="mt-1 text-xs text-blue-600">当前主题包</p>}</div>
                 <div className="flex flex-wrap justify-end gap-2 text-xs">
-                  <a href={`/admin/personalization/preview?theme=${encodeURIComponent(theme.slug)}`} target="_blank" rel="noreferrer" className="rounded border border-neutral-300 px-2 py-1 dark:border-neutral-700">预览</a>
+                  <a href={`/theme-preview?theme=${encodeURIComponent(theme.slug)}&page=home`} target="_blank" rel="noreferrer" className="rounded border border-neutral-300 px-2 py-1 dark:border-neutral-700">主页预览</a>
+                  <a href={`/theme-preview?theme=${encodeURIComponent(theme.slug)}&page=article`} target="_blank" rel="noreferrer" className="rounded border border-neutral-300 px-2 py-1 dark:border-neutral-700">文章预览</a>
                   <button type="button" disabled={isPending || theme.slug === activeTheme} onClick={() => saveSetting('activeTheme', theme.slug)} className="rounded bg-neutral-950 px-2 py-1 text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-950">启用</button>
                   <a href={`/api/admin/themes/${encodeURIComponent(theme.slug)}`} className="rounded border border-neutral-300 px-2 py-1 dark:border-neutral-700">导出</a>
                   {theme.slug !== 'seanblog-default' && <button type="button" disabled={isPending || theme.slug === activeTheme} onClick={() => deleteTheme(theme)} className="rounded border border-red-200 px-2 py-1 text-red-600 disabled:opacity-50 dark:border-red-900/60">卸载</button>}
@@ -249,12 +248,11 @@ export function PersonalizationManager({ initialSettings, availableThemes }: Per
         </section>
 
         <section className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-950">
-          <h2 className="font-semibold">页脚与后台侧边栏</h2>
+          <h2 className="font-semibold">页脚</h2>
+          <p className="mt-1 text-sm text-neutral-500">后台侧边栏固定使用站点名称 + Admin 品牌样式，不再提供单独自定义项。</p>
           <div className="mt-5 grid gap-4">
             <label className="grid gap-1.5 text-sm">页脚文案<input name="publicFooterText" defaultValue={settingValue(settings, 'publicFooterText')} placeholder="默认版权文案" className="h-10 rounded-md border border-neutral-300 bg-white px-3 dark:border-neutral-700 dark:bg-neutral-900" /></label>
             <Toggle name="publicFooterShowRss" label="显示 RSS 入口" checked={settingEnabled(settings, 'publicFooterShowRss')} />
-            <label className="grid gap-1.5 text-sm">后台侧边栏标题<input name="adminSidebarTitle" defaultValue={settingValue(settings, 'adminSidebarTitle', 'SeanBlog Admin')} className="h-10 rounded-md border border-neutral-300 bg-white px-3 dark:border-neutral-700 dark:bg-neutral-900" /></label>
-            <Toggle name="adminSidebarShowViewSite" label="显示“查看网站”入口" checked={settingEnabled(settings, 'adminSidebarShowViewSite')} />
           </div>
         </section>
       </form>

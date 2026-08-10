@@ -38,13 +38,12 @@ type AdminSidebarProps = {
 
 export async function AdminSidebar({ session }: AdminSidebarProps) {
   const settings = await getSiteSettingsMap()
-  const title = typeof settings.adminSidebarTitle === 'string' && settings.adminSidebarTitle.trim() ? settings.adminSidebarTitle : 'SeanBlog Admin'
-  const showViewSite = settings.adminSidebarShowViewSite !== false
+  const siteName = typeof settings.siteName === 'string' && settings.siteName.trim() ? settings.siteName : 'SeanBlog'
 
   async function signOutAction() {
     'use server'
     await signOut({ redirectTo: '/' })
   }
 
-  return <AdminSidebarClient navigation={adminNavigation} userName={session.user.name ?? '管理员'} title={title} showViewSite={showViewSite} signOutAction={signOutAction} />
+  return <AdminSidebarClient navigation={adminNavigation} userName={session.user.name ?? '管理员'} siteName={siteName} signOutAction={signOutAction} />
 }

@@ -46,7 +46,7 @@ Optional fields:
 
 ## Templates and parts
 
-Templates and parts are JSON metadata files. The current engine validates their presence and uses the built-in App Router pages and component slots. Future renderer phases will map these JSON definitions to a stricter block tree.
+Templates and parts are JSON metadata files. The engine reads allowed `slots` and `blocks` arrays and renders only those built-in front-end components, so a theme can reorder or omit supported page regions without executing third-party code. Unknown slots/blocks are ignored; if a template has no valid slots, SeanBlog falls back to the default page structure.
 
 Supported block names for theme declarations:
 
@@ -116,6 +116,15 @@ Admin theme import accepts a `.zip` package with `theme.json` at the zip root. T
 - package size
 
 Installed themes can be exported back to `.zip` from the theme library.
+
+## Preview
+
+The admin theme library exposes two preview links for each installed theme:
+
+- `/theme-preview?theme=<slug>&page=home` renders the public home page with the selected theme CSS, settings, slots, Header, and Footer.
+- `/theme-preview?theme=<slug>&page=article` renders a real published article page with the selected theme and the same public article components.
+
+Preview routes require an authenticated admin session and are rendered outside the admin layout so they match the public site chrome. The legacy `/admin/personalization/preview` route redirects to `/theme-preview`.
 
 ## Default theme
 

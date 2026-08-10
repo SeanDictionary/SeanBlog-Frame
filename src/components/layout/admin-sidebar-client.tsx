@@ -19,8 +19,7 @@ type AdminNavigationItem = {
 type AdminSidebarClientProps = {
   navigation: AdminNavigationItem[]
   userName: string
-  title?: string
-  showViewSite?: boolean
+  siteName?: string
   signOutAction: () => Promise<void>
 }
 
@@ -29,7 +28,7 @@ function isNavigationItemActive(pathname: string, item: AdminNavigationItem) {
   return item.children?.some((child) => pathname === child.href || pathname.startsWith(`${child.href}/`)) ?? false
 }
 
-export function AdminSidebarClient({ navigation, userName, title = 'SeanBlog Admin', showViewSite = true, signOutAction }: AdminSidebarClientProps) {
+export function AdminSidebarClient({ navigation, userName, siteName = 'SeanBlog', signOutAction }: AdminSidebarClientProps) {
   const pathname = usePathname()
   const [isCollapsed, setIsCollapsed] = useState(false)
   const activeParentHref = useMemo(() => navigation.find((item) => isNavigationItemActive(pathname, item) && item.children)?.href ?? null, [navigation, pathname])
@@ -71,7 +70,7 @@ export function AdminSidebarClient({ navigation, userName, title = 'SeanBlog Adm
           href="/admin"
           className={`min-w-0 text-neutral-950 transition-opacity dark:text-neutral-50 ${isCollapsed ? 'sr-only' : 'px-3'}`}
         >
-          <span className="whitespace-nowrap text-lg font-semibold leading-tight tracking-tight">{title}</span>
+          <span className="whitespace-nowrap text-lg font-semibold leading-tight tracking-tight">{siteName} <span className="font-normal text-neutral-400">Admin</span></span>
         </Link>
         <button
           type="button"
@@ -174,17 +173,15 @@ export function AdminSidebarClient({ navigation, userName, title = 'SeanBlog Adm
               {!isCollapsed && <span className="whitespace-nowrap text-left">退出</span>}
             </button>
           </form>
-          {showViewSite && (
-            <Link
-              href="/"
-              aria-label={isCollapsed ? '查看网站' : undefined}
-              title={isCollapsed ? '查看网站' : undefined}
-              className={`grid h-6 w-full grid-cols-[2.5rem_minmax(0,1fr)] items-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 dark:hover:bg-neutral-900 dark:hover:text-neutral-100 ${isCollapsed ? 'justify-items-center' : 'pr-3'}`}
-            >
-              <i className="fa-solid fa-arrow-up-right-from-square justify-self-center text-sm" aria-hidden="true" />
-              {!isCollapsed && <span className="whitespace-nowrap text-left">查看网站</span>}
-            </Link>
-          )}
+          <Link
+            href="/"
+            aria-label={isCollapsed ? '查看网站' : undefined}
+            title={isCollapsed ? '查看网站' : undefined}
+            className={`grid h-6 w-full grid-cols-[2.5rem_minmax(0,1fr)] items-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 dark:hover:bg-neutral-900 dark:hover:text-neutral-100 ${isCollapsed ? 'justify-items-center' : 'pr-3'}`}
+          >
+            <i className="fa-solid fa-arrow-up-right-from-square justify-self-center text-sm" aria-hidden="true" />
+            {!isCollapsed && <span className="whitespace-nowrap text-left">查看网站</span>}
+          </Link>
         </div>
       </div>
     </aside>

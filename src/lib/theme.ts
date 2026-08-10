@@ -47,6 +47,11 @@ export type ThemeTemplate = {
   slots?: string[]
 }
 
+export type ThemePart = {
+  part?: string
+  blocks?: string[]
+}
+
 export type ThemePackageSummary = {
   slug: string
   name: string
@@ -347,6 +352,15 @@ function validateTemplate(raw: unknown): ThemeTemplate {
   }
 }
 
+function validatePart(raw: unknown): ThemePart {
+  const record = assertRecord(raw, 'part')
+
+  return {
+    part: typeof record.part === 'string' ? record.part : undefined,
+    blocks: Array.isArray(record.blocks) ? record.blocks.filter((block): block is string => typeof block === 'string') : [],
+  }
+}
+
 export async function readThemeManifest(themeName: string) {
   const slug = normalizeThemeName(themeName)
   const manifest = validateManifest(await readJsonFile(getThemeManifestPath(slug)), slug)
@@ -419,6 +433,17 @@ export async function readThemeTemplate(themeName: string, templateKey: string) 
     const templatePath = manifest.templates[templateKey]
     if (!templatePath) return null
     return validateTemplate(await readJsonFile(resolveThemePath(manifest.slug, templatePath)))
+  } catch {
+    return null
+  }
+}
+
+export async function readThemePart(themeName: string, partKey: string) {
+  try {
+    const manifest = await readThemeManifest(themeName)
+    const partPath = manifest.parts?.[partKey]
+    if (!partPath) return null
+    return validatePart(await readJsonFile(resolveThemePath(manifest.slug, partPath)))
   } catch {
     return null
   }
