@@ -364,10 +364,9 @@ export function TaxonomyManager({ type, initialItems }: TaxonomyManagerProps) {
         <div className="border-b border-neutral-200 p-5 dark:border-neutral-800">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold">{copy.plural}列表</h2>
-              <p className="mt-1 text-sm text-neutral-500">点击行查看详情；点击名称或文章数量进入文章列表。</p>
+              <h2 className="text-xl font-semibold">{copy.plural}列表</h2>
             </div>
-            <button type="button" onClick={resetToCreate} className="rounded-full bg-neutral-950 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-950 dark:hover:bg-neutral-300">
+            <button type="button" onClick={resetToCreate} className="rounded-full bg-neutral-950 px-3 py-1 text-sm font-medium text-white transition-colors hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-950 dark:hover:bg-neutral-300">
               新建{copy.singular}
             </button>
           </div>
@@ -387,7 +386,7 @@ export function TaxonomyManager({ type, initialItems }: TaxonomyManagerProps) {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 bg-neutral-50 px-5 py-3 text-sm dark:border-neutral-800 dark:bg-neutral-900/50">
           <label className="inline-flex items-center gap-2 text-neutral-600 dark:text-neutral-300">
             <input type="checkbox" checked={allVisibleSelected} onChange={toggleAllVisible} aria-label={`选择当前显示的${copy.singular}`} />
-            已选 {selectedCount} / 当前 {visibleItems.length}
+            已选 {selectedCount} / {visibleItems.length}
           </label>
           <div className="flex flex-wrap items-center gap-2">
             {(['name', 'slug', 'articleCount'] as SortKey[]).map((key) => (
@@ -408,12 +407,13 @@ export function TaxonomyManager({ type, initialItems }: TaxonomyManagerProps) {
                 <div key={item.id} className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-5 py-4 transition-colors ${isSelected ? 'bg-blue-50/70 dark:bg-blue-950/20' : 'hover:bg-neutral-50 dark:hover:bg-neutral-900/60'}`}>
                   <input type="checkbox" checked={selectedIds.has(item.id)} onChange={() => toggleSelected(item.id)} aria-label={`选择${item.name}`} />
                   <button type="button" onClick={() => setSelectedId(item.id)} className="min-w-0 text-left">
-                    <span className="block truncate font-medium text-neutral-950 dark:text-neutral-50">{item.name}</span>
-                    <span className="mt-1 block truncate font-mono text-xs text-neutral-500">/{item.slug}</span>
-                    <span className="mt-1 block truncate text-xs text-neutral-500">{item.description || '暂无描述'}</span>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span className="block truncate font-medium text-neutral-950 dark:text-neutral-50">{item.name}</span>
+                      <span className="mt-1 block truncate font-mono text-xs text-neutral-500">/{item.slug}</span>
+                    </div>
+                    <span className="mt-1 block truncate text-xs text-neutral-500">{item.description? `${item.description.substring(0, 20)} ${item.description.length > 20 ? '...' : ''}` : '暂无描述'}</span>
                   </button>
                   <div className="flex shrink-0 flex-col items-end gap-1 text-sm">
-                    <Link href={`/admin/articles?${copy.articleQueryKey}=${encodeURIComponent(item.slug)}`} className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300" onClick={(event) => event.stopPropagation()}>{item.name}</Link>
                     <Link href={`/admin/articles?${copy.articleQueryKey}=${encodeURIComponent(item.slug)}`} className="text-neutral-500 hover:text-neutral-950 dark:hover:text-neutral-50" onClick={(event) => event.stopPropagation()}>{item._count.articles} 篇文章</Link>
                   </div>
                 </div>
@@ -427,9 +427,9 @@ export function TaxonomyManager({ type, initialItems }: TaxonomyManagerProps) {
 
       <aside className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-950 lg:sticky lg:top-6 lg:self-start">
         <div className="mb-5 flex items-start justify-between gap-3">
-          <div>
-            <p className="text-sm text-neutral-500">{selectedItem ? `当前选中：${selectedItem.name}` : '未选择条目'}</p>
+          <div className="flex flex-wrap items-end justify-between gap-3">
             <h2 className="mt-1 text-xl font-semibold">{detailTitle}</h2>
+            <p className="text-sm text-neutral-500">{selectedItem ? selectedItem.name : ''}</p>
           </div>
           {selectedItem && (
             <button type="button" onClick={() => deleteItems([selectedItem.id])} disabled={isPending || isSelectedDefaultCategory} className="rounded-full border border-red-200 px-3 py-1.5 text-sm text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50 dark:border-red-900/70 dark:hover:bg-red-950/30">

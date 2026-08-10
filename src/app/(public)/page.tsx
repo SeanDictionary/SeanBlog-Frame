@@ -118,7 +118,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         {latest.length > 0 ? (
           <div>{latest.map((article) => <ArticleCard key={article.id} article={article} priority={page === 1} />)}</div>
         ) : (
-          <div className="border-t border-border py-12 text-text-secondary">这里还没有文章。</div>
+          <div className="border-border py-12 text-text-secondary">这里还没有文章。</div>
         )}
       </section>
     ),

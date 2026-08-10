@@ -18,6 +18,16 @@
       "envFile": "${workspaceFolder}/.env.local",
       "console": "internalConsole",
       "internalConsoleOptions": "openOnSessionStart"
+    },
+    {
+      "name": "Content: initialize",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/initialize-content.mjs",
+      "cwd": "${workspaceFolder}",
+      "envFile": "${workspaceFolder}/.env.local",
+      "console": "internalConsole",
+      "internalConsoleOptions": "openOnSessionStart"
     }
   ]
 }
