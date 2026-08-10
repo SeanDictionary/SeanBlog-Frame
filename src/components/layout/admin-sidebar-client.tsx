@@ -94,40 +94,42 @@ export function AdminSidebarClient({ navigation, userName, title = 'SeanBlog Adm
 
             if (hasChildren) {
               return (
-                <div key={item.href}>
+                <div key={item.href} className={isCollapsed && isOpen ? 'rounded-xl bg-neutral-100 p-1 dark:bg-neutral-900' : undefined}>
                   <button
                     type="button"
-                    onClick={() => isCollapsed ? setIsCollapsed(false) : toggleGroup(item.href)}
+                    onClick={() => toggleGroup(item.href)}
                     title={isCollapsed ? item.label : undefined}
                     aria-label={isCollapsed ? item.label : undefined}
-                    aria-expanded={isOpen && !isCollapsed}
-                    className={`grid h-9 w-full min-w-0 grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center overflow-hidden rounded-md text-sm transition-colors ${isCollapsed ? 'justify-items-center' : 'pr-3'} ${
+                    aria-expanded={isOpen}
+                    className={`grid h-9 w-full min-w-0 items-center overflow-hidden rounded-md text-sm transition-colors ${isCollapsed ? 'grid-cols-[2.5rem] justify-items-center' : 'grid-cols-[2.5rem_minmax(0,1fr)_auto] pr-3'} ${
                       isActive
                         ? 'bg-neutral-100 text-neutral-950 dark:bg-neutral-900 dark:text-neutral-50'
                         : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-950 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-neutral-50'
-                    }`}
+                    } ${isCollapsed && isOpen ? 'bg-white/70 dark:bg-neutral-950/60' : ''}`}
                   >
                     <i className={`${item.icon} w-4 justify-self-center text-center text-sm`} aria-hidden="true" />
                     {!isCollapsed && <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-left">{item.label}</span>}
                     {!isCollapsed && <i className={`fa-solid fa-chevron-down text-[10px] transition-transform ${isOpen ? 'rotate-180' : ''}`} aria-hidden="true" />}
                   </button>
-                  {!isCollapsed && isOpen && (
-                    <div className="ml-4 mt-1 space-y-1 border-l border-neutral-200 pl-3 dark:border-neutral-800">
+                  {isOpen && (
+                    <div className={isCollapsed ? 'mt-1 grid justify-items-center gap-1' : 'ml-4 mt-1 space-y-1 border-l border-neutral-200 pl-3 dark:border-neutral-800'}>
                       {item.children!.map((child) => {
                         const childActive = pathname === child.href || pathname.startsWith(`${child.href}/`)
                         return (
                           <Link
                             key={child.href}
                             href={child.href}
+                            title={isCollapsed ? child.label : undefined}
+                            aria-label={isCollapsed ? child.label : undefined}
                             aria-current={childActive ? 'page' : undefined}
-                            className={`grid h-8 grid-cols-[1.75rem_minmax(0,1fr)] items-center rounded-md text-sm transition-colors ${
+                            className={`grid items-center rounded-md text-sm transition-colors ${isCollapsed ? 'size-9 justify-items-center' : 'h-8 grid-cols-[1.75rem_minmax(0,1fr)]'} ${
                               childActive
-                                ? 'bg-neutral-100 text-neutral-950 dark:bg-neutral-900 dark:text-neutral-50'
-                                : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-neutral-50'
+                                ? 'bg-white text-neutral-950 shadow-sm dark:bg-neutral-950 dark:text-neutral-50'
+                                : 'text-neutral-500 hover:bg-white hover:text-neutral-950 dark:text-neutral-400 dark:hover:bg-neutral-950 dark:hover:text-neutral-50'
                             }`}
                           >
                             <i className={`${child.icon} justify-self-center text-xs`} aria-hidden="true" />
-                            <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-left">{child.label}</span>
+                            {!isCollapsed && <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-left">{child.label}</span>}
                           </Link>
                         )
                       })}
