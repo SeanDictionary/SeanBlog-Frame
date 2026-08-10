@@ -1107,18 +1107,7 @@ export async function getPublicArticleBySlug(slug: string) {
     throw notFound('Article not found.')
   }
 
-  const detail = await withPublicArticleContent(article)
-
-  try {
-    await getPrisma().article.update({
-      where: { id: article.id },
-      data: { viewCount: { increment: 1 } },
-    })
-  } catch (error) {
-    console.error(`Unable to increment the view count for article ${article.id}.`, error)
-  }
-
-  return detail
+  return withPublicArticleContent(article)
 }
 
 export async function getAdminArticleById(id: string) {

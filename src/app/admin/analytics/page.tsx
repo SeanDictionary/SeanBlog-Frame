@@ -15,7 +15,7 @@ function buildExportHref(filters: { start?: string; end?: string; dimension: str
 export default async function AdminAnalyticsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ start?: string; end?: string; dimension?: string; slug?: string }>
+  searchParams: Promise<{ start?: string; end?: string; dimension?: string; slug?: string; granularity?: string }>
 }) {
   const rawSearchParams = await searchParams
   const query = analyticsQuerySchema.parse(rawSearchParams)
@@ -25,6 +25,7 @@ export default async function AdminAnalyticsPage({
     end: rawSearchParams.end,
     dimension: query.dimension,
     slug: query.slug,
+    granularity: query.granularity,
   }
 
   return (

@@ -217,6 +217,22 @@ export const analyticsQuerySchema = z.object({
   end: optionalDateQuery,
   dimension: z.preprocess(emptyQueryParamToUndefined, z.enum(['all', 'article', 'category', 'tag']).default('all')),
   slug: optionalQueryString,
+  granularity: z.preprocess(emptyQueryParamToUndefined, z.enum(['day', 'week', 'month']).default('day')),
+})
+
+export const analyticsOverviewQuerySchema = z.object({
+  trendRangeDays: z.preprocess(emptyQueryParamToUndefined, z.coerce.number().int().min(1).default(30)),
+  trendGranularity: z.preprocess(emptyQueryParamToUndefined, z.enum(['day', 'week', 'month']).default('day')),
+  articlesRangeDays: z.preprocess(emptyQueryParamToUndefined, z.coerce.number().int().min(1).default(30)),
+  recentRangeDays: z.preprocess(emptyQueryParamToUndefined, z.coerce.number().int().min(1).default(30)),
+  sourcesRangeDays: z.preprocess(emptyQueryParamToUndefined, z.coerce.number().int().min(1).default(30)),
+  systemsRangeDays: z.preprocess(emptyQueryParamToUndefined, z.coerce.number().int().min(1).default(30)),
+})
+
+export const analyticsVisitorQuerySchema = paginationQuerySchema.extend({
+  pageSize: z.preprocess(emptyQueryParamToUndefined, z.coerce.number().int().refine((value) => [20, 50, 100].includes(value)).default(20)),
+  start: optionalDateQuery,
+  end: optionalDateQuery,
 })
 
 export type PublicArticleSort = z.infer<typeof publicArticleSortSchema>
@@ -235,3 +251,4 @@ export type ArticleBulkActionInput = z.infer<typeof articleBulkActionSchema>
 export type ArticleImportInput = z.infer<typeof articleImportSchema>
 export type AnalyticsEventInput = z.infer<typeof analyticsEventSchema>
 export type AnalyticsQuery = z.infer<typeof analyticsQuerySchema>
+export type AnalyticsVisitorQuery = z.infer<typeof analyticsVisitorQuerySchema>

@@ -8,6 +8,10 @@ function getClientIp(request: Request) {
   return request.headers.get('x-real-ip')
 }
 
+function getClientCountry(request: Request) {
+  return request.headers.get('x-vercel-ip-country') ?? request.headers.get('cf-ipcountry') ?? null
+}
+
 export async function POST(request: Request) {
   try {
     const body = await parseJson(request)
@@ -15,6 +19,7 @@ export async function POST(request: Request) {
     const result = await createAnalyticsEvent(input, {
       ipAddress: getClientIp(request),
       userAgent: request.headers.get('user-agent'),
+      country: getClientCountry(request),
     })
 
     return json(result)

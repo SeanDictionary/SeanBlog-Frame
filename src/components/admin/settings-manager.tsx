@@ -61,6 +61,9 @@ const ANALYTICS_CONFIGS: AnalyticsConfig[] = [
   { key: 'analyticsCollectHardware', label: '采集硬件信息摘要', detail: '默认关闭，仅保存摘要字段。', defaultValue: false },
 ]
 
+const ANALYTICS_RETENTION_SETTING_KEY = 'analyticsRetentionDays'
+const DEFAULT_ANALYTICS_RETENTION_DAYS = 180
+
 const EXCLUDED_SETTING_KEYS = new Set([
   'activeTheme',
   'siteName',
@@ -70,6 +73,7 @@ const EXCLUDED_SETTING_KEYS = new Set([
   'commentModerationRules',
   'articleMetaOrder',
   ...ARTICLE_META_CONFIGS.map((item) => item.settingKey),
+  ANALYTICS_RETENTION_SETTING_KEY,
   ...ANALYTICS_CONFIGS.map((item) => item.key),
 ])
 
@@ -118,12 +122,19 @@ function buildAnalyticsSettings(settings: Setting[]) {
   return Object.fromEntries(ANALYTICS_CONFIGS.map((item) => [item.key, getBooleanSetting(settings, item.key, item.defaultValue)])) as Record<string, boolean>
 }
 
+function buildAnalyticsRetentionDays(settings: Setting[]) {
+  const value = getSettingValue(settings, ANALYTICS_RETENTION_SETTING_KEY)
+  const number = typeof value === 'number' ? value : Number(value)
+  return Number.isFinite(number) ? Math.min(3650, Math.max(1, Math.round(number))) : DEFAULT_ANALYTICS_RETENTION_DAYS
+}
+
 export function SettingsManager({ initialSettings }: SettingsManagerProps) {
   const router = useRouter()
   const [settings, setSettings] = useState(initialSettings)
   const [metadataLayout, setMetadataLayout] = useState(() => buildMetadataLayout(initialSettings))
   const [draggedMetaId, setDraggedMetaId] = useState<ArticleMetaItemId | null>(null)
   const [analyticsSettings, setAnalyticsSettings] = useState(() => buildAnalyticsSettings(initialSettings))
+  const [analyticsRetentionDays, setAnalyticsRetentionDays] = useState(() => buildAnalyticsRetentionDays(initialSettings))
   const [message, setMessage] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
@@ -283,8 +294,13 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
       <section className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-950">
         <form action={(formData) => {
           const next = Object.fromEntries(ANALYTICS_CONFIGS.map((item) => [item.key, formData.get(item.key) === 'on'])) as Record<string, boolean>
+          const nextRetentionDays = Math.min(3650, Math.max(1, Number(formData.get(ANALYTICS_RETENTION_SETTING_KEY) ?? DEFAULT_ANALYTICS_RETENTION_DAYS)))
           setAnalyticsSettings(next)
-          saveMany(ANALYTICS_CONFIGS.map((item) => ({ key: item.key, value: next[item.key] })), '已保存访问统计设置。')
+          setAnalyticsRetentionDays(nextRetentionDays)
+          saveMany([
+            ...ANALYTICS_CONFIGS.map((item) => ({ key: item.key, value: next[item.key] })),
+            { key: ANALYTICS_RETENTION_SETTING_KEY, value: nextRetentionDays },
+          ], '已保存访问统计设置。')
         }}>
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
@@ -294,6 +310,11 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
             <button disabled={isPending} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-950">保存统计设置</button>
           </div>
           <div className="mt-5 grid gap-4">
+            <label className="grid gap-1.5 rounded-md border border-neutral-200 p-4 text-sm dark:border-neutral-800">
+              <span className="font-medium">每日明细保留天数</span>
+              <span className="text-xs text-neutral-500">默认 180 天。统计事件永久保留；后台趋势、访客导出和单卡片范围最大不超过该窗口。</span>
+              <input name="analyticsRetentionDays" type="number" min="1" max="3650" value={analyticsRetentionDays} onChange={(event) => setAnalyticsRetentionDays(Number(event.target.value))} className="mt-2 h-10 rounded-md border border-neutral-300 bg-white px-3 dark:border-neutral-700 dark:bg-neutral-900" />
+            </label>
             {ANALYTICS_CONFIGS.map((item) => (
               <label key={item.key} className="flex flex-wrap items-start justify-between gap-3 rounded-md border border-neutral-200 p-4 dark:border-neutral-800">
                 <span>
