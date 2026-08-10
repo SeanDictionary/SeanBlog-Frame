@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
+import { useEffect, useMemo, useState, useTransition } from 'react'
 
 import { createSlugFromTitle } from '@/lib/content/pinyin-slug'
 
@@ -31,11 +31,6 @@ type SlugCheckResponse = {
 type TaxonomyResponse = {
   category?: Taxonomy
   tag?: Taxonomy
-  error?: { message?: string }
-}
-
-type ImportResponse = {
-  items?: Taxonomy[]
   error?: { message?: string }
 }
 
@@ -115,7 +110,6 @@ export function TaxonomyManager({ type, initialItems }: TaxonomyManagerProps) {
   const [message, setMessage] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const [isSlugPending, startSlugTransition] = useTransition()
-  const importInputRef = useRef<HTMLInputElement | null>(null)
   const selectedItem = items.find((item) => item.id === selectedId) ?? null
   const isSelectedDefaultCategory = type === 'categories' && selectedItem?.slug === DEFAULT_CATEGORY_SLUG
   const copy = labels[type]
@@ -362,41 +356,6 @@ export function TaxonomyManager({ type, initialItems }: TaxonomyManagerProps) {
     setMessage(`已导出 ${selected.length} 个${copy.singular}。`)
   }
 
-  function importJson(file: File | null) {
-    if (!file) return
-
-    startTransition(async () => {
-      setMessage(null)
-
-      try {
-        const payload = JSON.parse(await file.text()) as unknown
-        const response = await fetch(`/api/admin/${type}/import`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        })
-        const data = (await response.json()) as ImportResponse
-
-        if (!response.ok || !data.items) {
-          throw new Error(data.error?.message ?? '导入失败。')
-        }
-
-        setItems((previous) => {
-          const byId = new Map(previous.map((item) => [item.id, item]))
-          data.items!.forEach((item) => byId.set(item.id, item))
-          return [...byId.values()].sort((left, right) => left.name.localeCompare(right.name, 'zh-CN'))
-        })
-        setSelectedIds(new Set(data.items.map((item) => item.id)))
-        setSelectedId(data.items.at(0)?.id ?? selectedId)
-        setMessage(`已导入 ${data.items.length} 个${copy.singular}。`)
-      } catch (error) {
-        setMessage(error instanceof Error ? error.message : '导入失败，请确认 JSON 格式正确。')
-      } finally {
-        if (importInputRef.current) importInputRef.current.value = ''
-      }
-    })
-  }
-
   const detailTitle = selectedItem ? `编辑${copy.singular}` : `新建${copy.singular}`
 
   return (
@@ -422,8 +381,6 @@ export function TaxonomyManager({ type, initialItems }: TaxonomyManagerProps) {
                 className="h-10 w-full rounded-lg border border-neutral-300 bg-white px-3 outline-none transition-colors focus:border-blue-600 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-blue-400"
               />
             </label>
-            <input ref={importInputRef} type="file" accept="application/json,.json" onChange={(event) => importJson(event.target.files?.[0] ?? null)} className="hidden" />
-            <button type="button" onClick={() => importInputRef.current?.click()} disabled={isPending} className="rounded-lg border border-neutral-300 px-3 py-2 text-sm transition-colors hover:bg-neutral-100 disabled:opacity-60 dark:border-neutral-700 dark:hover:bg-neutral-900">导入 JSON</button>
           </div>
         </div>
 

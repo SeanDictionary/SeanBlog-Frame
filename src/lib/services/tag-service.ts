@@ -1,12 +1,12 @@
 import { Prisma } from '@prisma/client'
 
-import { badRequest, conflict, notFound } from '@/lib/api/errors'
+import { conflict, notFound } from '@/lib/api/errors'
 import { createSlugFromTitle } from '@/lib/content/pinyin-slug'
 import { isValidSlug, resolveSlug, slugify } from '@/lib/content/slug'
 import { getPrisma } from '@/lib/prisma'
 import { getPublicArticleWhere } from '@/lib/services/article-visibility'
 import { pageMeta, paginate } from '@/lib/services/shared'
-import type { TagInput, TagUpdateInput, TaxonomyImportInput } from '@/lib/validations/cms'
+import type { TagInput, TagUpdateInput } from '@/lib/validations/cms'
 
 function getPublicArticleTagWhere() {
   return {
@@ -202,56 +202,4 @@ export async function deleteTag(id: string) {
 export async function deleteTags(ids: string[]) {
   const result = await getPrisma().tag.deleteMany({ where: { id: { in: ids } } })
   return { deleted: result.count }
-}
-
-export async function importTags(input: TaxonomyImportInput) {
-  if (input.type && input.type !== 'tags') {
-    throw badRequest('Import file type does not match tags.', 'TAXONOMY_IMPORT_TYPE_MISMATCH')
-  }
-
-  const seenNames = new Set<string>()
-  const seenSlugs = new Set<string>()
-  const normalized = input.items.map((item) => {
-    const slug = normalizeTagSlug(item)
-    const nameKey = item.name.toLocaleLowerCase()
-
-    if (seenNames.has(nameKey)) {
-      throw badRequest(`Duplicate tag name in import file: ${item.name}`, 'DUPLICATE_TAXONOMY_NAME')
-    }
-    if (seenSlugs.has(slug)) {
-      throw badRequest(`Duplicate tag slug in import file: ${slug}`, 'DUPLICATE_TAXONOMY_SLUG')
-    }
-
-    seenNames.add(nameKey)
-    seenSlugs.add(slug)
-
-    return {
-      name: item.name,
-      slug,
-      description: item.description,
-    }
-  })
-
-  return getPrisma().$transaction(async (client) => {
-    const existing = await client.tag.findMany({
-      where: {
-        OR: [
-          { name: { in: normalized.map((item) => item.name) } },
-          { slug: { in: normalized.map((item) => item.slug) } },
-        ],
-      },
-      select: { name: true, slug: true },
-    })
-
-    if (existing.length) {
-      throw conflict(`Tag already exists: ${existing.map((item) => item.name || item.slug).join(', ')}`)
-    }
-
-    const created = []
-    for (const item of normalized) {
-      created.push(await client.tag.create({ data: item, include: includeArticleCount() }))
-    }
-
-    return created
-  })
 }

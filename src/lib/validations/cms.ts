@@ -129,17 +129,6 @@ export const taxonomyBulkDeleteSchema = z
   })
   .strict()
 
-export const taxonomyImportSchema = z
-  .object({
-    type: z.enum(['categories', 'tags']).optional(),
-    items: z.array(z.object({
-      name: z.string().trim().min(1).max(80),
-      slug: optionalSlugSchema,
-      description: optionalTrimmedString,
-    }).strict()).min(1).max(100),
-  })
-  .strict()
-
 export const commentInputSchema = z
   .object({
     articleId: z.string().trim().min(1),
@@ -239,7 +228,6 @@ export type CategoryUpdateInput = z.infer<typeof categoryUpdateSchema>
 export type TagInput = z.infer<typeof tagInputSchema>
 export type TagUpdateInput = z.infer<typeof tagUpdateSchema>
 export type TaxonomyBulkDeleteInput = z.infer<typeof taxonomyBulkDeleteSchema>
-export type TaxonomyImportInput = z.infer<typeof taxonomyImportSchema>
 export type CommentInput = z.infer<typeof commentInputSchema>
 export type MediaInput = z.infer<typeof mediaInputSchema>
 export type MarkdownPreviewInput = z.infer<typeof markdownPreviewSchema>
