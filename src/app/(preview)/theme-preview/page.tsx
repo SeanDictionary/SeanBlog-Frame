@@ -18,10 +18,18 @@ import { listPublicArticles, getPublicArticleBySlug, getPublicArticleNavigation 
 import { getSiteSettingsMap } from '@/lib/services/setting-service'
 import { normalizeThemeName, readThemeCss, readThemeManifest, readThemePart, readThemeTemplate } from '@/lib/theme'
 import { orderThemeSlots } from '@/lib/theme-slots'
+import { publicArticleSortSchema, type PublicArticleSort } from '@/lib/validations/cms'
 
 type ThemePreviewPageProps = {
-  searchParams: Promise<{ theme?: string; page?: string; slug?: string }>
+  searchParams: Promise<{ theme?: string; page?: string; slug?: string; sort?: string }>
 }
+
+const sortOptions = [
+  { value: 'publishedAt', label: '发布时间' },
+  { value: 'updatedAt', label: '更新时间' },
+  { value: 'viewCount', label: '浏览量' },
+  { value: 'commentCount', label: '评论数' },
+] satisfies Array<{ value: PublicArticleSort; label: string }>
 
 function stripHtml(value: string) {
   return value.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim()
@@ -64,6 +72,17 @@ function normalizeArticleMetaOrder(value: unknown) {
   return [...ordered, ...ARTICLE_META_ITEM_IDS.filter((item) => !orderedSet.has(item))]
 }
 
+function sortHref(themeSlug: string, sort: PublicArticleSort): Route {
+  const params = new URLSearchParams({ theme: themeSlug, page: 'home' })
+  if (sort !== 'publishedAt') params.set('sort', sort)
+  return `/theme-preview?${params.toString()}` as Route
+}
+
+function parseSort(value: string | undefined): PublicArticleSort {
+  const result = publicArticleSortSchema.safeParse(value)
+  return result.success ? result.data : 'publishedAt'
+}
+
 async function buildThemeOptionsCss(themeSlug: string, settings: Record<string, unknown>) {
   const manifest = await readThemeManifest(themeSlug).catch(() => null)
   if (!manifest?.settingsSchema?.length) return null
@@ -80,13 +99,14 @@ async function buildThemeOptionsCss(themeSlug: string, settings: Record<string, 
   return variables.length ? `:root{${variables.join(';')}}` : null
 }
 
-async function renderPreviewHome(themeSlug: string, settings: Record<string, unknown>) {
-  const result = await listPublicArticles({ page: 1, pageSize: 12, sort: 'publishedAt' })
+async function renderPreviewHome(themeSlug: string, settings: Record<string, unknown>, sort: PublicArticleSort) {
+  const result = await listPublicArticles({ page: 1, pageSize: 12, sort })
   const template = await readThemeTemplate(themeSlug, 'home')
   const siteName = typeof settings.siteName === 'string' ? settings.siteName : 'SeanBlog'
   const siteDescription = typeof settings.siteDescription === 'string' ? settings.siteDescription : ''
-  const pinned = result.items.filter((article) => article.isPinned)
-  const latest = result.items.filter((article) => !article.isPinned)
+  const pinned = sort === 'publishedAt' ? result.items.filter((article) => article.isPinned) : []
+  const latest = sort === 'publishedAt' ? result.items.filter((article) => !article.isPinned) : result.items
+  const currentSortLabel = sortOptions.find((option) => option.value === sort)?.label ?? '发布时间'
   const slotContent: Record<string, ReactNode> = {
     'site-intro': (
       <header className="mb-14 border-b border-border pb-10">
@@ -107,8 +127,16 @@ async function renderPreviewHome(themeSlug: string, settings: Record<string, unk
     'article-list': (
       <section aria-labelledby="latest-articles-heading">
         <div className="mb-2 flex items-baseline justify-between">
-          <h2 id="latest-articles-heading" className="font-mono text-xs uppercase tracking-[0.18em] text-text-tertiary">发布时间</h2>
-          <span className="text-xs text-text-tertiary">共 {result.meta.total} 篇</span>
+          <h2 id="latest-articles-heading" className="font-mono text-xs uppercase tracking-[0.18em] text-text-tertiary">{currentSortLabel}</h2>
+          <div className="flex flex-wrap items-center justify-end gap-2 text-xs text-text-tertiary">
+            <span>共 {result.meta.total} 篇</span>
+            <span aria-hidden="true">·</span>
+            <nav className="flex flex-wrap items-center gap-2" aria-label="首页文章排序">
+              {sortOptions.map((option) => (
+                <a key={option.value} href={sortHref(themeSlug, option.value)} aria-current={option.value === sort ? 'true' : undefined} className={`rounded-full border px-2.5 py-1 transition-colors ${option.value === sort ? 'border-accent bg-accent/10 text-accent' : 'border-border hover:border-accent hover:text-accent'}`}>{option.label}</a>
+              ))}
+            </nav>
+          </div>
         </div>
         {latest.length > 0 ? <div>{latest.map((article) => <ArticleCard key={article.id} article={article} priority />)}</div> : <div className="border-border py-12 text-text-secondary">这里还没有文章。</div>}
       </section>
@@ -202,7 +230,7 @@ export default async function ThemePreviewPage({ searchParams }: ThemePreviewPag
   const showFooter = footerPart?.blocks?.includes('SiteFooter') ?? true
   const content = page === 'article'
     ? await renderPreviewArticle(themeSlug, settings, params.slug)
-    : await renderPreviewHome(themeSlug, settings)
+    : await renderPreviewHome(themeSlug, settings, parseSort(params.sort))
 
   return (
     <div className="flex min-h-screen flex-col bg-bg text-text">
