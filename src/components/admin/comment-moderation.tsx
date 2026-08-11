@@ -28,14 +28,39 @@ const actionCopy: Record<CommentAction, { idle: string; pending: string; success
   DELETE: { idle: '彻底删除', pending: '正在删除…', success: '已彻底删除评论。' },
 }
 
+type BulkAction = Comment['status'] | 'DELETE'
+
+const bulkActions: Array<{ status: BulkAction; label: string; confirm?: string }> = [
+  { status: 'APPROVED', label: '批量通过' },
+  { status: 'SPAM', label: '批量标记垃圾' },
+  { status: 'PENDING', label: '批量恢复待审核' },
+  { status: 'TRASHED', label: '批量移至回收站', confirm: '确认将选中的评论移至回收站吗？' },
+  { status: 'DELETE', label: '批量彻底删除', confirm: '确认彻底删除选中的评论吗？该操作不可撤销。' },
+]
+
 export function CommentModeration({ initialComments, emptyMessage = '当前没有评论。' }: CommentModerationProps) {
   const [comments, setComments] = useState(initialComments)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [message, setMessage] = useState<string | null>(null)
   const [activeAction, setActiveAction] = useState<{ id: string; action: CommentAction } | null>(null)
+  const [activeBulkAction, setActiveBulkAction] = useState<BulkAction | null>(null)
   const [isPending, startTransition] = useTransition()
+  const allSelected = comments.length > 0 && selectedIds.length === comments.length
 
   function isActionPending(id: string, action: CommentAction) {
     return activeAction?.id === id && activeAction.action === action
+  }
+
+  function toggleSelected(id: string) {
+    setSelectedIds((previous) => previous.includes(id) ? previous.filter((item) => item !== id) : [...previous, id])
+  }
+
+  function toggleAll(checked: boolean) {
+    setSelectedIds(checked ? comments.map((comment) => comment.id) : [])
+  }
+
+  function updateLocalComments(ids: string[], status: Comment['status']) {
+    setComments((previous) => previous.map((comment) => ids.includes(comment.id) ? { ...comment, status, isSpam: status === 'SPAM' } : comment))
   }
 
   function update(id: string, status: Comment['status']) {
@@ -61,6 +86,42 @@ export function CommentModeration({ initialComments, emptyMessage = '当前没�
     })
   }
 
+  function updateSelected(status: BulkAction) {
+    if (selectedIds.length === 0) return
+
+    const action = bulkActions.find((item) => item.status === status)
+    if (action?.confirm && !window.confirm(action.confirm)) return
+
+    const ids = [...selectedIds]
+    setMessage(null)
+    setActiveBulkAction(status)
+
+    startTransition(async () => {
+      try {
+        const response = await fetch('/api/admin/comments/bulk', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids, status }),
+        })
+        const data = (await response.json()) as { count?: number; error?: { message?: string } }
+        if (!response.ok) throw new Error(data.error?.message ?? '批量操作失败。')
+
+        const count = data.count ?? ids.length
+        if (status === 'DELETE') {
+          setComments((previous) => previous.filter((comment) => !ids.includes(comment.id)))
+        } else {
+          updateLocalComments(ids, status)
+        }
+        setSelectedIds([])
+        setMessage(`已${action?.label.replace('批量', '') ?? '处理'} ${count} 条评论。`)
+      } catch (error) {
+        setMessage(error instanceof Error ? error.message : '批量操作失败。')
+      } finally {
+        setActiveBulkAction(null)
+      }
+    })
+  }
+
   function purge(id: string) {
     if (!window.confirm('确认彻底删除这条评论吗？该操作不可撤销。')) return
 
@@ -72,6 +133,7 @@ export function CommentModeration({ initialComments, emptyMessage = '当前没�
         const response = await fetch(`/api/admin/comments/${id}`, { method: 'DELETE' })
         if (!response.ok) throw new Error('删除失败。')
         setComments((previous) => previous.filter((comment) => comment.id !== id))
+        setSelectedIds((previous) => previous.filter((item) => item !== id))
         setMessage(actionCopy.DELETE.success)
       } catch (error) {
         setMessage(error instanceof Error ? error.message : '删除失败。')
@@ -83,9 +145,38 @@ export function CommentModeration({ initialComments, emptyMessage = '当前没�
 
   return (
     <div className="space-y-4">
+      {comments.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-white p-4 text-sm dark:border-neutral-800 dark:bg-neutral-950">
+          <label className="inline-flex items-center gap-2 font-medium">
+            <input type="checkbox" checked={allSelected} onChange={(event) => toggleAll(event.target.checked)} />
+            全选当前 {comments.length} 条
+          </label>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-neutral-500">已选 {selectedIds.length} 条</span>
+            {bulkActions.map((action) => (
+              <button
+                key={action.status}
+                type="button"
+                disabled={isPending || selectedIds.length === 0}
+                onClick={() => updateSelected(action.status)}
+                className="rounded-md border border-neutral-300 px-3 py-1.5 text-neutral-700 disabled:opacity-50 dark:border-neutral-700 dark:text-neutral-200"
+              >
+                {activeBulkAction === action.status ? '处理中…' : action.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {comments.length > 0 ? comments.map((comment) => (
-        <article key={comment.id} className="rounded-lg border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-950">
-          <header className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-medium">{comment.guestName || '访客'} <span className="font-normal text-neutral-500">{comment.guestEmail}</span></p><p className="mt-1 text-xs text-neutral-500">{comment.article?.title ?? '已删除文章'} · {comment.createdAt.toLocaleString('zh-CN')}</p></div><StatusBadge status={comment.status} /></header>
+        <article key={comment.id} className={`rounded-lg border bg-white p-5 dark:bg-neutral-950 ${selectedIds.includes(comment.id) ? 'border-blue-500 ring-2 ring-blue-100 dark:ring-blue-950' : 'border-neutral-200 dark:border-neutral-800'}`}>
+          <header className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <input type="checkbox" checked={selectedIds.includes(comment.id)} onChange={() => toggleSelected(comment.id)} aria-label="选择评论" className="mt-1" />
+              <div><p className="font-medium">{comment.guestName || '访客'} <span className="font-normal text-neutral-500">{comment.guestEmail}</span></p><p className="mt-1 text-xs text-neutral-500">{comment.article?.title ?? '已删除文章'} · {comment.createdAt.toLocaleString('zh-CN')}</p></div>
+            </div>
+            <StatusBadge status={comment.status} />
+          </header>
           <p className="mt-4 whitespace-pre-wrap leading-7 text-neutral-700 dark:text-neutral-300">{comment.content}</p>
           <footer className="mt-5 flex flex-wrap gap-3 text-sm" aria-busy={activeAction?.id === comment.id}>
             <ActionButton action="APPROVED" pending={isActionPending(comment.id, 'APPROVED')} disabled={isPending} onClick={() => update(comment.id, 'APPROVED')} className="text-green-700 dark:text-green-400" />

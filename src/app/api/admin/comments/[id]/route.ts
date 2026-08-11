@@ -1,7 +1,7 @@
-import { handleApiError, json, parseJson } from '@/lib/api/response'
+import { handleApiError, json, noContent, parseJson } from '@/lib/api/response'
 import { requireSameOriginRequest } from '@/lib/api/request-guard'
 import { requireAdmin } from '@/lib/auth.utils'
-import { moderateComment, trashComment } from '@/lib/services/comment-service'
+import { deleteComment, moderateComment } from '@/lib/services/comment-service'
 import { commentModerationSchema } from '@/lib/validations/cms'
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -25,9 +25,9 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     requireSameOriginRequest(request)
 
     const { id } = await params
-    const comment = await trashComment(id)
+    await deleteComment(id)
 
-    return json({ comment })
+    return noContent()
   } catch (error) {
     return handleApiError(error)
   }

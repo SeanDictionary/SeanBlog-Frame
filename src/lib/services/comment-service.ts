@@ -173,6 +173,38 @@ export async function moderateComment(id: string, input: { status: CommentStatus
   }
 }
 
+export async function moderateCommentsBulk(input: { ids: string[]; status: CommentStatus | 'DELETE' }) {
+  if (input.status === 'DELETE') {
+    const result = await getPrisma().comment.deleteMany({
+      where: { id: { in: input.ids } },
+    })
+
+    return { count: result.count }
+  }
+
+  const result = await getPrisma().comment.updateMany({
+    where: { id: { in: input.ids } },
+    data: {
+      status: input.status,
+      isSpam: input.status === CommentStatus.SPAM,
+    },
+  })
+
+  return { count: result.count }
+}
+
+export async function deleteComment(id: string) {
+  try {
+    await getPrisma().comment.delete({ where: { id } })
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      throw notFound('Comment not found.')
+    }
+
+    throw error
+  }
+}
+
 export async function trashComment(id: string) {
   return moderateComment(id, {
     status: CommentStatus.TRASHED,

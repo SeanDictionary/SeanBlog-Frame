@@ -156,6 +156,13 @@ export const commentModerationSchema = z
   })
   .strict()
 
+export const commentBulkActionSchema = z
+  .object({
+    ids: z.array(z.string().trim().min(1)).min(1).max(100),
+    status: z.union([z.nativeEnum(CommentStatus), z.literal('DELETE')]),
+  })
+  .strict()
+
 export const mediaInputSchema = z
   .object({
     filename: z.string().trim().min(1).max(255),
