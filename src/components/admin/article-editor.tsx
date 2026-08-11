@@ -880,7 +880,7 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
             required
             maxLength={200}
             placeholder="文章标题"
-            className="w-full border-0 bg-transparent px-0 text-4xl font-semibold tracking-tight text-neutral-950 outline-none placeholder:text-neutral-300 focus:ring-0 dark:text-neutral-50 dark:placeholder:text-neutral-700 sm:text-5xl lg:text-6xl"
+            className="w-full border-0 bg-transparent px-0 text-4xl font-semibold tracking-tight text-neutral-950 outline-none placeholder:text-neutral-300 focus:ring-0 dark:text-neutral-50 dark:placeholder:text-neutral-700 lg:text-5xl"
           />
 
           <div className="mt-5 flex flex-wrap items-center gap-3 text-sm text-neutral-500" role="status">
