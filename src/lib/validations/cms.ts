@@ -47,6 +47,11 @@ const settingValueSchema = z
   .union([z.string(), z.number(), z.boolean(), z.record(z.string(), z.unknown()), z.array(z.unknown())])
   .refine((value) => JSON.stringify(value).length <= 100_000, 'Setting value must not exceed 100 KB when serialized.')
 
+const optionalEmailString = z.preprocess(
+  (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+  z.string().trim().email().nullable().optional(),
+)
+
 export const paginationQuerySchema = z.object({
   page: queryPage,
   pageSize: queryPageSize,
@@ -134,7 +139,7 @@ export const commentInputSchema = z
     articleId: z.string().trim().min(1),
     content: z.string().trim().min(1).max(5000),
     guestName: optionalTrimmedString,
-    guestEmail: z.string().trim().email().nullable().optional(),
+    guestEmail: optionalEmailString,
     parentId: optionalTrimmedString,
   })
   .strict()

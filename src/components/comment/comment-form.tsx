@@ -14,6 +14,9 @@ export function CommentForm({ articleId, parentId, onCancel }: CommentFormProps)
 
   function submit(formData: FormData) {
     setMessage(null)
+    const content = String(formData.get('content') ?? '').trim()
+    const guestName = String(formData.get('guestName') ?? '').trim()
+    const guestEmail = String(formData.get('guestEmail') ?? '').trim()
 
     startTransition(async () => {
       try {
@@ -22,10 +25,10 @@ export function CommentForm({ articleId, parentId, onCancel }: CommentFormProps)
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             articleId,
-            parentId,
-            content: formData.get('content'),
-            guestName: formData.get('guestName') || undefined,
-            guestEmail: formData.get('guestEmail') || undefined,
+            ...(parentId ? { parentId } : {}),
+            content,
+            ...(guestName ? { guestName } : {}),
+            ...(guestEmail ? { guestEmail } : {}),
           }),
         })
 
