@@ -13,22 +13,6 @@ type CommentModerationRulesManagerProps = {
   initialRules: CommentModerationRules
 }
 
-function describeRule(rules: CommentModerationRules) {
-  if (rules.blacklist.length === 0 && !rules.autoApprove) {
-    return '当前不会过滤黑名单，新评论默认进入待审核。'
-  }
-
-  if (rules.blacklist.length === 0 && rules.autoApprove) {
-    return '当前没有黑名单过滤，新评论会默认通过。'
-  }
-
-  if (rules.autoApprove) {
-    return '当前会先用黑名单标记垃圾评论，其余新评论默认通过。'
-  }
-
-  return '当前会先用黑名单标记垃圾评论，其余新评论进入待审核。'
-}
-
 export function CommentModerationRulesManager({ initialRules }: CommentModerationRulesManagerProps) {
   const [rules, setRules] = useState(initialRules)
   const [message, setMessage] = useState<string | null>(null)
@@ -71,34 +55,25 @@ export function CommentModerationRulesManager({ initialRules }: CommentModeratio
   return (
     <section className="mb-7 rounded-lg border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-950">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2 className="font-semibold">自动审批规则</h2>
-          <p className="mt-1 text-sm text-neutral-500">黑名单为空时不做黑名单过滤；黑名单不为空时，命中关键词的新评论会标记为垃圾，其余评论默认待审核。开启“默认通过”后，其余评论会自动通过。</p>
-        </div>
+        <h2 className="font-semibold">黑名单自动审批</h2>
         {message && <p className="text-sm text-neutral-500" role="status">{message}</p>}
       </div>
 
       <form action={save} className="mt-5 grid gap-4">
-        <div className="rounded-md border border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-600 dark:border-neutral-800 dark:bg-neutral-900/60 dark:text-neutral-300">
-          {describeRule(rules)}
-        </div>
         <label className="inline-flex items-start gap-2 text-sm font-medium">
           <input name="autoApprove" type="checkbox" defaultChecked={rules.autoApprove} className="mt-0.5" />
           <span>
-            <span className="block">默认通过评论</span>
-            <span className="mt-1 block text-xs font-normal text-neutral-500">开启后，未被黑名单标记为垃圾的新评论会直接通过；如果黑名单为空，则所有新评论都会通过。</span>
+            <span className="block">默认通过未命中评论</span>
           </span>
         </label>
         <label className="grid gap-1.5 text-sm font-medium">
-          黑名单关键词
           <textarea
             name="blacklist"
             defaultValue={rules.blacklist.join('\n')}
             rows={4}
-            placeholder="每行一个关键词，例如：垃圾广告"
+            placeholder="换行分隔多个关键词，支持正则表达式，同时匹配评论内容、昵称和邮箱"
             className="rounded-md border border-neutral-300 bg-white p-3 font-normal leading-6 outline-none focus:border-blue-600 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-blue-400"
           />
-          <span className="text-xs font-normal text-neutral-500">会同时匹配评论内容、昵称和邮箱；也支持用逗号分隔。留空时不进行黑名单过滤。</span>
         </label>
         <div>
           <button disabled={isPending} type="submit" className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950">
