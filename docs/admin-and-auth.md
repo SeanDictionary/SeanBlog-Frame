@@ -193,6 +193,7 @@ export async function isAdminAuthenticated() {
 | `/admin/categories` | 已登录管理员 | 分类管理 |
 | `/admin/tags` | 已登录管理员 | 标签管理 |
 | `/admin/comments` | 已登录管理员 | 评论审核（Phase 2） |
+| `/admin/logs` | 已登录管理员 | 操作日志与 CSV 导出 |
 | `/admin/settings` | 已登录管理员 | 站点设置（Phase 2） |
 
 ## 9. 安全考量
@@ -204,3 +205,4 @@ export async function isAdminAuthenticated() {
 - 生产环境强制 HTTPS，Cookie 设置 `secure: true`
 - 登录和评论接口做速率限制（Phase 3 引入 Redis rate limiting）
 - 游客评论记录 IP 和 User-Agent 用于反垃圾
+- 关键前后台写操作写入 `OperationLog`，后台 `/admin/logs` 可按模块/结果/关键词查看并导出 CSV，便于审计与排查

@@ -1,4 +1,4 @@
-import { ArticleStatus, CommentStatus } from '@prisma/client'
+import { ArticleStatus, CommentStatus, OperationLogResult } from '@prisma/client'
 import { z } from 'zod'
 
 import { ARTICLE_COMMENTS_MODES } from '@/lib/comment-settings'
@@ -253,6 +253,13 @@ export const analyticsVisitorQuerySchema = paginationQuerySchema.extend({
   end: optionalDateQuery,
 })
 
+export const operationLogQuerySchema = paginationQuerySchema.extend({
+  pageSize: z.preprocess(emptyQueryParamToUndefined, z.coerce.number().int().refine((value) => [20, 50, 100].includes(value)).default(20)),
+  module: optionalQueryString,
+  result: z.preprocess(emptyQueryParamToUndefined, z.nativeEnum(OperationLogResult).optional()),
+  q: optionalQueryString,
+})
+
 export type PublicArticleSort = z.infer<typeof publicArticleSortSchema>
 export type AdminArticleSort = z.infer<typeof adminArticleSortSchema>
 export type ArticleInput = z.infer<typeof articleInputSchema>
@@ -270,3 +277,4 @@ export type ArticleImportInput = z.infer<typeof articleImportSchema>
 export type AnalyticsEventInput = z.infer<typeof analyticsEventSchema>
 export type AnalyticsQuery = z.infer<typeof analyticsQuerySchema>
 export type AnalyticsVisitorQuery = z.infer<typeof analyticsVisitorQuerySchema>
+export type OperationLogQuery = z.infer<typeof operationLogQuerySchema>

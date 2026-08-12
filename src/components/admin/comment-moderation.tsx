@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
+
+import { useAdminToast } from '@/components/admin/admin-toast-provider'
 
 type Comment = {
   id: string
@@ -22,8 +24,8 @@ type CommentAction = Comment['status'] | 'DELETE'
 
 const actionCopy: Record<CommentAction, { idle: string; pending: string; success: string }> = {
   APPROVED: { idle: '通过', pending: '正在通过…', success: '已通过评论。' },
-  SPAM: { idle: '标记垃圾', pending: '正在标记…', success: '已标记为垃圾评论。' },
-  TRASHED: { idle: '移至回收站', pending: '正在移至回收站…', success: '已移至回收站。' },
+  SPAM: { idle: '垃圾', pending: '正在标记…', success: '已标记为垃圾评论。' },
+  TRASHED: { idle: '回收站', pending: '正在移至回收站…', success: '已移至回收站。' },
   PENDING: { idle: '待审核', pending: '正在恢复…', success: '已恢复为待审核。' },
   DELETE: { idle: '彻底删除', pending: '正在删除…', success: '已彻底删除评论。' },
 }
@@ -33,19 +35,26 @@ type BulkAction = Comment['status'] | 'DELETE'
 const bulkActions: Array<{ status: BulkAction; label: string; confirm?: string }> = [
   { status: 'APPROVED', label: '批量通过' },
   { status: 'SPAM', label: '批量标记垃圾' },
-  { status: 'PENDING', label: '批量恢复待审核' },
+  { status: 'PENDING', label: '批量待审核' },
   { status: 'TRASHED', label: '批量移至回收站', confirm: '确认将选中的评论移至回收站吗？' },
-  { status: 'DELETE', label: '批量彻底删除', confirm: '确认彻底删除选中的评论吗？该操作不可撤销。' },
+  { status: 'DELETE', label: '批量删除', confirm: '确认删除选中的评论吗？该操作不可撤销。' },
 ]
 
 export function CommentModeration({ initialComments, emptyMessage = '当前没有评论。' }: CommentModerationProps) {
   const [comments, setComments] = useState(initialComments)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
-  const [message, setMessage] = useState<string | null>(null)
   const [activeAction, setActiveAction] = useState<{ id: string; action: CommentAction } | null>(null)
   const [activeBulkAction, setActiveBulkAction] = useState<BulkAction | null>(null)
   const [isPending, startTransition] = useTransition()
+  const toast = useAdminToast()
   const allSelected = comments.length > 0 && selectedIds.length === comments.length
+
+  useEffect(() => {
+    setComments(initialComments)
+    setSelectedIds([])
+    setActiveAction(null)
+    setActiveBulkAction(null)
+  }, [initialComments])
 
   function isActionPending(id: string, action: CommentAction) {
     return activeAction?.id === id && activeAction.action === action
@@ -64,7 +73,6 @@ export function CommentModeration({ initialComments, emptyMessage = '当前没�
   }
 
   function update(id: string, status: Comment['status']) {
-    setMessage(null)
     setActiveAction({ id, action: status })
 
     startTransition(async () => {
@@ -77,9 +85,9 @@ export function CommentModeration({ initialComments, emptyMessage = '当前没�
         const data = (await response.json()) as { comment?: Partial<Comment>; error?: { message?: string } }
         if (!response.ok || !data.comment) throw new Error(data.error?.message ?? '更新失败。')
         setComments((previous) => previous.map((comment) => comment.id === id ? { ...comment, ...data.comment } : comment))
-        setMessage(actionCopy[status].success)
+        toast.success(actionCopy[status].success)
       } catch (error) {
-        setMessage(error instanceof Error ? error.message : '更新失败。')
+        toast.error(error instanceof Error ? error.message : '更新失败。')
       } finally {
         setActiveAction(null)
       }
@@ -93,7 +101,6 @@ export function CommentModeration({ initialComments, emptyMessage = '当前没�
     if (action?.confirm && !window.confirm(action.confirm)) return
 
     const ids = [...selectedIds]
-    setMessage(null)
     setActiveBulkAction(status)
 
     startTransition(async () => {
@@ -113,32 +120,11 @@ export function CommentModeration({ initialComments, emptyMessage = '当前没�
           updateLocalComments(ids, status)
         }
         setSelectedIds([])
-        setMessage(`已${action?.label.replace('批量', '') ?? '处理'} ${count} 条评论。`)
+        toast.success(`已${action?.label.replace('批量', '') ?? '处理'} ${count} 条评论。`)
       } catch (error) {
-        setMessage(error instanceof Error ? error.message : '批量操作失败。')
+        toast.error(error instanceof Error ? error.message : '批量操作失败。')
       } finally {
         setActiveBulkAction(null)
-      }
-    })
-  }
-
-  function purge(id: string) {
-    if (!window.confirm('确认彻底删除这条评论吗？该操作不可撤销。')) return
-
-    setMessage(null)
-    setActiveAction({ id, action: 'DELETE' })
-
-    startTransition(async () => {
-      try {
-        const response = await fetch(`/api/admin/comments/${id}`, { method: 'DELETE' })
-        if (!response.ok) throw new Error('删除失败。')
-        setComments((previous) => previous.filter((comment) => comment.id !== id))
-        setSelectedIds((previous) => previous.filter((item) => item !== id))
-        setMessage(actionCopy.DELETE.success)
-      } catch (error) {
-        setMessage(error instanceof Error ? error.message : '删除失败。')
-      } finally {
-        setActiveAction(null)
       }
     })
   }
@@ -158,7 +144,7 @@ export function CommentModeration({ initialComments, emptyMessage = '当前没�
                 type="button"
                 disabled={isPending || selectedIds.length === 0}
                 onClick={() => updateSelected(action.status)}
-                className="rounded-md border border-neutral-300 px-3 py-1.5 text-neutral-700 disabled:opacity-50 dark:border-neutral-700 dark:text-neutral-200"
+                className={action.status === 'DELETE' ? 'rounded-md border border-red-200 px-3 py-1.5 text-sm text-red-600 disabled:opacity-50 dark:border-red-900/70' : 'rounded-md border border-neutral-300 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-neutral-700'}
               >
                 {activeBulkAction === action.status ? '处理中…' : action.label}
               </button>
@@ -210,14 +196,12 @@ export function CommentModeration({ initialComments, emptyMessage = '当前没�
                           <div className="flex flex-col items-start gap-4 lg:items-end">
                             <StatusBadge status={comment.status} />
                             <div className="flex shrink-0 flex-wrap justify-end gap-2" onClick={(event) => event.stopPropagation()}>
-
-                              {
-                                comment.status === 'APPROVED'
-                                  ? <ActionButton action="PENDING" pending={isActionPending(comment.id, 'PENDING')} disabled={isPending} onClick={() => update(comment.id, 'PENDING')} className="" />
-                                  : <ActionButton action="APPROVED" pending={isActionPending(comment.id, 'APPROVED')} disabled={isPending} onClick={() => update(comment.id, 'APPROVED')} className="" />
-                              }
-                              <ActionButton action="SPAM" pending={isActionPending(comment.id, 'SPAM')} disabled={isPending} onClick={() => update(comment.id, 'SPAM')} className="" />
-                              <ActionButton action="TRASHED" pending={isActionPending(comment.id, 'TRASHED')} disabled={isPending} onClick={() => update(comment.id, 'TRASHED')} className="" />
+                              <ActionButtonList
+                                status={comment.status}
+                                pendingAction={(action) => isActionPending(comment.id, action)}
+                                disabled={isPending}
+                                onAction={(action) => update(comment.id, action)}
+                              />
                             </div>
                           </div>
                         </div>
@@ -230,8 +214,34 @@ export function CommentModeration({ initialComments, emptyMessage = '当前没�
           </div>
         </div>
       ) : <div className="rounded-lg border border-dashed border-neutral-300 px-5 py-16 text-center text-sm text-neutral-500 dark:border-neutral-700">{emptyMessage}</div>}
-      {message && <p className="text-sm text-neutral-500" role="status">{message}</p>}
     </div>
+  )
+}
+
+const commentActionsByStatus = {
+  PENDING: ['APPROVED', 'SPAM', 'TRASHED'],
+  APPROVED: ['PENDING', 'SPAM', 'TRASHED'],
+  SPAM: ['APPROVED', 'PENDING', 'TRASHED'],
+  TRASHED: ['APPROVED', 'PENDING', 'SPAM'],
+} satisfies Record<Comment['status'], Comment['status'][]>
+
+function ActionButtonList({
+  status,
+  pendingAction,
+  disabled,
+  onAction,
+}: {
+  status: Comment['status']
+  pendingAction: (action: Comment['status']) => boolean
+  disabled: boolean
+  onAction: (action: Comment['status']) => void
+}) {
+  return (
+    <>
+      {commentActionsByStatus[status].map((action) => (
+        <ActionButton key={action} action={action} pending={pendingAction(action)} disabled={disabled} onClick={() => onAction(action)} className="" />
+      ))}
+    </>
   )
 }
 

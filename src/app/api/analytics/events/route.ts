@@ -1,5 +1,6 @@
 import { handleApiError, json, parseJson } from '@/lib/api/response'
 import { createAnalyticsEvent } from '@/lib/services/analytics-service'
+import { recordOperation } from '@/lib/services/operation-log-service'
 import { analyticsEventSchema } from '@/lib/validations/cms'
 
 function getClientIp(request: Request) {
@@ -16,11 +17,20 @@ export async function POST(request: Request) {
   try {
     const body = await parseJson(request)
     const input = analyticsEventSchema.parse(body)
-    const result = await createAnalyticsEvent(input, {
+    const result = await recordOperation({
+      actor: { type: 'visitor' },
+      module: 'analytics',
+      action: 'track-event',
+      targetType: input.contentType,
+      summary: `记录访问事件：${input.path}`,
+      failureSummary: `记录访问事件失败：${input.path}`,
+      metadata: { path: input.path, contentType: input.contentType, slug: input.slug },
+      request,
+    }, () => createAnalyticsEvent(input, {
       ipAddress: getClientIp(request),
       userAgent: request.headers.get('user-agent'),
       country: getClientCountry(request),
-    })
+    }))
 
     return json(result)
   } catch (error) {

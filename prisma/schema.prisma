@@ -192,3 +192,35 @@ model AnalyticsEvent {
   @@index([contentType, createdAt])
   @@index([visitorHash])
 }
+
+enum OperationLogResult {
+  SUCCESS
+  FAILURE
+}
+
+model OperationLog {
+  id           String             @id @default(cuid())
+  actorId      String?
+  actorName    String?
+  actorType    String
+  module       String
+  action       String
+  targetType   String?
+  targetId     String?
+  summary      String
+  result       OperationLogResult
+  errorCode    String?
+  errorMessage String?
+  metadata     Json?
+  ipAddress    String?
+  userAgent    String?
+  method       String?
+  path         String?
+  createdAt    DateTime           @default(now())
+
+  @@index([createdAt])
+  @@index([result, createdAt])
+  @@index([module, createdAt])
+  @@index([actorType, createdAt])
+  @@index([targetType, targetId])
+}

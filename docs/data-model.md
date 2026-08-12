@@ -310,6 +310,37 @@ model AnalyticsEvent {
 - 后台统计页包含“总览”和“访客统计”子页：总览按天/周/月展示趋势、Top 文章、最近访问、分段访问量、来源地区和系统统计；访客统计按访问记录分页展示并支持 CSV 导出
 - `analyticsRetentionDays` 站点设置控制后台每日明细、单卡片范围和访客导出的最大时间窗口，默认 180 天
 
+### 4.6 OperationLog（操作日志）
+
+```prisma
+model OperationLog {
+  id           String             @id @default(cuid())
+  actorId      String?
+  actorName    String?
+  actorType    String
+  module       String
+  action       String
+  targetType   String?
+  targetId     String?
+  summary      String
+  result       OperationLogResult
+  errorCode    String?
+  errorMessage String?
+  metadata     Json?
+  ipAddress    String?
+  userAgent    String?
+  method       String?
+  path         String?
+  createdAt    DateTime           @default(now())
+}
+```
+
+说明：
+
+- 操作日志记录后台新增、编辑、删除、批量处理、导入导出、主题安装/删除、设置保存，以及前台评论提交和访问统计写入等关键写操作
+- 日志保存操作时间、操作人、模块、动作、对象、摘要、成功/失败结果、错误代码、错误信息、请求路径、IP、User-Agent 和结构化 metadata
+- 后台 `/admin/logs` 支持按关键词、模块、结果筛选，并通过 `/api/admin/logs/export` 导出 CSV
+
 ## 5. 索引策略总结
 
 | 表 | 索引字段 | 用途 |
@@ -327,6 +358,11 @@ model AnalyticsEvent {
 | Comment | `guestEmail` | 反垃圾查询 |
 | ArticleRevision | `articleId, version` | 文章版本历史查询 |
 | Media | `createdAt` | 媒体库时间排序 |
+| OperationLog | `createdAt` | 操作日志倒序展示与导出 |
+| OperationLog | `result, createdAt` | 按成功/失败筛选日志 |
+| OperationLog | `module, createdAt` | 按功能模块筛选日志 |
+| OperationLog | `actorType, createdAt` | 区分管理员、访客、系统操作 |
+| OperationLog | `targetType, targetId` | 追踪具体操作对象 |
 
 ## 6. 迁移与版本管理
 

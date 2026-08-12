@@ -3,6 +3,7 @@ import type { Session } from 'next-auth'
 
 import { getSiteSettingsMap } from '@/lib/services/setting-service'
 import { signOut } from '@/lib/auth'
+import { adminLogActor, recordOperationLog } from '@/lib/services/operation-log-service'
 import { AdminSidebarClient } from '@/components/layout/admin-sidebar-client'
 
 const adminNavigation: Array<{ href: Route; label: string; icon: string; children?: Array<{ href: Route; label: string; icon: string }> }> = [
@@ -29,6 +30,7 @@ const adminNavigation: Array<{ href: Route; label: string; icon: string; childre
   },
   { href: '/admin/personalization' as Route, label: '个性化', icon: 'fa-solid fa-palette' },
   { href: '/admin/media', label: '媒体', icon: 'fa-regular fa-images' },
+  { href: '/admin/logs' as Route, label: '日志', icon: 'fa-solid fa-list-check' },
   { href: '/admin/settings', label: '设置', icon: 'fa-solid fa-sliders' },
 ]
 
@@ -42,6 +44,15 @@ export async function AdminSidebar({ session }: AdminSidebarProps) {
 
   async function signOutAction() {
     'use server'
+    await recordOperationLog({
+      actor: adminLogActor(session),
+      module: 'auth',
+      action: 'logout',
+      targetType: 'user',
+      targetId: session.user.id,
+      summary: `管理员退出登录：${session.user.name ?? '管理员'}`,
+      result: 'SUCCESS',
+    })
     await signOut({ redirectTo: '/' })
   }
 

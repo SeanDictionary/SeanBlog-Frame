@@ -1,6 +1,7 @@
 import { created, handleApiError, json, parseJson } from '@/lib/api/response'
 import { requireSameOriginRequest } from '@/lib/api/request-guard'
 import { requireAdmin } from '@/lib/auth.utils'
+import { adminLogActor, recordOperation } from '@/lib/services/operation-log-service'
 import { createArticle, listAdminArticles } from '@/lib/services/article-service'
 import { articleInputSchema, articleListQuerySchema } from '@/lib/validations/cms'
 
@@ -20,12 +21,23 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    await requireAdmin()
+    const session = await requireAdmin()
     requireSameOriginRequest(request)
 
     const body = await parseJson(request)
     const input = articleInputSchema.parse(body)
-    const article = await createArticle(input)
+    const article = await recordOperation({
+      actor: adminLogActor(session),
+      module: 'article',
+      action: 'create',
+      targetType: 'article',
+      targetId: (createdArticle) => createdArticle.id,
+      summary: (createdArticle) => `创建文章：${createdArticle.title}`,
+      failureSummary: `创建文章失败：${input.title}`,
+      metadata: (createdArticle) => ({ slug: createdArticle.slug, status: createdArticle.status }),
+      failureMetadata: { slug: input.slug, status: input.status },
+      request,
+    }, () => createArticle(input))
 
     return created({ article })
   } catch (error) {
