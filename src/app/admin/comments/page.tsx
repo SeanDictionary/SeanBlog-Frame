@@ -46,7 +46,6 @@ export default async function AdminCommentsPage({
         ))}
       </nav>
       <p className="mb-4 text-sm text-neutral-500">
-        {status ? `当前仅显示${commentStatusLabels[status]}评论` : '当前显示全部评论'}，共 {result.meta.total} 条。
       </p>
       <CommentModeration initialComments={result.items} emptyMessage={status ? `当前没有${commentStatusLabels[status]}评论。` : undefined} />
     </div>

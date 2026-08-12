@@ -369,7 +369,7 @@ export function ArticleManagementTable({ articles, total, filters, initialNotice
       <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950">
         {articles.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px] text-left text-sm">
+            <table className="w-full min-w-245 text-left text-sm">
               <thead className="border-b border-neutral-200 bg-neutral-50 text-xs text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900">
                 <tr>
                   <th className="px-4 py-3"><input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="选择当前页全部文章" /></th>
