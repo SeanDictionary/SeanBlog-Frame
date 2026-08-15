@@ -159,7 +159,7 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
     return data.setting
   }
 
-  async function persistSettings(scope: 'analytics', updates: SettingUpdate[]) {
+  async function persistSettings(scope: 'analytics' | 'article-meta', updates: SettingUpdate[]) {
     const response = await fetch('/api/admin/settings', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -248,7 +248,18 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
       value: visibleIds.includes(config.id),
     }))
 
-    saveMany([...updates, { key: 'articleMetaOrder', value: visibleIds }], '已保存文章元数据设置。')
+    startTransition(async () => {
+      setMessage(null)
+
+      try {
+        const savedSettings = await persistSettings('article-meta', [...updates, { key: 'articleMetaOrder', value: visibleIds }])
+        setSettings((previous) => mergeSettings(previous, savedSettings))
+        setMessage('已保存文章元数据设置。')
+        router.refresh()
+      } catch (error) {
+        reportError(error, '文章元数据设置保存失败。')
+      }
+    })
   }
 
   function renderMetadataZone(visible: boolean) {

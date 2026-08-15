@@ -9,6 +9,7 @@ import { settingBulkUpdateSchema } from '@/lib/validations/cms'
 
 const settingScopeLabels = {
   analytics: '访问统计设置',
+  'article-meta': '文章元数据设置',
 } satisfies Record<string, string>
 
 function revalidateSettings(keys: string[]) {
@@ -16,6 +17,10 @@ function revalidateSettings(keys: string[]) {
     revalidatePath('/admin/analytics')
     revalidatePath('/admin/analytics/overview')
     revalidatePath('/admin/analytics/visitors')
+  }
+
+  if (keys.some((key) => key.startsWith('articleMeta'))) {
+    revalidatePath('/articles/[slug]', 'page')
   }
 }
 
