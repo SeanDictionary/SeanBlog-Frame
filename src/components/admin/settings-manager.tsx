@@ -17,6 +17,8 @@ type SettingsManagerProps = {
 
 type ApiResponse = {
   error?: { message?: string }
+  setting?: Setting
+  settings?: Setting[]
 }
 
 type SettingUpdate = {
@@ -148,13 +150,28 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ value }),
     })
-    const data = (await response.json()) as ApiResponse & { setting?: Setting }
+    const data = (await response.json()) as ApiResponse
 
     if (!response.ok || !data.setting) {
       throw new Error(data.error?.message ?? '保存失败。')
     }
 
     return data.setting
+  }
+
+  async function persistSettings(scope: 'analytics', updates: SettingUpdate[]) {
+    const response = await fetch('/api/admin/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scope, updates }),
+    })
+    const data = (await response.json()) as ApiResponse
+
+    if (!response.ok || !data.settings) {
+      throw new Error(data.error?.message ?? '保存失败。')
+    }
+
+    return data.settings
   }
 
   function save(key: string, rawValue: string) {
@@ -190,6 +207,21 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
         router.refresh()
       } catch (error) {
         reportError(error, '保存失败。')
+      }
+    })
+  }
+
+  function saveAnalyticsSettings(updates: SettingUpdate[]) {
+    startTransition(async () => {
+      setMessage(null)
+
+      try {
+        const savedSettings = await persistSettings('analytics', updates)
+        setSettings((previous) => mergeSettings(previous, savedSettings))
+        setMessage('已保存访问统计设置。')
+        router.refresh()
+      } catch (error) {
+        reportError(error, '访问统计设置保存失败。')
       }
     })
   }
@@ -297,10 +329,10 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
           const nextRetentionDays = Math.min(3650, Math.max(1, Number(formData.get(ANALYTICS_RETENTION_SETTING_KEY) ?? DEFAULT_ANALYTICS_RETENTION_DAYS)))
           setAnalyticsSettings(next)
           setAnalyticsRetentionDays(nextRetentionDays)
-          saveMany([
+          saveAnalyticsSettings([
             ...ANALYTICS_CONFIGS.map((item) => ({ key: item.key, value: next[item.key] })),
             { key: ANALYTICS_RETENTION_SETTING_KEY, value: nextRetentionDays },
-          ], '已保存访问统计设置。')
+          ])
         }}>
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>

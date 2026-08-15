@@ -55,6 +55,20 @@ export async function upsertSetting(key: string, value: unknown) {
   }
 }
 
+export async function upsertSettings(updates: Array<{ key: string; value: unknown }>) {
+  const prisma = getPrisma()
+  const settings = await prisma.$transaction(updates.map((update) => prisma.siteSetting.upsert({
+    where: { key: update.key },
+    update: { value: serializeValue(update.value) },
+    create: { key: update.key, value: serializeValue(update.value) },
+  })))
+
+  return settings.map((setting) => ({
+    ...setting,
+    value: deserializeValue(setting.value),
+  }))
+}
+
 export async function getSiteSettingsMap() {
   const settings = await listSettings()
 

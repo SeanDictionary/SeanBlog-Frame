@@ -187,6 +187,40 @@ export const settingInputSchema = z
   })
   .strict()
 
+const analyticsSettingKeys = new Set([
+  'analyticsEnabled',
+  'analyticsCollectIp',
+  'analyticsCollectUserAgent',
+  'analyticsCollectReferrer',
+  'analyticsCollectFingerprint',
+  'analyticsCollectHardware',
+  'analyticsRetentionDays',
+])
+
+export const settingBulkUpdateSchema = z
+  .object({
+    scope: z.enum(['analytics']),
+    updates: z.array(z.object({
+      key: z.string().trim().min(1).max(120),
+      value: settingValueSchema,
+    }).strict()).min(1).max(50),
+  })
+  .strict()
+  .superRefine((input, context) => {
+    const seenKeys = new Set<string>()
+
+    for (const [index, update] of input.updates.entries()) {
+      if (seenKeys.has(update.key)) {
+        context.addIssue({ code: 'custom', path: ['updates', index, 'key'], message: 'Duplicate setting key.' })
+      }
+      seenKeys.add(update.key)
+
+      if (input.scope === 'analytics' && !analyticsSettingKeys.has(update.key)) {
+        context.addIssue({ code: 'custom', path: ['updates', index, 'key'], message: 'Setting key is not allowed for analytics scope.' })
+      }
+    }
+  })
+
 export const markdownPreviewSchema = z
   .object({
     markdown: z.string().max(500_000),
@@ -272,6 +306,7 @@ export type TaxonomyBulkDeleteInput = z.infer<typeof taxonomyBulkDeleteSchema>
 export type CommentInput = z.infer<typeof commentInputSchema>
 export type MediaInput = z.infer<typeof mediaInputSchema>
 export type MarkdownPreviewInput = z.infer<typeof markdownPreviewSchema>
+export type SettingBulkUpdateInput = z.infer<typeof settingBulkUpdateSchema>
 export type ArticleBulkActionInput = z.infer<typeof articleBulkActionSchema>
 export type ArticleImportInput = z.infer<typeof articleImportSchema>
 export type AnalyticsEventInput = z.infer<typeof analyticsEventSchema>
