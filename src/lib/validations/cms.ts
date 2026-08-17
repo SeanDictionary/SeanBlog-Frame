@@ -220,10 +220,25 @@ const articleMetaSettingKeys = new Set([
   ...articleMetaBooleanSettingKeys,
   articleMetaOrderSettingKey,
 ])
+const publicLayoutBooleanSettingKeys = new Set([
+  'publicHeaderShowHome',
+  'publicHeaderShowCategories',
+  'publicHeaderShowTags',
+  'publicHeaderShowSearch',
+  'publicFooterShowRss',
+])
+const publicLayoutStringSettingKeys = new Set([
+  'publicHeaderTitle',
+  'publicFooterText',
+])
+const publicLayoutSettingKeys = new Set([
+  ...publicLayoutBooleanSettingKeys,
+  ...publicLayoutStringSettingKeys,
+])
 
 export const settingBulkUpdateSchema = z
   .object({
-    scope: z.enum(['analytics', 'article-meta']),
+    scope: z.enum(['analytics', 'article-meta', 'public-layout']),
     updates: z.array(z.object({
       key: z.string().trim().min(1).max(120),
       value: settingValueSchema,
@@ -262,6 +277,16 @@ export const settingBulkUpdateSchema = z
           if (hasInvalidItem || hasDuplicateItem) {
             context.addIssue({ code: 'custom', path: ['updates', index, 'value'], message: 'Article metadata order is invalid.' })
           }
+        }
+      }
+
+      if (input.scope === 'public-layout') {
+        if (!publicLayoutSettingKeys.has(update.key)) {
+          context.addIssue({ code: 'custom', path: ['updates', index, 'key'], message: 'Setting key is not allowed for public layout scope.' })
+        } else if (publicLayoutBooleanSettingKeys.has(update.key) && typeof update.value !== 'boolean') {
+          context.addIssue({ code: 'custom', path: ['updates', index, 'value'], message: 'Public layout toggle settings must be boolean.' })
+        } else if (publicLayoutStringSettingKeys.has(update.key) && typeof update.value !== 'string') {
+          context.addIssue({ code: 'custom', path: ['updates', index, 'value'], message: 'Public layout text settings must be strings.' })
         }
       }
     }

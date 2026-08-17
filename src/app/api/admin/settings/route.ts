@@ -10,6 +10,7 @@ import { settingBulkUpdateSchema } from '@/lib/validations/cms'
 const settingScopeLabels = {
   analytics: '访问统计设置',
   'article-meta': '文章元数据设置',
+  'public-layout': 'Header / Footer 设置',
 } satisfies Record<string, string>
 
 function revalidateSettings(keys: string[]) {
@@ -21,6 +22,10 @@ function revalidateSettings(keys: string[]) {
 
   if (keys.some((key) => key.startsWith('articleMeta'))) {
     revalidatePath('/articles/[slug]', 'page')
+  }
+
+  if (keys.some((key) => key.startsWith('publicHeader') || key.startsWith('publicFooter'))) {
+    revalidatePath('/(public)', 'layout')
   }
 }
 

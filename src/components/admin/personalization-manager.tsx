@@ -36,6 +36,7 @@ type PersonalizationManagerProps = {
 type ApiResponse = {
   error?: { message?: string }
   setting?: Setting
+  settings?: Setting[]
   theme?: string
 }
 
@@ -79,6 +80,29 @@ export function PersonalizationManager({ initialSettings, availableThemes }: Per
       : [...previous, setting])
   }
 
+  function applySettings(nextSettings: Setting[]) {
+    const nextByKey = new Map(nextSettings.map((setting) => [setting.key, setting]))
+    setSettings((previous) => [
+      ...previous.map((item) => nextByKey.get(item.key) ?? item),
+      ...nextSettings.filter((setting) => !previous.some((item) => item.key === setting.key)),
+    ])
+  }
+
+  async function persistSettings(scope: 'public-layout', updates: Array<{ key: string; value: unknown }>) {
+    const response = await fetch('/api/admin/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scope, updates }),
+    })
+    const data = (await response.json()) as ApiResponse
+
+    if (!response.ok || !data.settings) {
+      throw new Error(data.error?.message ?? '保存失败。')
+    }
+
+    return data.settings
+  }
+
   function saveSetting(key: string, value: unknown) {
     startTransition(async () => {
       setMessage(null)
@@ -118,16 +142,8 @@ export function PersonalizationManager({ initialSettings, availableThemes }: Per
     startTransition(async () => {
       setMessage(null)
       try {
-        for (const [key, value] of entries) {
-          const response = await fetch(`/api/admin/settings/${encodeURIComponent(key)}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ value }),
-          })
-          const data = (await response.json()) as ApiResponse
-          if (!response.ok || !data.setting) throw new Error(data.error?.message ?? '保存失败。')
-          applySetting(data.setting)
-        }
+        const savedSettings = await persistSettings('public-layout', entries.map(([key, value]) => ({ key, value })))
+        applySettings(savedSettings)
         setMessage('个性化设置已保存。')
         router.refresh()
       } catch (error) {
@@ -255,6 +271,9 @@ export function PersonalizationManager({ initialSettings, availableThemes }: Per
             <Toggle name="publicFooterShowRss" label="显示 RSS 入口" checked={settingEnabled(settings, 'publicFooterShowRss')} />
           </div>
         </section>
+        <div className="xl:col-span-2">
+          <button disabled={isPending} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950">保存 Header / Footer 设置</button>
+        </div>
       </form>
 
       {activeThemePackage && activeThemePackage.settingsSchema.length > 0 && (
