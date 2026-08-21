@@ -14,6 +14,7 @@ const settingScopeLabels = {
   'article-meta': '文章元数据设置',
   'public-layout': 'Header / Footer 设置',
   'theme-settings': '主题设置',
+  'object-storage': '对象存储设置',
 } satisfies Record<string, string>
 
 function assertThemeSettingUpdates(themeSlug: string | undefined, updates: Array<{ key: string; value: unknown }>) {

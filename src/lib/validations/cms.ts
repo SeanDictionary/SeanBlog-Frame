@@ -235,10 +235,22 @@ const publicLayoutSettingKeys = new Set([
   ...publicLayoutBooleanSettingKeys,
   ...publicLayoutStringSettingKeys,
 ])
+const mediaObjectStorageStringSettingKeys = new Set([
+  'mediaObjectStorageEndpoint',
+  'mediaObjectStorageBucket',
+  'mediaObjectStorageRegion',
+  'mediaObjectStoragePublicUrl',
+  'mediaObjectStorageAccessKeyId',
+  'mediaObjectStorageSecretAccessKey',
+])
+const mediaObjectStorageSettingKeys = new Set([
+  'mediaObjectStorageEnabled',
+  ...mediaObjectStorageStringSettingKeys,
+])
 
 export const settingBulkUpdateSchema = z
   .object({
-    scope: z.enum(['analytics', 'article-meta', 'public-layout', 'theme-settings']),
+    scope: z.enum(['analytics', 'article-meta', 'public-layout', 'theme-settings', 'object-storage']),
     themeSlug: z.string().trim().min(1).max(64).optional(),
     updates: z.array(z.object({
       key: z.string().trim().min(1).max(120),
@@ -297,6 +309,16 @@ export const settingBulkUpdateSchema = z
 
       if (input.scope === 'theme-settings' && !update.key.startsWith('themeSetting:')) {
         context.addIssue({ code: 'custom', path: ['updates', index, 'key'], message: 'Theme setting keys must use the themeSetting prefix.' })
+      }
+
+      if (input.scope === 'object-storage') {
+        if (!mediaObjectStorageSettingKeys.has(update.key)) {
+          context.addIssue({ code: 'custom', path: ['updates', index, 'key'], message: 'Setting key is not allowed for object storage scope.' })
+        } else if (update.key === 'mediaObjectStorageEnabled' && typeof update.value !== 'boolean') {
+          context.addIssue({ code: 'custom', path: ['updates', index, 'value'], message: 'Object storage enabled must be boolean.' })
+        } else if (mediaObjectStorageStringSettingKeys.has(update.key) && typeof update.value !== 'string') {
+          context.addIssue({ code: 'custom', path: ['updates', index, 'value'], message: 'Object storage text settings must be strings.' })
+        }
       }
     }
   })

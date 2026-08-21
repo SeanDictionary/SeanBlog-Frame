@@ -15,6 +15,7 @@ type MediaStorageSettingsProps = {
 type ApiResponse = {
   error?: { message?: string }
   setting?: Setting
+  settings?: Setting[]
 }
 
 type StorageDraft = {
@@ -70,22 +71,22 @@ export function MediaStorageSettings({ initialSettings }: MediaStorageSettingsPr
       setMessage(null)
 
       try {
-        for (const [key, value] of entries) {
-          const response = await fetch(`/api/admin/settings/${encodeURIComponent(key)}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ value }),
-          })
-          const data = (await response.json()) as ApiResponse
+        const response = await fetch('/api/admin/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scope: 'object-storage', updates: entries.map(([key, value]) => ({ key, value })) }),
+        })
+        const data = (await response.json()) as ApiResponse
 
-          if (!response.ok || !data.setting) {
-            throw new Error(data.error?.message ?? '对象存储设置保存失败。')
-          }
-
-          setSettings((previous) => previous.some((setting) => setting.key === key)
-            ? previous.map((setting) => setting.key === key ? data.setting! : setting)
-            : [...previous, data.setting!])
+        if (!response.ok || !data.settings) {
+          throw new Error(data.error?.message ?? '对象存储设置保存失败。')
         }
+
+        const nextByKey = new Map(data.settings.map((setting) => [setting.key, setting]))
+        setSettings((previous) => [
+          ...previous.map((item) => nextByKey.get(item.key) ?? item),
+          ...data.settings!.filter((setting) => !previous.some((item) => item.key === setting.key)),
+        ])
 
         setMessage(enabled ? '对象存储配置已保存。开启后可供后续存储适配器读取。' : '对象存储已关闭，原配置已保留。')
       } catch (error) {
