@@ -195,9 +195,12 @@ const analyticsBooleanSettingKeys = new Set([
   'analyticsCollectFingerprint',
   'analyticsCollectHardware',
 ])
+const analyticsRetentionSettingKey = 'analyticsRetentionDays'
+const operationLogRetentionSettingKey = 'operationLogRetentionDays'
 const analyticsSettingKeys = new Set([
   ...analyticsBooleanSettingKeys,
-  'analyticsRetentionDays',
+  analyticsRetentionSettingKey,
+  operationLogRetentionSettingKey,
 ])
 const articleMetaBooleanSettingKeys = new Set([
   'articleMetaShowPublishedAt',
@@ -272,8 +275,8 @@ export const settingBulkUpdateSchema = z
           context.addIssue({ code: 'custom', path: ['updates', index, 'key'], message: 'Setting key is not allowed for analytics scope.' })
         } else if (analyticsBooleanSettingKeys.has(update.key) && typeof update.value !== 'boolean') {
           context.addIssue({ code: 'custom', path: ['updates', index, 'value'], message: 'Analytics collection settings must be boolean.' })
-        } else if (update.key === 'analyticsRetentionDays' && (typeof update.value !== 'number' || !Number.isInteger(update.value) || update.value < 1 || update.value > 3650)) {
-          context.addIssue({ code: 'custom', path: ['updates', index, 'value'], message: 'Analytics retention days must be an integer between 1 and 3650.' })
+        } else if ((update.key === analyticsRetentionSettingKey || update.key === operationLogRetentionSettingKey) && (typeof update.value !== 'number' || !Number.isInteger(update.value) || update.value < 1 || update.value > 3650)) {
+          context.addIssue({ code: 'custom', path: ['updates', index, 'value'], message: 'Retention days must be an integer between 1 and 3650.' })
         }
       }
 
