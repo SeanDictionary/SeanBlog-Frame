@@ -249,33 +249,59 @@ export async function listOperationLogs(query: OperationLogQuery) {
   }
 }
 
+const csvFormulaPrefixes = new Set(['=', '+', '-', '@', '\t', '\r'])
+
 function escapeCsv(value: unknown) {
-  const text = value === null || value === undefined ? '' : String(value)
+  let text = value === null || value === undefined ? '' : String(value)
+
+  if (text && csvFormulaPrefixes.has(text.charAt(0))) {
+    text = `'${text}`
+  }
+
   return /[",\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text
 }
 
-export async function exportOperationLogsCsv(query: OperationLogQuery) {
-  const result = await listOperationLogs({ ...query, page: 1, pageSize: 10000 })
-  const rows = [
-    ['createdAt', 'result', 'module', 'action', 'actorType', 'actorName', 'summary', 'targetType', 'targetId', 'errorCode', 'errorMessage', 'method', 'path', 'ipAddress', 'userAgent'],
-    ...result.items.map((log) => [
-      log.createdAt.toISOString(),
-      log.result,
-      log.module,
-      log.action,
-      log.actorType,
-      log.actorName ?? '',
-      log.summary,
-      log.targetType ?? '',
-      log.targetId ?? '',
-      log.errorCode ?? '',
-      log.errorMessage ?? '',
-      log.method ?? '',
-      log.path ?? '',
-      log.ipAddress ?? '',
-      log.userAgent ?? '',
-    ]),
-  ]
+const CSV_EXPORT_BATCH_SIZE = 1000
 
-  return rows.map((row) => row.map(escapeCsv).join(',')).join('\n')
+export async function exportOperationLogsCsv(query: OperationLogQuery) {
+  const headers = ['createdAt', 'result', 'module', 'action', 'actorType', 'actorName', 'summary', 'targetType', 'targetId', 'errorCode', 'errorMessage', 'method', 'path', 'ipAddress', 'userAgent', 'metadata']
+  const lines = [headers.join(',')]
+
+  let page = 1
+  let exhausted = false
+
+  while (!exhausted) {
+    const result = await listOperationLogs({ ...query, page, pageSize: CSV_EXPORT_BATCH_SIZE })
+
+    for (const log of result.items) {
+      const row = [
+        log.createdAt.toISOString(),
+        log.result,
+        log.module,
+        log.action,
+        log.actorType,
+        log.actorName ?? '',
+        log.summary,
+        log.targetType ?? '',
+        log.targetId ?? '',
+        log.errorCode ?? '',
+        log.errorMessage ?? '',
+        log.method ?? '',
+        log.path ?? '',
+        log.ipAddress ?? '',
+        log.userAgent ?? '',
+        log.metadata ? JSON.stringify(log.metadata) : '',
+      ]
+
+      lines.push(row.map(escapeCsv).join(','))
+    }
+
+    if (result.items.length < CSV_EXPORT_BATCH_SIZE || page >= Math.max(1, result.meta.pageCount)) {
+      exhausted = true
+    } else {
+      page += 1
+    }
+  }
+
+  return `﻿${lines.join('\n')}`
 }
