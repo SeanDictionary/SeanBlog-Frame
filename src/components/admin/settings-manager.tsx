@@ -65,6 +65,9 @@ const ANALYTICS_CONFIGS: AnalyticsConfig[] = [
 
 const ANALYTICS_RETENTION_SETTING_KEY = 'analyticsRetentionDays'
 const DEFAULT_ANALYTICS_RETENTION_DAYS = 180
+const OPERATION_LOG_RETENTION_SETTING_KEY = 'operationLogRetentionDays'
+const DEFAULT_OPERATION_LOG_RETENTION_DAYS = 365
+const MAX_OPERATION_LOG_RETENTION_DAYS = 3650
 
 const EXCLUDED_SETTING_KEYS = new Set([
   'activeTheme',
@@ -76,6 +79,7 @@ const EXCLUDED_SETTING_KEYS = new Set([
   'articleMetaOrder',
   ...ARTICLE_META_CONFIGS.map((item) => item.settingKey),
   ANALYTICS_RETENTION_SETTING_KEY,
+  OPERATION_LOG_RETENTION_SETTING_KEY,
   ...ANALYTICS_CONFIGS.map((item) => item.key),
 ])
 
@@ -130,6 +134,12 @@ function buildAnalyticsRetentionDays(settings: Setting[]) {
   return Number.isFinite(number) ? Math.min(3650, Math.max(1, Math.round(number))) : DEFAULT_ANALYTICS_RETENTION_DAYS
 }
 
+function buildOperationLogRetentionDays(settings: Setting[]) {
+  const value = getSettingValue(settings, OPERATION_LOG_RETENTION_SETTING_KEY)
+  const number = typeof value === 'number' ? value : Number(value)
+  return Number.isFinite(number) ? Math.min(MAX_OPERATION_LOG_RETENTION_DAYS, Math.max(1, Math.round(number))) : DEFAULT_OPERATION_LOG_RETENTION_DAYS
+}
+
 export function SettingsManager({ initialSettings }: SettingsManagerProps) {
   const router = useRouter()
   const [settings, setSettings] = useState(initialSettings)
@@ -137,6 +147,7 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
   const [draggedMetaId, setDraggedMetaId] = useState<ArticleMetaItemId | null>(null)
   const [analyticsSettings, setAnalyticsSettings] = useState(() => buildAnalyticsSettings(initialSettings))
   const [analyticsRetentionDays, setAnalyticsRetentionDays] = useState(() => buildAnalyticsRetentionDays(initialSettings))
+  const [operationLogRetentionDays, setOperationLogRetentionDays] = useState(() => buildOperationLogRetentionDays(initialSettings))
   const [message, setMessage] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
@@ -338,11 +349,14 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
         <form action={(formData) => {
           const next = Object.fromEntries(ANALYTICS_CONFIGS.map((item) => [item.key, formData.get(item.key) === 'on'])) as Record<string, boolean>
           const nextRetentionDays = Math.min(3650, Math.max(1, Number(formData.get(ANALYTICS_RETENTION_SETTING_KEY) ?? DEFAULT_ANALYTICS_RETENTION_DAYS)))
+          const nextOperationLogRetentionDays = Math.min(MAX_OPERATION_LOG_RETENTION_DAYS, Math.max(1, Number(formData.get(OPERATION_LOG_RETENTION_SETTING_KEY) ?? DEFAULT_OPERATION_LOG_RETENTION_DAYS)))
           setAnalyticsSettings(next)
           setAnalyticsRetentionDays(nextRetentionDays)
+          setOperationLogRetentionDays(nextOperationLogRetentionDays)
           saveAnalyticsSettings([
             ...ANALYTICS_CONFIGS.map((item) => ({ key: item.key, value: next[item.key] })),
             { key: ANALYTICS_RETENTION_SETTING_KEY, value: nextRetentionDays },
+            { key: OPERATION_LOG_RETENTION_SETTING_KEY, value: nextOperationLogRetentionDays },
           ])
         }}>
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -357,6 +371,11 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
               <span className="font-medium">每日明细保留天数</span>
               <span className="text-xs text-neutral-500">默认 180 天。统计事件永久保留；后台趋势、访客导出和单卡片范围最大不超过该窗口。</span>
               <input name="analyticsRetentionDays" type="number" min="1" max="3650" value={analyticsRetentionDays} onChange={(event) => setAnalyticsRetentionDays(Number(event.target.value))} className="mt-2 h-10 rounded-md border border-neutral-300 bg-white px-3 dark:border-neutral-700 dark:bg-neutral-900" />
+            </label>
+            <label className="grid gap-1.5 rounded-md border border-neutral-200 p-4 text-sm dark:border-neutral-800">
+              <span className="font-medium">操作日志保留天数</span>
+              <span className="text-xs text-neutral-500">默认 365 天。超过该天数的操作日志会被定期清理脚本删除；运行 <code className="font-mono">npm run logs:prune</code> 手动清理。</span>
+              <input name="operationLogRetentionDays" type="number" min="1" max={MAX_OPERATION_LOG_RETENTION_DAYS} value={operationLogRetentionDays} onChange={(event) => setOperationLogRetentionDays(Number(event.target.value))} className="mt-2 h-10 rounded-md border border-neutral-300 bg-white px-3 dark:border-neutral-700 dark:bg-neutral-900" />
             </label>
             {ANALYTICS_CONFIGS.map((item) => (
               <label key={item.key} className="flex flex-wrap items-start justify-between gap-3 rounded-md border border-neutral-200 p-4 dark:border-neutral-800">
