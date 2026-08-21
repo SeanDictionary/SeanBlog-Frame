@@ -237,6 +237,13 @@ export function ArticleManagementTable({ articles, total, filters, initialNotice
     })
   }
 
+  const bulkActionLabels: Record<BulkAction, string> = {
+    publish: '发布',
+    draft: '设为草稿',
+    archive: '归档',
+    delete: '删除',
+  }
+
   function runBulkAction(action: BulkAction) {
     if (!selectedCount) {
       toast.error('请先选择文章。')
@@ -246,6 +253,8 @@ export function ArticleManagementTable({ articles, total, filters, initialNotice
     if (action === 'delete' && !window.confirm(`确认删除选中的 ${selectedCount} 篇文章吗？此操作不可撤销。`)) {
       return
     }
+
+    const verb = bulkActionLabels[action]
 
     startTransition(async () => {
       try {
@@ -260,11 +269,16 @@ export function ArticleManagementTable({ articles, total, filters, initialNotice
           throw new Error(data.error?.message ?? '批量操作失败。')
         }
 
-        toast.success(`已批量处理 ${data.count ?? selectedCount} 篇文章。`)
+        const count = data.count ?? selectedCount
+        if (count === 0) {
+          toast.info(`批量${verb}未匹配到任何文章。`)
+        } else {
+          toast.success(`已批量${verb} ${count} 篇文章。`)
+        }
         setSelectedIds(new Set())
         router.refresh()
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : '批量操作失败。')
+        toast.error(`批量${verb}时遇到错误：${error instanceof Error ? error.message : '批量操作失败。'}`)
       }
     })
   }
