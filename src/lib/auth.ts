@@ -43,30 +43,20 @@ export const {
         }
 
         const parsedCredentials = credentialsSchema.safeParse(credentials)
+        const attemptedUsername = typeof credentials?.username === 'string' ? credentials.username : null
 
-        if (!parsedCredentials.success) {
+        const user = parsedCredentials.success
+          ? await getPrisma().user.findUnique({
+              where: { username: parsedCredentials.data.username },
+            })
+          : null
+
+        if (!parsedCredentials.success || !user || !(await compare(parsedCredentials.data.password, user.passwordHash))) {
           await recordOperationLog({
-            actor: { type: 'admin' },
+            actor: { name: attemptedUsername, type: 'admin' },
             module: 'auth',
             action: 'login',
-            summary: '管理员登录失败：凭据格式非法',
-            result: 'FAILURE',
-            error: parsedCredentials.error,
-            request,
-          })
-          return null
-        }
-
-        const user = await getPrisma().user.findUnique({
-          where: { username: parsedCredentials.data.username },
-        })
-
-        if (!user || !(await compare(parsedCredentials.data.password, user.passwordHash))) {
-          await recordOperationLog({
-            actor: { name: parsedCredentials.data.username, type: 'admin' },
-            module: 'auth',
-            action: 'login',
-            summary: `管理员登录失败：${parsedCredentials.data.username}`,
+            summary: '管理员登录失败：凭据不正确',
             result: 'FAILURE',
             error: new Error('Invalid username or password.'),
             request,
