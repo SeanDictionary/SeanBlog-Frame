@@ -238,7 +238,8 @@ const publicLayoutSettingKeys = new Set([
 
 export const settingBulkUpdateSchema = z
   .object({
-    scope: z.enum(['analytics', 'article-meta', 'public-layout']),
+    scope: z.enum(['analytics', 'article-meta', 'public-layout', 'theme-settings']),
+    themeSlug: z.string().trim().min(1).max(64).optional(),
     updates: z.array(z.object({
       key: z.string().trim().min(1).max(120),
       value: settingValueSchema,
@@ -288,6 +289,14 @@ export const settingBulkUpdateSchema = z
         } else if (publicLayoutStringSettingKeys.has(update.key) && typeof update.value !== 'string') {
           context.addIssue({ code: 'custom', path: ['updates', index, 'value'], message: 'Public layout text settings must be strings.' })
         }
+      }
+
+      if (input.scope === 'theme-settings' && !input.themeSlug) {
+        context.addIssue({ code: 'custom', path: ['themeSlug'], message: 'Theme slug is required for theme settings.' })
+      }
+
+      if (input.scope === 'theme-settings' && !update.key.startsWith('themeSetting:')) {
+        context.addIssue({ code: 'custom', path: ['updates', index, 'key'], message: 'Theme setting keys must use the themeSetting prefix.' })
       }
     }
   })

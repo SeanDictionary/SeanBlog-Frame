@@ -88,11 +88,11 @@ export function PersonalizationManager({ initialSettings, availableThemes }: Per
     ])
   }
 
-  async function persistSettings(scope: 'public-layout', updates: Array<{ key: string; value: unknown }>) {
+  async function persistSettings(scope: 'public-layout' | 'theme-settings', updates: Array<{ key: string; value: unknown }>, themeSlug?: string) {
     const response = await fetch('/api/admin/settings', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scope, updates }),
+      body: JSON.stringify({ scope, ...(themeSlug ? { themeSlug } : {}), updates }),
     })
     const data = (await response.json()) as ApiResponse
 
@@ -158,19 +158,14 @@ export function PersonalizationManager({ initialSettings, availableThemes }: Per
     startTransition(async () => {
       setMessage(null)
       try {
-        for (const item of activeThemePackage.settingsSchema) {
-          const rawValue = item.type === 'boolean'
+        const updates = activeThemePackage.settingsSchema.map((item) => ({
+          key: themeSettingKey(activeThemePackage.slug, item.key),
+          value: item.type === 'boolean'
             ? formData.get(item.key) === 'on'
-            : String(formData.get(item.key) ?? item.default ?? '')
-          const response = await fetch(`/api/admin/settings/${encodeURIComponent(themeSettingKey(activeThemePackage.slug, item.key))}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ value: rawValue }),
-          })
-          const data = (await response.json()) as ApiResponse
-          if (!response.ok || !data.setting) throw new Error(data.error?.message ?? '主题设置保存失败。')
-          applySetting(data.setting)
-        }
+            : String(formData.get(item.key) ?? item.default ?? ''),
+        }))
+        const savedSettings = await persistSettings('theme-settings', updates, activeThemePackage.slug)
+        applySettings(savedSettings)
         setMessage('主题包设置已保存。')
         router.refresh()
       } catch (error) {
