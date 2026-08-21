@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client'
 
 import { ApiError } from '@/lib/api/errors'
+import { isDatabaseError, getDatabaseErrorCode } from '@/lib/database-errors'
 import { getPrisma } from '@/lib/prisma'
 import { pageMeta, paginate } from '@/lib/services/shared'
 import type { OperationLogQuery } from '@/lib/validations/cms'
@@ -13,6 +14,8 @@ type OperationActor = {
 
 type OperationMetadata = Prisma.InputJsonObject
 
+type RequestDetailsPolicy = 'admin' | 'security' | 'none'
+
 type OperationLogInput = {
   actor?: OperationActor | null
   module: string
@@ -24,6 +27,7 @@ type OperationLogInput = {
   error?: unknown
   metadata?: OperationMetadata | null
   request?: Request
+  requestDetails?: RequestDetailsPolicy
 }
 
 type LoggedOperationInput<T> = Omit<OperationLogInput, 'summary' | 'targetId' | 'metadata' | 'result' | 'error'> & {
@@ -46,32 +50,113 @@ export function adminLogActor(session: { user?: { id?: string | null; name?: str
   }
 }
 
+function shouldRecordRequestDetails(policy: RequestDetailsPolicy | undefined) {
+  return policy === 'admin' || policy === 'security'
+}
+
 function getClientIp(request?: Request) {
   const forwardedFor = request?.headers.get('x-forwarded-for')
   if (forwardedFor) return forwardedFor.split(',')[0]?.trim() ?? null
   return request?.headers.get('x-real-ip') ?? null
 }
 
+const MAX_ERROR_MESSAGE_LENGTH = 500
+const MAX_METADATA_BYTES = 4096
+const MAX_METADATA_ARRAY_ITEMS = 100
+
+const sensitiveMetadataKeys = new Set([
+  'password',
+  'secret',
+  'accesskey',
+  'accesstoken',
+  'refreshtoken',
+  'authorization',
+  'cookie',
+  'email',
+  'useragent',
+  'ip',
+  'ipaddress',
+  'content',
+  'body',
+  'token',
+])
+
+function isSensitiveKey(key: string) {
+  return sensitiveMetadataKeys.has(key.toLowerCase())
+}
+
+function clampArray<T>(array: T[]) {
+  return array.length > MAX_METADATA_ARRAY_ITEMS ? { truncated: true as const, items: array.slice(0, MAX_METADATA_ARRAY_ITEMS), total: array.length } : { truncated: false as const, items: array }
+}
+
+function sanitizeMetadataEntry(value: unknown): unknown {
+  if (value === null || value === undefined) return null
+  if (Array.isArray(value)) {
+    const { truncated, items, total } = clampArray(value)
+    const sanitized = items.map(sanitizeMetadataEntry)
+    return truncated ? { __truncated: true, total, sample: sanitized } : sanitized
+  }
+
+  if (typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>)
+    const result: Record<string, unknown> = {}
+
+    for (const [key, rawValue] of entries) {
+      if (isSensitiveKey(key)) {
+        result[key] = '[redacted]'
+        continue
+      }
+
+      result[key] = sanitizeMetadataEntry(rawValue)
+    }
+
+    return result
+  }
+
+  if (typeof value === 'string' && value.length > 200) {
+    return `${value.slice(0, 200)}…`
+  }
+
+  return value
+}
+
+function sanitizeMetadata(metadata: OperationMetadata | null | undefined) {
+  if (!metadata) return null
+  const sanitized = sanitizeMetadataEntry(metadata) as Prisma.InputJsonObject
+  const serialized = JSON.stringify(sanitized)
+
+  if (serialized.length <= MAX_METADATA_BYTES) return sanitized
+
+  return { __truncated: true, keys: Object.keys(sanitized), bytes: serialized.length } as unknown as Prisma.InputJsonObject
+}
+
 function normalizeError(error: unknown) {
   if (!error) return { errorCode: null, errorMessage: null }
 
   if (error instanceof ApiError) {
-    return { errorCode: error.code, errorMessage: error.message }
+    return { errorCode: error.code, errorMessage: truncate(error.message) }
+  }
+
+  if (isDatabaseError(error)) {
+    return { errorCode: getDatabaseErrorCode(error), errorMessage: 'Database operation failed.' }
   }
 
   if (error instanceof Error) {
-    return { errorCode: error.name || 'ERROR', errorMessage: error.message }
+    return { errorCode: error.name || 'ERROR', errorMessage: truncate(error.message) }
   }
 
-  return { errorCode: 'UNKNOWN_ERROR', errorMessage: String(error) }
+  return { errorCode: 'UNKNOWN_ERROR', errorMessage: truncate(String(error)) }
+}
+
+function truncate(value: string) {
+  return value.length > MAX_ERROR_MESSAGE_LENGTH ? `${value.slice(0, MAX_ERROR_MESSAGE_LENGTH)}…` : value
 }
 
 function safePath(request?: Request) {
   if (!request) return null
 
   try {
-    const url = new URL(request.url)
-    return `${url.pathname}${url.search}`
+    return new URL(request.url).pathname
   } catch {
     return null
   }
@@ -79,6 +164,7 @@ function safePath(request?: Request) {
 
 export async function recordOperationLog(input: OperationLogInput) {
   const { errorCode, errorMessage } = normalizeError(input.error)
+  const recordRequest = shouldRecordRequestDetails(input.requestDetails)
 
   try {
     await getPrisma().operationLog.create({
@@ -94,11 +180,11 @@ export async function recordOperationLog(input: OperationLogInput) {
         result: input.result ?? (input.error ? 'FAILURE' : 'SUCCESS'),
         errorCode,
         errorMessage,
-        metadata: input.metadata ?? undefined,
-        ipAddress: getClientIp(input.request),
-        userAgent: input.request?.headers.get('user-agent') ?? null,
-        method: input.request?.method ?? null,
-        path: safePath(input.request),
+        metadata: sanitizeMetadata(input.metadata) ?? undefined,
+        ipAddress: recordRequest ? getClientIp(input.request) : null,
+        userAgent: recordRequest ? input.request?.headers.get('user-agent') ?? null : null,
+        method: recordRequest ? input.request?.method ?? null : null,
+        path: recordRequest ? safePath(input.request) : null,
       },
     })
   } catch (logError) {
@@ -111,6 +197,7 @@ export async function recordOperation<T>(input: LoggedOperationInput<T>, operati
     const result = await operation()
     await recordOperationLog({
       ...input,
+      requestDetails: input.requestDetails ?? 'admin',
       targetId: resolveOperationValue(input.targetId, result) ?? null,
       summary: resolveOperationValue(input.summary, result) ?? `${input.module}.${input.action}`,
       metadata: resolveOperationValue(input.metadata, result) ?? null,
@@ -121,6 +208,7 @@ export async function recordOperation<T>(input: LoggedOperationInput<T>, operati
   } catch (error) {
     await recordOperationLog({
       ...input,
+      requestDetails: input.requestDetails ?? 'admin',
       targetId: typeof input.targetId === 'string' ? input.targetId : null,
       summary: input.failureSummary ?? (typeof input.summary === 'string' ? input.summary : `${input.module}.${input.action} failed`),
       metadata: input.failureMetadata ?? null,
