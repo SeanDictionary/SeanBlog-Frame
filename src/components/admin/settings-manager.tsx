@@ -170,7 +170,7 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
     return data.setting
   }
 
-  async function persistSettings(scope: 'analytics' | 'article-meta', updates: SettingUpdate[]) {
+  async function persistSettings(scope: 'analytics' | 'article-meta' | 'public-layout' | 'theme-settings' | 'object-storage' | 'site-info', updates: SettingUpdate[]) {
     const response = await fetch('/api/admin/settings', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -233,6 +233,21 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
         router.refresh()
       } catch (error) {
         reportError(error, '访问统计设置保存失败。')
+      }
+    })
+  }
+
+  function saveSiteInfo(updates: SettingUpdate[]) {
+    startTransition(async () => {
+      setMessage(null)
+
+      try {
+        const savedSettings = await persistSettings('site-info', updates)
+        setSettings((previous) => mergeSettings(previous, savedSettings))
+        setMessage('已保存站点信息。')
+        router.refresh()
+      } catch (error) {
+        reportError(error, '站点信息保存失败。')
       }
     })
   }
@@ -328,7 +343,30 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
       <section className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-950">
         <h2 className="font-semibold">站点信息</h2>
         <p className="mt-1 text-sm text-neutral-500">主题包、Header、页脚和组件外观请到“个性化”页面管理。</p>
-        <div className="mt-5 grid gap-5">{['siteName', 'siteDescription', 'siteUrl'].map((key) => { const setting = settings.find((item) => item.key === key); return <form key={key} action={(formData) => save(key, String(formData.get('value') ?? ''))} className="grid gap-2 sm:grid-cols-[10rem_1fr_auto]"><label className="text-sm font-medium sm:pt-2.5">{key}</label><input name="value" defaultValue={setting ? stringifyValue(setting.value) : ''} className="h-10 rounded-md border border-neutral-300 bg-white px-3 text-sm outline-none dark:border-neutral-700 dark:bg-neutral-900" /><button disabled={isPending} className="text-sm text-blue-600">保存</button></form> })}</div>
+        <div className="mt-5 grid gap-5">
+          <form action={(formData) => {
+            saveSiteInfo(
+              ['siteName', 'siteDescription', 'siteUrl'].map((key) => ({ key, value: String(formData.get(key) ?? '') }))
+            )
+          }} className="grid gap-5">
+            {['siteName', 'siteDescription', 'siteUrl'].map((key) => {
+              const setting = settings.find((item) => item.key === key)
+              const isMultiline = key === 'siteDescription'
+
+              return (
+                <div key={key} className="grid gap-2 sm:grid-cols-[10rem_1fr]">
+                  <label className="text-sm font-medium sm:pt-2.5">{key}</label>
+                  {isMultiline
+                    ? <textarea name={key} defaultValue={setting ? stringifyValue(setting.value) : ''} rows={2} className="rounded-md border border-neutral-300 bg-white p-3 text-sm outline-none dark:border-neutral-700 dark:bg-neutral-900" />
+                    : <input name={key} defaultValue={setting ? stringifyValue(setting.value) : ''} className="h-10 rounded-md border border-neutral-300 bg-white px-3 text-sm outline-none dark:border-neutral-700 dark:bg-neutral-900" />}
+                </div>
+              )
+            })}
+            <div className="flex justify-end">
+              <button disabled={isPending} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-950">保存站点信息</button>
+            </div>
+          </form>
+        </div>
       </section>
 
       <section className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-950">

@@ -250,10 +250,15 @@ const mediaObjectStorageSettingKeys = new Set([
   'mediaObjectStorageEnabled',
   ...mediaObjectStorageStringSettingKeys,
 ])
+const siteInfoSettingKeys = new Set([
+  'siteName',
+  'siteDescription',
+  'siteUrl',
+])
 
 export const settingBulkUpdateSchema = z
   .object({
-    scope: z.enum(['analytics', 'article-meta', 'public-layout', 'theme-settings', 'object-storage']),
+    scope: z.enum(['analytics', 'article-meta', 'public-layout', 'theme-settings', 'object-storage', 'site-info']),
     themeSlug: z.string().trim().min(1).max(64).optional(),
     updates: z.array(z.object({
       key: z.string().trim().min(1).max(120),
@@ -321,6 +326,14 @@ export const settingBulkUpdateSchema = z
           context.addIssue({ code: 'custom', path: ['updates', index, 'value'], message: 'Object storage enabled must be boolean.' })
         } else if (mediaObjectStorageStringSettingKeys.has(update.key) && typeof update.value !== 'string') {
           context.addIssue({ code: 'custom', path: ['updates', index, 'value'], message: 'Object storage text settings must be strings.' })
+        }
+      }
+
+      if (input.scope === 'site-info') {
+        if (!siteInfoSettingKeys.has(update.key)) {
+          context.addIssue({ code: 'custom', path: ['updates', index, 'key'], message: 'Setting key is not allowed for site info scope.' })
+        } else if (typeof update.value !== 'string') {
+          context.addIssue({ code: 'custom', path: ['updates', index, 'value'], message: 'Site info settings must be strings.' })
         }
       }
     }

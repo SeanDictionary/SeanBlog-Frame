@@ -15,6 +15,7 @@ const settingScopeLabels = {
   'public-layout': 'Header / Footer 设置',
   'theme-settings': '主题设置',
   'object-storage': '对象存储设置',
+  'site-info': '站点信息',
 } satisfies Record<string, string>
 
 function assertThemeSettingUpdates(themeSlug: string | undefined, updates: Array<{ key: string; value: unknown }>) {
@@ -53,8 +54,9 @@ function revalidateSettings(keys: string[]) {
     revalidatePath('/articles/[slug]', 'page')
   }
 
-  if (keys.some((key) => key.startsWith('publicHeader') || key.startsWith('publicFooter') || key.startsWith('themeSetting:'))) {
+  if (keys.some((key) => key.startsWith('publicHeader') || key.startsWith('publicFooter') || key.startsWith('themeSetting:') || keys.includes('siteName') || keys.includes('siteDescription') || keys.includes('siteUrl'))) {
     revalidatePath('/(public)', 'layout')
+    revalidatePath('/rss.xml')
   }
 }
 
