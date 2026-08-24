@@ -339,7 +339,7 @@ function CommentsContent({ card, linksDisabled }: { card: DashboardCard; linksDi
   // room to breathe, per the overview card spec.
   if (recentComments.length > 0) {
     return (
-      <div className="grid h-full gap-5 sm:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+      <div className="grid h-full gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(0,3fr)]">
         <MetricLink card={card} disabled={linksDisabled} />
         <div className="min-w-0 border-t border-neutral-200 pt-4 dark:border-neutral-800 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0">
           <span className="text-xs font-medium text-neutral-400">最近评论</span>
