@@ -2,6 +2,7 @@ import { ArticleStatus } from '@prisma/client'
 import type { Route } from 'next'
 
 import { DashboardManager } from '@/components/admin/dashboard-manager'
+import { COMMENT_MODERATION_RULES_SETTING_KEY, normalizeCommentModerationRules } from '@/lib/comment-moderation-rules'
 import { getPrisma } from '@/lib/prisma'
 import { getSiteSettingsMap } from '@/lib/services/setting-service'
 
@@ -99,6 +100,7 @@ export default async function AdminDashboardPage() {
     pendingComments,
     allAnalyticsEvents,
     recentAnalyticsEvents,
+    recentCommentsRaw,
     settings,
   ] = await Promise.all([
     prisma.article.count(),
@@ -133,11 +135,25 @@ export default async function AdminDashboardPage() {
       orderBy: { createdAt: 'asc' },
       select: { createdAt: true, visitorHash: true, country: true, referrer: true, userAgent: true },
     }),
+    prisma.comment.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 3,
+      select: { id: true, content: true, status: true },
+    }),
     getSiteSettingsMap(),
   ])
 
   const totalArticleHeat = articleHeatTotal._sum.viewCount ?? 0
   const totalVisitors = new Set(allAnalyticsEvents.map((event) => event.visitorHash).filter(Boolean)).size
+  const commentAutoApprove = normalizeCommentModerationRules(settings[COMMENT_MODERATION_RULES_SETTING_KEY]).autoApprove
+  const recentComments = commentAutoApprove
+    ? recentCommentsRaw.map((comment) => ({
+        id: comment.id,
+        content: comment.content,
+        status: comment.status,
+        href: '/admin/comments' as const,
+      }))
+    : []
   const stats = [
     {
       key: 'drafts',
@@ -174,10 +190,17 @@ export default async function AdminDashboardPage() {
       label: '评论',
       icon: 'fa-regular fa-comments',
       href: '/admin/comments' as const,
-      insights: [
-        { label: '评论总数', value: totalComments.toLocaleString('zh-CN'), href: '/admin/comments' as const },
-        { label: '待审核评论', value: pendingComments.toLocaleString('zh-CN'), href: '/admin/comments?status=PENDING' as const },
-      ],
+      ...(commentAutoApprove
+        ? {
+            value: totalComments.toLocaleString('zh-CN'),
+            recentComments,
+          }
+        : {
+            insights: [
+              { label: '评论总数', value: totalComments.toLocaleString('zh-CN'), href: '/admin/comments' as const },
+              { label: '待审核评论', value: pendingComments.toLocaleString('zh-CN'), href: '/admin/comments?status=PENDING' as const },
+            ],
+          }),
     },
     {
       key: 'quickCreateArticle',

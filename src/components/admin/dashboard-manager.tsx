@@ -26,6 +26,25 @@ type DashboardCardInsight = {
   href: Route
 }
 
+type DashboardCardRecentComment = {
+  id: string
+  content: string
+  status: 'PENDING' | 'APPROVED' | 'SPAM' | 'TRASHED'
+  href: Route
+}
+
+type CommentStatusBadgeConfig = {
+  label: string
+  className: string
+}
+
+const COMMENT_STATUS_BADGES: Record<DashboardCardRecentComment['status'], CommentStatusBadgeConfig> = {
+  APPROVED: { label: '已通过', className: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300' },
+  PENDING: { label: '待审核', className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' },
+  SPAM: { label: '垃圾', className: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' },
+  TRASHED: { label: '已删除', className: 'bg-neutral-200 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300' },
+}
+
 type DashboardCard = {
   key: string
   label: string
@@ -38,6 +57,7 @@ type DashboardCard = {
   listItems?: DashboardCardListItem[]
   trend?: DashboardCardTrendPoint[]
   insights?: DashboardCardInsight[]
+  recentComments?: DashboardCardRecentComment[]
 }
 
 const DASHBOARD_CARD_SIZES = ['1x1', '1x2', '2x2', '3x2'] as const
@@ -311,6 +331,39 @@ function ArticleHeatContent({ card, size, linksDisabled }: { card: DashboardCard
 }
 
 function CommentsContent({ card, linksDisabled }: { card: DashboardCard; linksDisabled?: boolean }) {
+  const recentComments = card.recentComments ?? []
+
+  // When comments auto-approve is on there is no meaningful pending queue,
+  // so the right half shows the latest comments (content + status) instead.
+  // The grid is intentionally uneven (left narrower) so the comment list has
+  // room to breathe, per the overview card spec.
+  if (recentComments.length > 0) {
+    return (
+      <div className="grid h-full gap-5 sm:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+        <MetricLink card={card} disabled={linksDisabled} />
+        <div className="min-w-0 border-t border-neutral-200 pt-4 dark:border-neutral-800 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0">
+          <span className="text-xs font-medium text-neutral-400">最近评论</span>
+          <ul className="mt-1.5 space-y-1">
+            {recentComments.map((comment) => {
+              const badge = COMMENT_STATUS_BADGES[comment.status] ?? { label: comment.status, className: 'bg-neutral-200 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300' }
+
+              return (
+                <li key={comment.id}>
+                  <CardLink href={comment.href} disabled={linksDisabled} className="-mx-2 block rounded-lg px-2 py-1 transition-colors hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 dark:hover:bg-neutral-900">
+                    <div className="flex items-center gap-2">
+                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[0.625rem] font-medium ${badge.className}`}>{badge.label}</span>
+                      <span className="min-w-0 truncate text-sm font-medium text-neutral-700 dark:text-neutral-200">{comment.content}</span>
+                    </div>
+                  </CardLink>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      </div>
+    )
+  }
+
   const items = card.insights ?? []
 
   return (
