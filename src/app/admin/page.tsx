@@ -80,9 +80,8 @@ function parseOperatingSystem(userAgent: string | null) {
   return '其他系统'
 }
 
-function buildAnalyticsHref(params: Record<string, string>) {
-  const searchParams = new URLSearchParams(params)
-  return `/admin/analytics?${searchParams.toString()}` as Route
+function buildAnalyticsHref() {
+  return '/admin/overview' as Route
 }
 
 export default async function AdminDashboardPage() {
@@ -182,7 +181,7 @@ export default async function AdminDashboardPage() {
       listItems: hottestArticles.map((article) => ({
         title: article.title,
         detail: `${article.viewCount.toLocaleString('zh-CN')} 热度`,
-        href: `/admin/analytics?dimension=article&slug=${encodeURIComponent(article.slug)}` as Route,
+        href: `/admin/overview` as Route,
       })),
     },
     {
@@ -213,13 +212,13 @@ export default async function AdminDashboardPage() {
       label: '总访问量',
       value: allAnalyticsEvents.length,
       icon: 'fa-solid fa-chart-pie',
-      href: '/admin/analytics' as const,
+      href: '/admin/overview' as const,
       trend: getLast30DaysTrend(recentAnalyticsEvents),
       insights: [
-        { label: '最多来源地区', value: pickTopValue(recentAnalyticsEvents.map((event) => event.country)), href: buildAnalyticsHref({ dimension: 'all' }) },
-        { label: '最多操作系统', value: pickTopValue(recentAnalyticsEvents.map((event) => parseOperatingSystem(event.userAgent))), href: buildAnalyticsHref({ dimension: 'all' }) },
-        { label: '最多浏览器', value: pickTopValue(recentAnalyticsEvents.map((event) => parseBrowser(event.userAgent))), href: buildAnalyticsHref({ dimension: 'all' }) },
-        { label: '最多来源 URL', value: pickTopValue(recentAnalyticsEvents.map((event) => event.referrer)), href: buildAnalyticsHref({ dimension: 'all' }) },
+        { label: '最多来源地区', value: pickTopValue(recentAnalyticsEvents.map((event) => event.country)), href: buildAnalyticsHref() },
+        { label: '最多操作系统', value: pickTopValue(recentAnalyticsEvents.map((event) => parseOperatingSystem(event.userAgent))), href: buildAnalyticsHref() },
+        { label: '最多浏览器', value: pickTopValue(recentAnalyticsEvents.map((event) => parseBrowser(event.userAgent))), href: buildAnalyticsHref() },
+        { label: '最多来源 URL', value: pickTopValue(recentAnalyticsEvents.map((event) => event.referrer)), href: buildAnalyticsHref() },
       ],
       secondaryLabel: `${totalVisitors.toLocaleString('zh-CN')} 位访问人数`,
     },

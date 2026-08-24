@@ -45,9 +45,8 @@ function assertThemeSettingUpdates(themeSlug: string | undefined, updates: Array
 
 function revalidateSettings(keys: string[]) {
   if (keys.some((key) => key.startsWith('analytics'))) {
-    revalidatePath('/admin/analytics')
-    revalidatePath('/admin/analytics/overview')
-    revalidatePath('/admin/analytics/visitors')
+    revalidatePath('/admin/overview')
+    revalidatePath('/admin/visitors')
   }
 
   if (keys.some((key) => key.startsWith('articleMeta'))) {

@@ -20,12 +20,12 @@ const adminNavigation: Array<{ href: Route; label: string; icon: string; childre
   },
   { href: '/admin/comments', label: '评论', icon: 'fa-regular fa-comments' },
   {
-    href: '/admin/analytics' as Route,
+    href: '/admin/overview' as Route,
     label: '统计',
     icon: 'fa-solid fa-chart-simple',
     children: [
-      { href: '/admin/analytics/overview' as Route, label: '总览', icon: 'fa-solid fa-chart-line' },
-      { href: '/admin/analytics/visitors' as Route, label: '访客统计', icon: 'fa-solid fa-users-viewfinder' },
+      { href: '/admin/overview' as Route, label: '总览', icon: 'fa-solid fa-chart-line' },
+      { href: '/admin/visitors' as Route, label: '访客统计', icon: 'fa-solid fa-users-viewfinder' },
     ],
   },
   { href: '/admin/personalization' as Route, label: '个性化', icon: 'fa-solid fa-palette' },

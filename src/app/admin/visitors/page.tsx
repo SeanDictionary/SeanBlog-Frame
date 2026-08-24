@@ -14,7 +14,7 @@ function buildPageHref(params: Record<string, string | undefined>, page: number)
   }
   if (page > 1) searchParams.set('page', String(page))
   const query = searchParams.toString()
-  return `/admin/analytics/visitors${query ? `?${query}` : ''}`
+  return `/admin/visitors${query ? `?${query}` : ''}`
 }
 
 function buildExportHref(params: Record<string, string | undefined>) {
@@ -43,10 +43,10 @@ export default async function AdminAnalyticsVisitorsPage({ searchParams }: Admin
           <h1 className="text-3xl font-semibold tracking-tight">访客统计</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral-500">显示有史以来的访问记录，支持按 20 / 50 / 100 条分页，并可按时间范围导出 CSV。</p>
         </div>
-        <div className="flex gap-2 text-sm"><a href="/admin/analytics/overview" className="rounded-md border border-neutral-300 px-4 py-2 dark:border-neutral-700">统计总览</a><a href={buildExportHref(rawSearchParams)} className="rounded-md bg-neutral-950 px-4 py-2 text-white dark:bg-neutral-100 dark:text-neutral-950">导出 CSV</a></div>
+        <div className="flex gap-2 text-sm"><a href="/admin/overview" className="rounded-md border border-neutral-300 px-4 py-2 dark:border-neutral-700">统计总览</a><a href={buildExportHref(rawSearchParams)} className="rounded-md bg-neutral-950 px-4 py-2 text-white dark:bg-neutral-100 dark:text-neutral-950">导出 CSV</a></div>
       </header>
 
-      <AutoSubmitForm action="/admin/analytics/visitors" className="mb-6 grid gap-3 rounded-lg border border-neutral-200 bg-white p-4 text-sm dark:border-neutral-800 dark:bg-neutral-950 sm:grid-cols-[repeat(3,minmax(0,1fr))]">
+      <AutoSubmitForm action="/admin/visitors" className="mb-6 grid gap-3 rounded-lg border border-neutral-200 bg-white p-4 text-sm dark:border-neutral-800 dark:bg-neutral-950 sm:grid-cols-[repeat(3,minmax(0,1fr))]">
         <label className="grid gap-1.5">开始日期<input name="start" type="date" defaultValue={startValue} className="h-10 rounded-md border border-neutral-300 bg-white px-3 dark:border-neutral-700 dark:bg-neutral-900" /></label>
         <label className="grid gap-1.5">结束日期<input name="end" type="date" defaultValue={endValue} className="h-10 rounded-md border border-neutral-300 bg-white px-3 dark:border-neutral-700 dark:bg-neutral-900" /></label>
         <label className="grid gap-1.5">每页显示<select name="pageSize" defaultValue={query.pageSize} className="h-10 rounded-md border border-neutral-300 bg-white px-3 dark:border-neutral-700 dark:bg-neutral-900"><option value="20">20 条</option><option value="50">50 条</option><option value="100">100 条</option></select></label>
