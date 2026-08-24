@@ -494,6 +494,10 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
   const positionsRef = useRef(new Map<string, DOMRect>())
   const latestLayoutRef = useRef(layout)
   const pendingDragRef = useRef<PendingDrag | null>(null)
+  // When true, the next layout change was induced by the localStorage sync
+  // (mount/pageshow/focus) rather than an in-app drag, so the FLIP animation
+  // must be skipped — entry/navigation must not replay card movements.
+  const skipAnimationRef = useRef(false)
   const [message, setMessage] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
@@ -507,23 +511,37 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
   const draggedLayoutItem = dragState ? layout.find((item) => item.key === dragState.key) : null
 
   useEffect(() => {
-    function syncStoredLayout() {
+    function syncStoredLayout(heal = false) {
       const storedLayout = readStoredLayout()
       if (!storedLayout) return
 
       const nextLayout = normalizeLayout(cards, storedLayout)
-      if (getLayoutSignature(nextLayout) !== getLayoutSignature(latestLayoutRef.current)) {
+      if (getLayoutSignature(nextLayout) === getLayoutSignature(latestLayoutRef.current)) {
+        return
+      }
+
+      // The stored layout diverges from the server-rendered layout, typically
+      // because a previous auto-save failed (e.g. the database was down while
+      // the user dragged cards). Apply it without the FLIP animation, and on
+      // mount re-persist so the server catches up and the drift does not
+      // recur on every subsequent visit.
+      skipAnimationRef.current = true
+      if (heal) {
+        applyLayout(nextLayout)
+      } else {
         setLiveLayout(nextLayout)
       }
     }
 
-    syncStoredLayout()
-    window.addEventListener('pageshow', syncStoredLayout)
-    window.addEventListener('focus', syncStoredLayout)
+    syncStoredLayout(true)
+    const onPageShow = () => syncStoredLayout(false)
+    const onFocus = () => syncStoredLayout(false)
+    window.addEventListener('pageshow', onPageShow)
+    window.addEventListener('focus', onFocus)
 
     return () => {
-      window.removeEventListener('pageshow', syncStoredLayout)
-      window.removeEventListener('focus', syncStoredLayout)
+      window.removeEventListener('pageshow', onPageShow)
+      window.removeEventListener('focus', onFocus)
     }
   }, [cards])
 
@@ -535,27 +553,30 @@ export function DashboardManager({ cards, initialLayout }: DashboardManagerProps
     const previousPositions = positionsRef.current
     const nextPositions = readCardPositions()
 
-    for (const [key, nextRect] of nextPositions) {
-      const previousRect = previousPositions.get(key)
+    if (!skipAnimationRef.current) {
+      for (const [key, nextRect] of nextPositions) {
+        const previousRect = previousPositions.get(key)
 
-      if (!previousRect || dragState?.key === key) continue
+        if (!previousRect || dragState?.key === key) continue
 
-      const deltaX = previousRect.left - nextRect.left
-      const deltaY = previousRect.top - nextRect.top
+        const deltaX = previousRect.left - nextRect.left
+        const deltaY = previousRect.top - nextRect.top
 
-      if (!deltaX && !deltaY) continue
+        if (!deltaX && !deltaY) continue
 
-      const element = grid.querySelector<HTMLElement>(`[data-card-key="${key}"]`)
-      element?.animate([
-        { transform: `translate(${deltaX}px, ${deltaY}px)` },
-        { transform: 'translate(0, 0)' },
-      ], {
-        duration: 180,
-        easing: 'cubic-bezier(0.2, 0, 0, 1)',
-      })
+        const element = grid.querySelector<HTMLElement>(`[data-card-key="${key}"]`)
+        element?.animate([
+          { transform: `translate(${deltaX}px, ${deltaY}px)` },
+          { transform: 'translate(0, 0)' },
+        ], {
+          duration: 180,
+          easing: 'cubic-bezier(0.2, 0, 0, 1)',
+        })
+      }
     }
 
     positionsRef.current = nextPositions
+    skipAnimationRef.current = false
   }, [dragState?.key, layout])
 
   function readCardPositions() {
