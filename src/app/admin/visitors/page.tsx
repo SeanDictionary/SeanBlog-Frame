@@ -62,15 +62,16 @@ export default async function AdminAnalyticsVisitorsPage({ searchParams }: Admin
       </header>
 
       <section className="rounded-lg border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-950">
-        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="font-semibold">访问记录</h2>
             <p className="mt-1 text-sm text-neutral-500">共 {result.meta.total} 条记录，第 {page} / {pageCount} 页。</p>
           </div>
-          <AutoSubmitForm action="/admin/visitors" className="flex flex-wrap items-end gap-2 text-sm">
+          <AutoSubmitForm action="/admin/visitors" className="flex flex-wrap items-center gap-2 text-sm">
             <input type="hidden" name="pageSize" value={query.pageSize} />
-            <label className="grid gap-1">开始日期<input name="start" type="date" defaultValue={startValue} className="h-9 rounded-md border border-neutral-300 bg-white px-2 dark:border-neutral-700 dark:bg-neutral-900" /></label>
-            <label className="grid gap-1">结束日期<input name="end" type="date" defaultValue={endValue} className="h-9 rounded-md border border-neutral-300 bg-white px-2 dark:border-neutral-700 dark:bg-neutral-900" /></label>
+            <input name="start" type="date" defaultValue={startValue} className="h-8 rounded-md border border-neutral-300 bg-white px-2 dark:border-neutral-700 dark:bg-neutral-900" />
+            <span className="text-neutral-500">至</span>
+            <input name="end" type="date" defaultValue={endValue} className="h-8 rounded-md border border-neutral-300 bg-white px-2 dark:border-neutral-700 dark:bg-neutral-900" />
           </AutoSubmitForm>
         </div>
 
