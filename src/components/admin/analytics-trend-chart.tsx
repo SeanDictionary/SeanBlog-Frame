@@ -30,6 +30,7 @@ const MAX_POINT_SPACING = 150
 const AXIS_FONT = 13
 const TOOLTIP_WIDTH = 148
 const TOOLTIP_HEIGHT = 60
+const TOOLTIP_GAP = 16
 
 type HoverState = {
   index: number
@@ -140,12 +141,12 @@ export function AnalyticsTrendChart({
   let tooltipAbove = true
   if (hover) {
     tooltipLeft = clamp(hover.px - TOOLTIP_WIDTH / 2, 4, hover.boxW - TOOLTIP_WIDTH - 4)
-    const aboveTop = hover.topPy - TOOLTIP_HEIGHT - 8
+    const aboveTop = hover.topPy - TOOLTIP_HEIGHT - TOOLTIP_GAP
     if (aboveTop >= 4) {
       tooltipTop = aboveTop
       tooltipAbove = true
     } else {
-      const belowTop = hover.bottomPy + 8
+      const belowTop = hover.bottomPy + TOOLTIP_GAP
       tooltipTop = belowTop + TOOLTIP_HEIGHT > hover.boxH - 4 ? hover.boxH - TOOLTIP_HEIGHT - 4 : belowTop
       tooltipAbove = false
     }
@@ -298,13 +299,13 @@ export function AnalyticsTrendChart({
           {/* HTML tooltip overlay (not clipped by the SVG) */}
           {hover && hoveredPoint && (
             <div
-              className="pointer-events-none absolute z-10 rounded-md border border-white/10 bg-neutral-900/95 px-3 py-2 text-xs text-white shadow-lg dark:border-black/10 dark:bg-neutral-100/95 dark:text-neutral-900"
+              className="pointer-events-none absolute z-10 rounded-md border border-white/10 bg-neutral-900 px-3 py-2 text-xs text-white shadow-lg dark:border-white/10 dark:bg-neutral-800"
               style={{ left: tooltipLeft, top: tooltipTop, width: TOOLTIP_WIDTH, opacity: 1, transition: 'opacity 0.15s ease, top 0.12s ease, left 0.12s ease' }}
             >
               <p className="font-semibold">{shortDateLabel(hoveredPoint.date)}</p>
               <p className="mt-1 flex items-center gap-1.5"><span className="size-2 rounded-full bg-blue-600" />访问量 {formatNumber(hoveredPoint.views)}</p>
               <p className="mt-0.5 flex items-center gap-1.5"><span className="size-2 rounded-full bg-amber-600" />访客数 {formatNumber(hoveredPoint.visitors)}</p>
-              <span className={`absolute h-2 w-2 rotate-45 bg-neutral-900/95 dark:bg-neutral-100/95 ${tooltipAbove ? 'bottom-[-4px]' : 'top-[-4px]'}`} style={{ left: clamp(hover.px - tooltipLeft - 4, 4, TOOLTIP_WIDTH - 12) }} />
+              <span className={`absolute h-2 w-2 rotate-45 bg-neutral-900 dark:bg-neutral-800 ${tooltipAbove ? 'bottom-[-4px]' : 'top-[-4px]'}`} style={{ left: clamp(hover.px - tooltipLeft - 4, 4, TOOLTIP_WIDTH - 12) }} />
             </div>
           )}
         </div>
