@@ -33,6 +33,8 @@ export type AnalyticsVisitRecord = {
   operatingSystem: string
   referrer: string | null
   durationSeconds: number | null
+  browserFingerprint: string | null
+  hardware: string | null
 }
 
 type RequestMetadata = {
@@ -272,6 +274,8 @@ function serializeVisitRecord(event: AnalyticsEventWithContent): AnalyticsVisitR
     operatingSystem: parseOperatingSystem(event.userAgent),
     referrer: event.referrer,
     durationSeconds: event.durationSeconds,
+    browserFingerprint: event.browserFingerprint,
+    hardware: event.hardware,
   }
 }
 
@@ -539,6 +543,8 @@ function visitToCsvRow(visit: AnalyticsVisitRecord) {
     visit.durationSeconds ?? '',
     visit.referrer ?? '',
     visit.userAgent ?? '',
+    visit.browserFingerprint ?? '',
+    visit.hardware ?? '',
   ]
 }
 
@@ -572,7 +578,7 @@ export async function exportAnalyticsVisitorsCsv(query: AnalyticsVisitorQuery) {
   const start = query.start ? startOfDay(query.start) : addDays(end, -settings.analyticsRetentionDays)
   const result = await getAnalyticsVisitors({ ...query, start, end, page: 1, pageSize: 10000 })
   const rows = [
-    ['createdAt', 'path', 'contentType', 'content', 'country', 'ipAddress', 'operatingSystem', 'browser', 'durationSeconds', 'referrer', 'userAgent'],
+    ['createdAt', 'path', 'contentType', 'content', 'country', 'ipAddress', 'operatingSystem', 'browser', 'durationSeconds', 'referrer', 'userAgent', 'browserFingerprint', 'hardware'],
     ...result.items.map(visitToCsvRow),
   ]
 

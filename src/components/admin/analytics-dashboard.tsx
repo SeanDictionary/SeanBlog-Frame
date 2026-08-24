@@ -23,7 +23,7 @@ export function VisitRecordTable({ visits }: { visits: AnalyticsVisitRecord[] })
     <div className="overflow-x-auto">
       <table className="w-full min-w-5xl text-left text-sm">
         <thead className="border-b border-neutral-100 text-xs text-neutral-500 dark:border-neutral-900">
-          <tr><th className="py-2 pr-4">访问时间</th><th className="py-2 pr-4">访问时长</th><th className="py-2 pr-4">访问内容</th><th className="py-2 pr-4">地区 / IP</th><th className="py-2 pr-4">系统</th><th className="py-2 pr-4">浏览器</th><th className="py-2 pr-4">来源 URL</th></tr>
+          <tr><th className="py-2 pr-4">访问时间</th><th className="py-2 pr-4">访问时长</th><th className="py-2 pr-4">访问内容</th><th className="py-2 pr-4">地区 / IP</th><th className="py-2 pr-4">系统</th><th className="py-2 pr-4">浏览器</th><th className="py-2 pr-4">浏览器指纹摘要</th><th className="py-2 pr-4">硬件信息摘要</th><th className="py-2 pr-4">来源 URL</th></tr>
         </thead>
         <tbody className="divide-y divide-neutral-100 dark:divide-neutral-900">
           {visits.map((visit) => (
@@ -34,10 +34,12 @@ export function VisitRecordTable({ visits }: { visits: AnalyticsVisitRecord[] })
               <td className="py-3 pr-4"><span className="block">{visit.country ?? '未知'}</span><span className="mt-0.5 block font-mono text-xs text-neutral-500">{visit.ipAddress ?? '未采集'}</span></td>
               <td className="py-3 pr-4">{visit.operatingSystem}</td>
               <td className="py-3 pr-4">{visit.browser}</td>
+              <td className="py-3 pr-4"><span className="block max-w-48 truncate font-mono text-xs text-neutral-500" title={visit.browserFingerprint ?? undefined}>{visit.browserFingerprint ?? '未采集'}</span></td>
+              <td className="py-3 pr-4"><span className="block max-w-48 truncate font-mono text-xs text-neutral-500" title={visit.hardware ?? undefined}>{visit.hardware ?? '未采集'}</span></td>
               <td className="py-3 pr-4">{isExternalUrl(visit.referrer) ? <ExternalLink href={visit.referrer} className="block max-w-56 truncate text-neutral-500 transition-colors hover:text-neutral-900 dark:hover:text-neutral-100">{visit.referrer}</ExternalLink> : visit.referrer === null ? <span className="block max-w-56 truncate text-neutral-500">未采集</span> : <span className="block max-w-56 truncate text-neutral-500">直接访问</span>}</td>
             </tr>
           ))}
-          {visits.length === 0 && <tr><td colSpan={7} className="py-10 text-center text-neutral-500">暂无访问记录。</td></tr>}
+          {visits.length === 0 && <tr><td colSpan={9} className="py-10 text-center text-neutral-500">暂无访问记录。</td></tr>}
         </tbody>
       </table>
     </div>
