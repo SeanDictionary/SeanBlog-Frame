@@ -87,17 +87,17 @@ export default async function AdminAnalyticsOverviewPage({ searchParams }: Admin
           />
 
           <section className="rounded-lg border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-950">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-semibold">文章统计 Top 10</h2><p className="mt-1 text-sm text-neutral-500">按访问量从高到低排序。</p></div><RangeSelectForm paramKey="articlesRangeDays" currentParams={rawSearchParams} /></div>
-            <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="text-xs text-neutral-500"><tr><th className="py-2">文章</th><th className="py-2 text-right">访问量</th><th className="py-2 text-right">访问人数</th></tr></thead><tbody className="divide-y divide-neutral-100 dark:divide-neutral-900">{data.topArticles.map((article) => <tr key={article.slug}><td className="py-3"><a href={metricHref({ dimension: 'article', slug: article.slug })} className="font-medium hover:text-blue-600">{article.label}</a><span className="mt-0.5 block font-mono text-xs text-neutral-500">{article.slug}</span></td><td className="py-3 text-right">{article.views}</td><td className="py-3 text-right">{article.visitors}</td></tr>)}{data.topArticles.length === 0 && <tr><td colSpan={3} className="py-8 text-center text-neutral-500">暂无文章访问数据。</td></tr>}</tbody></table></div>
-          </section>
-
-          <section className="rounded-lg border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-950">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-semibold">最近 20 个访问记录</h2><p className="mt-1 text-sm text-neutral-500">按访问时间倒序。</p></div><RangeSelectForm paramKey="recentRangeDays" currentParams={rawSearchParams} /></div>
             <VisitRecordTable visits={data.recentVisits} />
           </section>
         </div>
 
         <div className="min-w-0 space-y-6">
+          <section className="rounded-lg border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-950">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-semibold">文章统计 Top 10</h2><p className="mt-1 text-sm text-neutral-500">按访问量从高到低排序。</p></div><RangeSelectForm paramKey="articlesRangeDays" currentParams={rawSearchParams} /></div>
+            <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="text-xs text-neutral-500"><tr><th className="py-2">文章</th><th className="py-2 text-right">访问量</th><th className="py-2 text-right">访问人数</th></tr></thead><tbody className="divide-y divide-neutral-100 dark:divide-neutral-900">{data.topArticles.map((article) => <tr key={article.slug}><td className="py-3"><a href={metricHref({ dimension: 'article', slug: article.slug })} className="font-medium hover:text-blue-600">{article.label}</a><span className="mt-0.5 block font-mono text-xs text-neutral-500">{article.slug}</span></td><td className="py-3 text-right">{article.views}</td><td className="py-3 text-right">{article.visitors}</td></tr>)}{data.topArticles.length === 0 && <tr><td colSpan={3} className="py-8 text-center text-neutral-500">暂无文章访问数据。</td></tr>}</tbody></table></div>
+          </section>
+
           <section className="rounded-lg border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-950">
             <h2 className="font-semibold">全站访问量</h2>
             <div className="mt-4 divide-y divide-neutral-100 dark:divide-neutral-900">{data.periodStats.map((stat) => <div key={stat.label} className="grid grid-cols-3 gap-3 py-3 text-sm"><span className="font-medium">{stat.label}</span><span className="text-right">{stat.views} 访问</span><span className="text-right text-neutral-500">{stat.visitors} 人</span></div>)}</div>
