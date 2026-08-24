@@ -2,7 +2,7 @@
 
 import type { Route } from 'next'
 import { useRouter } from 'next/navigation'
-import { useRef, useState, type ReactNode } from 'react'
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 
 import type { AnalyticsTrendPoint } from '@/lib/services/analytics-service'
 
@@ -29,7 +29,6 @@ const PLOT_H = HEIGHT - PAD.top - PAD.bottom
 const MAX_POINT_SPACING = 150
 const AXIS_FONT = 13
 const TOOLTIP_WIDTH = 148
-const TOOLTIP_HEIGHT = 60
 const TOOLTIP_GAP = 16
 
 type HoverState = {
@@ -79,7 +78,18 @@ export function AnalyticsTrendChart({
 }: AnalyticsTrendChartProps) {
   const router = useRouter()
   const svgRef = useRef<SVGSVGElement | null>(null)
+  const tipRef = useRef<HTMLDivElement | null>(null)
   const [hover, setHover] = useState<HoverState | null>(null)
+  const [tipHeight, setTipHeight] = useState(72)
+
+  // Measure the real tooltip height so the above/below decision is accurate;
+  // the gap itself is exact because we position with bottom/top, not top+height.
+  useLayoutEffect(() => {
+    if (tipRef.current) {
+      const height = tipRef.current.offsetHeight
+      if (height && height !== tipHeight) setTipHeight(height)
+    }
+  }, [tipHeight, hover])
 
   const pointCount = trend.length
   const rawMax = Math.max(1, ...trend.flatMap((point) => [point.views, point.visitors]))
@@ -133,23 +143,21 @@ export function AnalyticsTrendChart({
     setHover({ index, px, topPy, bottomPy, boxW: box.width, boxH: box.height })
   }
 
-  // Place the tooltip just above the hovered point; fall back to below when
-  // there is no room above, and clamp so it never leaves the chart box. The
-  // tooltip floats as an HTML overlay so the SVG can never clip it.
+  // Position the tooltip with bottom (above) or top (below) so the gap to
+  // the data point is always TOOLTIP_GAP regardless of the tooltip's height.
   let tooltipLeft = 0
-  let tooltipTop = 0
+  let tooltipVertical: { bottom?: number; top?: number } = {}
   let tooltipAbove = true
   if (hover) {
     tooltipLeft = clamp(hover.px - TOOLTIP_WIDTH / 2, 4, hover.boxW - TOOLTIP_WIDTH - 4)
-    const aboveTop = hover.topPy - TOOLTIP_HEIGHT - TOOLTIP_GAP
-    if (aboveTop >= 4) {
-      tooltipTop = aboveTop
-      tooltipAbove = true
-    } else {
-      const belowTop = hover.bottomPy + TOOLTIP_GAP
-      tooltipTop = belowTop + TOOLTIP_HEIGHT > hover.boxH - 4 ? hover.boxH - TOOLTIP_HEIGHT - 4 : belowTop
-      tooltipAbove = false
-    }
+    const aboveFits = hover.topPy - TOOLTIP_GAP - tipHeight >= 4
+    const belowFits = hover.bottomPy + TOOLTIP_GAP + tipHeight <= hover.boxH - 4
+    const moreRoomAbove = hover.topPy >= hover.boxH - hover.bottomPy
+    const placeAbove = aboveFits || (!belowFits && moreRoomAbove)
+    tooltipAbove = placeAbove
+    tooltipVertical = placeAbove
+      ? { bottom: hover.boxH - hover.topPy + TOOLTIP_GAP }
+      : { top: hover.bottomPy + TOOLTIP_GAP }
   }
 
   function handleGranularityClick(event: React.MouseEvent<HTMLAnchorElement>, href: Route) {
@@ -299,8 +307,9 @@ export function AnalyticsTrendChart({
           {/* HTML tooltip overlay (not clipped by the SVG) */}
           {hover && hoveredPoint && (
             <div
+              ref={tipRef}
               className="pointer-events-none absolute z-10 rounded-md border border-white/10 bg-neutral-900 px-3 py-2 text-xs text-white shadow-lg dark:border-white/10 dark:bg-neutral-800"
-              style={{ left: tooltipLeft, top: tooltipTop, width: TOOLTIP_WIDTH, opacity: 1, transition: 'opacity 0.15s ease, top 0.12s ease, left 0.12s ease' }}
+              style={{ left: tooltipLeft, width: TOOLTIP_WIDTH, ...tooltipVertical, transition: 'opacity 0.15s ease, top 0.12s ease, left 0.12s ease, bottom 0.12s ease' }}
             >
               <p className="font-semibold">{shortDateLabel(hoveredPoint.date)}</p>
               <p className="mt-1 flex items-center gap-1.5"><span className="size-2 rounded-full bg-blue-600" />访问量 {formatNumber(hoveredPoint.views)}</p>
