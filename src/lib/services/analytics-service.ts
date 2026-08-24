@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import type { Prisma } from '@prisma/client'
 
-import { getCountryByIp } from '@/lib/geoip'
+import { getCountryByIp, isPrivateIp } from '@/lib/geoip'
 import { getPrisma } from '@/lib/prisma'
 import { pageMeta, paginate } from '@/lib/services/shared'
 import { getSiteSettingsMap } from '@/lib/services/setting-service'
@@ -219,7 +219,7 @@ async function resolveContent(input: AnalyticsEventInput) {
 }
 
 function parseBrowser(userAgent: string | null) {
-  if (!userAgent) return '未知'
+  if (!userAgent) return '未采集'
   if (/Edg\//.test(userAgent)) return 'Edge'
   if (/Chrome\//.test(userAgent) && !/Chromium\//.test(userAgent)) return 'Chrome'
   if (/Firefox\//.test(userAgent)) return 'Firefox'
@@ -228,7 +228,7 @@ function parseBrowser(userAgent: string | null) {
 }
 
 function parseOperatingSystem(userAgent: string | null) {
-  if (!userAgent) return '未知'
+  if (!userAgent) return '未采集'
   if (/Windows NT/.test(userAgent)) return 'Windows'
   if (/Mac OS X/.test(userAgent)) return 'macOS'
   if (/Android/.test(userAgent)) return 'Android'
@@ -265,7 +265,7 @@ function serializeVisitRecord(event: AnalyticsEventWithContent): AnalyticsVisitR
     contentType: event.contentType,
     contentLabel: getContentLabel(event),
     contentSlug: getContentSlug(event),
-    country: event.country,
+    country: event.country ?? (event.ipAddress == null ? '未采集' : isPrivateIp(event.ipAddress) ? '本地' : '未知'),
     ipAddress: event.ipAddress,
     userAgent: event.userAgent,
     browser: parseBrowser(event.userAgent),
@@ -377,7 +377,7 @@ export async function createAnalyticsEvent(input: AnalyticsEventInput, metadata:
       ...content,
       visitorHash,
       sessionId: input.sessionId,
-      referrer: settings.analyticsCollectReferrer ? input.referrer : null,
+      referrer: settings.analyticsCollectReferrer ? (input.referrer ?? '') : null,
       country,
       ipAddress: settings.analyticsCollectIp ? metadata.ipAddress : null,
       userAgent: settings.analyticsCollectUserAgent ? metadata.userAgent : null,

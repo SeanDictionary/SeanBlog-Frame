@@ -7,7 +7,7 @@
 const CACHE_TTL = 6 * 60 * 60 * 1000
 const cache = new Map<string, { country: string | null; expires: number }>()
 
-function isPrivateIp(ip: string): boolean {
+export function isPrivateIp(ip: string): boolean {
   return /^(::1|::ffff:127\.0\.0\.1|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|fc|fd)/i.test(ip)
 }
 
