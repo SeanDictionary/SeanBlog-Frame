@@ -1,5 +1,9 @@
-import type { AnalyticsVisitRecord } from '@/lib/services/analytics-service'
+'use client'
+
+import { useEffect, useId, useRef, useState } from 'react'
+
 import { ExternalLink } from '@/components/common/external-link'
+import type { AnalyticsVisitRecord } from '@/lib/services/analytics-service'
 
 function formatDuration(seconds: number | null) {
   if (seconds === null) return '未采集'
@@ -18,30 +22,125 @@ function contentHref(visit: AnalyticsVisitRecord) {
   return visit.path
 }
 
-export function VisitRecordTable({ visits }: { visits: AnalyticsVisitRecord[] }) {
+function referrerLabel(value: string | null) {
+  if (value === null) return '未采集'
+  if (value === '') return '直接访问'
+  return value
+}
+
+// Break the stored fingerprint/hardware summaries into labeled parts so the
+// detail dialog can spell out what each component means instead of showing a
+// raw pipe/semicolon string.
+function fingerprintParts(value: string | null): Array<{ label: string; value: string }> | null {
+  if (!value) return null
+  const parts = value.split('|')
+  const labels = ['语言', '时区', '屏幕宽度', '屏幕高度', '像素比']
+  if (parts.length !== labels.length) return null
+  return parts.map((part, index) => ({ label: labels[index], value: part }))
+}
+
+function hardwareParts(value: string | null): Array<{ label: string; value: string }> | null {
+  if (!value) return null
+  const map: Record<string, string> = { cores: 'CPU 核心数', memory: '内存', screen: '屏幕分辨率' }
+  const parsed = value.split(';')
+    .map((entry) => {
+      const [key, val] = entry.split(':')
+      if (!key || val === undefined) return null
+      return { label: map[key] ?? key, value: key === 'memory' ? `${val} GB` : val }
+    })
+    .filter((entry): entry is { label: string; value: string } => entry !== null)
+  return parsed.length ? parsed : null
+}
+
+function VisitDetailDialog({ visit, onClose }: { visit: AnalyticsVisitRecord; onClose: () => void }) {
+  const titleId = useId()
+  const closeRef = useRef<HTMLButtonElement | null>(null)
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    closeRef.current?.focus()
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
+
+  const fingerprint = fingerprintParts(visit.browserFingerprint)
+  const hardware = hardwareParts(visit.hardware)
+  const fieldClass = 'grid grid-cols-[8rem_1fr] gap-2 py-2.5 border-b border-neutral-100 dark:border-neutral-900'
+  const labelClass = 'text-sm text-neutral-500'
+  const valueClass = 'min-w-0 break-all text-sm text-neutral-800 dark:text-neutral-100'
+
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-5xl text-left text-sm">
-        <thead className="border-b border-neutral-100 text-xs text-neutral-500 dark:border-neutral-900">
-          <tr><th className="py-2 pr-4">访问时间</th><th className="py-2 pr-4">访问时长</th><th className="py-2 pr-4">访问内容</th><th className="py-2 pr-4">地区 / IP</th><th className="py-2 pr-4">系统</th><th className="py-2 pr-4">浏览器</th><th className="py-2 pr-4">浏览器指纹摘要</th><th className="py-2 pr-4">硬件信息摘要</th><th className="py-2 pr-4">来源 URL</th></tr>
-        </thead>
-        <tbody className="divide-y divide-neutral-100 dark:divide-neutral-900">
-          {visits.map((visit) => (
-            <tr key={visit.id}>
-              <td className="py-3 pr-4 font-mono text-xs">{visit.createdAt.toLocaleString('zh-CN')}</td>
-              <td className="py-3 pr-4">{formatDuration(visit.durationSeconds)}</td>
-              <td className="py-3 pr-4"><a href={contentHref(visit)} target="_blank" rel="noopener noreferrer" className="block max-w-52 truncate font-medium text-neutral-800 transition-colors hover:text-blue-600 dark:text-neutral-100 dark:hover:text-blue-300">{visit.contentLabel}</a><span className="mt-0.5 block max-w-52 truncate font-mono text-xs text-neutral-500">{visit.contentSlug ?? visit.path}</span></td>
-              <td className="py-3 pr-4"><span className="block">{visit.country ?? '未知'}</span><span className="mt-0.5 block font-mono text-xs text-neutral-500">{visit.ipAddress ?? '未采集'}</span></td>
-              <td className="py-3 pr-4">{visit.operatingSystem}</td>
-              <td className="py-3 pr-4">{visit.browser}</td>
-              <td className="py-3 pr-4"><span className="block max-w-48 truncate font-mono text-xs text-neutral-500" title={visit.browserFingerprint ?? undefined}>{visit.browserFingerprint ?? '未采集'}</span></td>
-              <td className="py-3 pr-4"><span className="block max-w-48 truncate font-mono text-xs text-neutral-500" title={visit.hardware ?? undefined}>{visit.hardware ?? '未采集'}</span></td>
-              <td className="py-3 pr-4">{isExternalUrl(visit.referrer) ? <ExternalLink href={visit.referrer} className="block max-w-56 truncate text-neutral-500 transition-colors hover:text-neutral-900 dark:hover:text-neutral-100">{visit.referrer}</ExternalLink> : visit.referrer === null ? <span className="block max-w-56 truncate text-neutral-500">未采集</span> : <span className="block max-w-56 truncate text-neutral-500">直接访问</span>}</td>
-            </tr>
-          ))}
-          {visits.length === 0 && <tr><td colSpan={9} className="py-10 text-center text-neutral-500">暂无访问记录。</td></tr>}
-        </tbody>
-      </table>
+    <div
+      className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-lg border border-neutral-200 bg-white p-6 shadow-xl dark:border-neutral-800 dark:bg-neutral-950"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="mb-3 flex items-center justify-between gap-4">
+          <h2 id={titleId} className="text-lg font-semibold tracking-tight">访问详情</h2>
+          <button type="button" onClick={onClose} className="text-sm text-neutral-500 transition-colors hover:text-neutral-900 dark:hover:text-neutral-100">关闭</button>
+        </div>
+        <dl className="divide-y divide-neutral-100 dark:divide-neutral-900">
+          <div className={fieldClass}><dt className={labelClass}>访问时间</dt><dd className={valueClass}>{visit.createdAt.toLocaleString('zh-CN')}</dd></div>
+          <div className={fieldClass}><dt className={labelClass}>访问时长</dt><dd className={valueClass}>{formatDuration(visit.durationSeconds)}</dd></div>
+          <div className={fieldClass}><dt className={labelClass}>内容类型</dt><dd className={valueClass}>{visit.contentType}</dd></div>
+          <div className={fieldClass}><dt className={labelClass}>访问内容</dt><dd className={valueClass}><a href={contentHref(visit)} target="_blank" rel="noopener noreferrer" className="font-medium text-blue-600 transition-colors hover:text-blue-500 dark:text-blue-400">{visit.contentLabel}</a><span className="mt-1 block font-mono text-xs text-neutral-500">{visit.path}</span></dd></div>
+          <div className={fieldClass}><dt className={labelClass}>地区</dt><dd className={valueClass}>{visit.country ?? '未知'}</dd></div>
+          <div className={fieldClass}><dt className={labelClass}>IP</dt><dd className={`font-mono text-xs ${valueClass}`}>{visit.ipAddress ?? '未采集'}</dd></div>
+          <div className={fieldClass}><dt className={labelClass}>系统</dt><dd className={valueClass}>{visit.operatingSystem}</dd></div>
+          <div className={fieldClass}><dt className={labelClass}>浏览器</dt><dd className={valueClass}>{visit.browser}</dd></div>
+          <div className={fieldClass}><dt className={labelClass}>User-Agent</dt><dd className={`font-mono text-xs ${valueClass}`}>{visit.userAgent ?? '未采集'}</dd></div>
+          <div className={fieldClass}><dt className={labelClass}>来源 URL</dt><dd className={valueClass}>{isExternalUrl(visit.referrer) ? <ExternalLink href={visit.referrer} className="text-blue-600 hover:underline dark:text-blue-400">{visit.referrer}</ExternalLink> : <span>{referrerLabel(visit.referrer)}</span>}</dd></div>
+          <div className={fieldClass}><dt className={labelClass}>浏览器指纹</dt><dd className={valueClass}>{visit.browserFingerprint ? (fingerprint ? <ul className="space-y-0.5">{fingerprint.map((part) => <li key={part.label} className="flex justify-between gap-3"><span className="text-neutral-500">{part.label}</span><span className="font-mono">{part.value}</span></li>)}</ul> : <span className="font-mono text-xs">{visit.browserFingerprint}</span>) : <span>未采集</span>}</dd></div>
+          <div className={fieldClass}><dt className={labelClass}>硬件信息</dt><dd className={valueClass}>{visit.hardware ? (hardware ? <ul className="space-y-0.5">{hardware.map((part) => <li key={part.label} className="flex justify-between gap-3"><span className="text-neutral-500">{part.label}</span><span className="font-mono">{part.value}</span></li>)}</ul> : <span className="font-mono text-xs">{visit.hardware}</span>) : <span>未采集</span>}</dd></div>
+        </dl>
+        <div className="mt-6 flex justify-end">
+          <button ref={closeRef} type="button" onClick={onClose} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90 dark:bg-neutral-100 dark:text-neutral-950">关闭</button>
+        </div>
+      </div>
     </div>
+  )
+}
+
+export function VisitRecordTable({ visits }: { visits: AnalyticsVisitRecord[] }) {
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const activeVisit = visits.find((visit) => visit.id === activeId) ?? null
+
+  return (
+    <>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-5xl text-left text-sm">
+          <thead className="border-b border-neutral-100 text-xs text-neutral-500 dark:border-neutral-900">
+            <tr><th className="py-2 pr-4">访问时间</th><th className="py-2 pr-4">访问时长</th><th className="py-2 pr-4">访问内容</th><th className="py-2 pr-4">地区 / IP</th><th className="py-2 pr-4">系统</th><th className="py-2 pr-4">浏览器</th><th className="py-2 pr-4">来源 URL</th></tr>
+          </thead>
+          <tbody className="divide-y divide-neutral-100 dark:divide-neutral-900">
+            {visits.map((visit) => (
+              <tr
+                key={visit.id}
+                onClick={() => setActiveId(visit.id)}
+                className={`cursor-pointer transition-colors ${activeId === visit.id ? 'bg-blue-50/70 dark:bg-blue-950/20' : 'hover:bg-neutral-50 dark:hover:bg-neutral-900/60'}`}
+              >
+                <td className="py-3 pr-4 font-mono text-xs">{visit.createdAt.toLocaleString('zh-CN')}</td>
+                <td className="py-3 pr-4">{formatDuration(visit.durationSeconds)}</td>
+                <td className="py-3 pr-4"><a href={contentHref(visit)} target="_blank" rel="noopener noreferrer" onClick={(event) => event.stopPropagation()} className="block max-w-52 truncate font-medium text-neutral-800 transition-colors hover:text-blue-600 dark:text-neutral-100 dark:hover:text-blue-300">{visit.contentLabel}</a><span className="mt-0.5 block max-w-52 truncate font-mono text-xs text-neutral-500">{visit.contentSlug ?? visit.path}</span></td>
+                <td className="py-3 pr-4"><span className="block">{visit.country ?? '未知'}</span><span className="mt-0.5 block font-mono text-xs text-neutral-500">{visit.ipAddress ?? '未采集'}</span></td>
+                <td className="py-3 pr-4">{visit.operatingSystem}</td>
+                <td className="py-3 pr-4">{visit.browser}</td>
+                <td className="py-3 pr-4">{isExternalUrl(visit.referrer) ? <ExternalLink href={visit.referrer} className="block max-w-56 truncate text-neutral-500 transition-colors hover:text-neutral-900 dark:hover:text-neutral-100">{visit.referrer}</ExternalLink> : <span className="block max-w-56 truncate text-neutral-500">{referrerLabel(visit.referrer)}</span>}</td>
+              </tr>
+            ))}
+            {visits.length === 0 && <tr><td colSpan={7} className="py-10 text-center text-neutral-500">暂无访问记录。</td></tr>}
+          </tbody>
+        </table>
+      </div>
+      {activeVisit && <VisitDetailDialog visit={activeVisit} onClose={() => setActiveId(null)} />}
+    </>
   )
 }
