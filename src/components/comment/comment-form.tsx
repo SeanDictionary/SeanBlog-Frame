@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, type FormEvent } from 'react'
 
 type CommentFormProps = {
   articleId: string
@@ -8,12 +8,60 @@ type CommentFormProps = {
   onCancel?: () => void
 }
 
+type CommentApiError = {
+  error?: {
+    message?: string
+    issues?: Array<{ path?: (string | number)[]; message?: string }>
+  }
+}
+
+const FIELD_LABELS: Record<string, string> = {
+  guestEmail: '邮箱',
+  guestName: '昵称',
+  content: '评论内容',
+  articleId: '文章',
+  parentId: '父评论',
+}
+
+// Turn the API's generic "Request validation failed." into a concrete, field-
+// level hint so the visitor knows what to fix instead of staring at a 400.
+function resolveErrorMessage(data: CommentApiError, fallback: string) {
+  const issues = data.error?.issues
+  if (Array.isArray(issues) && issues.length > 0) {
+    return issues
+      .map((issue) => {
+        const field = issue.path?.[0]
+        if (field === 'guestEmail') {
+          return '邮箱格式不正确，请检查后重试。'
+        }
+        if (field === 'content') {
+          return '评论内容不能为空或超过长度限制。'
+        }
+        const label = field && FIELD_LABELS[field] ? FIELD_LABELS[field] : null
+        const detail = issue.message || '输入有误'
+        return label ? `${label}：${detail}` : detail
+      })
+      .filter(Boolean)
+      .join('；')
+  }
+
+  return data.error?.message ?? fallback
+}
+
 export function CommentForm({ articleId, parentId, onCancel }: CommentFormProps) {
   const [message, setMessage] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
-  function submit(formData: FormData) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    // preventDefault keeps the form from reloading and — importantly — opts
+    // out of React 19's <form action> auto-reset, so a failed submission does
+    // not wipe the visitor's already-typed content. We reset explicitly only
+    // after a successful save.
+    event.preventDefault()
     setMessage(null)
+
+    const form = event.currentTarget
+    const formData = new FormData(form)
     const content = String(formData.get('content') ?? '').trim()
     const guestName = String(formData.get('guestName') ?? '').trim()
     const guestEmail = String(formData.get('guestEmail') ?? '').trim()
@@ -32,15 +80,14 @@ export function CommentForm({ articleId, parentId, onCancel }: CommentFormProps)
           }),
         })
 
-        const data = (await response.json()) as { error?: { message?: string } }
+        const data = (await response.json()) as CommentApiError
 
         if (!response.ok) {
-          throw new Error(data.error?.message ?? '评论提交失败。')
+          throw new Error(resolveErrorMessage(data, '评论提交失败。'))
         }
 
         setMessage('评论已提交，审核通过后会显示在这里。')
-        const form = document.getElementById(parentId ? `reply-form-${parentId}` : 'comment-form') as HTMLFormElement | null
-        form?.reset()
+        form.reset()
       } catch (error) {
         setMessage(error instanceof Error ? error.message : '评论提交失败，请稍后再试。')
       }
@@ -48,7 +95,7 @@ export function CommentForm({ articleId, parentId, onCancel }: CommentFormProps)
   }
 
   return (
-    <form id={parentId ? `reply-form-${parentId}` : 'comment-form'} action={submit} className="space-y-4 rounded-(--radius) border border-border bg-bg-secondary p-5">
+    <form onSubmit={handleSubmit} id={parentId ? `reply-form-${parentId}` : 'comment-form'} className="space-y-4 rounded-(--radius) border border-border bg-bg-secondary p-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="grid gap-1.5 text-sm text-text-secondary">
           昵称
