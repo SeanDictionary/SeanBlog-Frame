@@ -16,6 +16,7 @@ function toPublicCommentReceipt(comment: {
   createdAt: Date
   articleId: string
   parentId: string | null
+  guestLink: string | null
 }) {
   return {
     id: comment.id,
@@ -24,6 +25,7 @@ function toPublicCommentReceipt(comment: {
     createdAt: comment.createdAt,
     articleId: comment.articleId,
     parentId: comment.parentId,
+    guestLink: comment.guestLink,
   }
 }
 
@@ -33,6 +35,7 @@ function toAdminComment(comment: {
   status: CommentStatus
   guestName: string | null
   guestEmail: string | null
+  guestLink: string | null
   isSpam: boolean
   createdAt: Date
   updatedAt: Date
@@ -50,6 +53,7 @@ function toAdminComment(comment: {
     status: comment.status,
     guestName: comment.guestName,
     guestEmail: comment.guestEmail,
+    guestLink: comment.guestLink,
     isSpam: comment.isSpam,
     createdAt: comment.createdAt,
     updatedAt: comment.updatedAt,
@@ -97,6 +101,7 @@ export async function createComment(input: CommentInput, request?: Request) {
       content: input.content,
       guestName: input.guestName,
       guestEmail: input.guestEmail,
+      guestLink: input.guestLink,
     },
     normalizeCommentModerationRules(settings[COMMENT_MODERATION_RULES_SETTING_KEY]),
   )
@@ -110,6 +115,7 @@ export async function createComment(input: CommentInput, request?: Request) {
       isSpam: moderationDecision.isSpam,
       guestName: input.guestName,
       guestEmail: input.guestEmail,
+      guestLink: input.guestLink,
       ip,
       userAgent: request?.headers.get('user-agent'),
     },

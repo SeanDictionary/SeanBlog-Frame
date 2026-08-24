@@ -18,6 +18,7 @@ type CommentApiError = {
 const FIELD_LABELS: Record<string, string> = {
   guestEmail: '邮箱',
   guestName: '昵称',
+  guestLink: '链接',
   content: '评论内容',
   articleId: '文章',
   parentId: '父评论',
@@ -33,6 +34,9 @@ function resolveErrorMessage(data: CommentApiError, fallback: string) {
         const field = issue.path?.[0]
         if (field === 'guestEmail') {
           return '邮箱格式不正确，请检查后重试。'
+        }
+        if (field === 'guestLink') {
+          return '链接格式不正确，需以 http:// 或 https:// 开头。'
         }
         if (field === 'content') {
           return '评论内容不能为空或超过长度限制。'
@@ -65,6 +69,7 @@ export function CommentForm({ articleId, parentId, onCancel }: CommentFormProps)
     const content = String(formData.get('content') ?? '').trim()
     const guestName = String(formData.get('guestName') ?? '').trim()
     const guestEmail = String(formData.get('guestEmail') ?? '').trim()
+    const guestLink = String(formData.get('guestLink') ?? '').trim()
 
     startTransition(async () => {
       try {
@@ -77,6 +82,7 @@ export function CommentForm({ articleId, parentId, onCancel }: CommentFormProps)
             content,
             ...(guestName ? { guestName } : {}),
             ...(guestEmail ? { guestEmail } : {}),
+            ...(guestLink ? { guestLink } : {}),
           }),
         })
 
@@ -106,6 +112,11 @@ export function CommentForm({ articleId, parentId, onCancel }: CommentFormProps)
           <input name="guestEmail" type="email" maxLength={320} className="h-10 rounded-sm border border-border bg-bg px-3 text-text outline-none transition-colors focus:border-accent" />
         </label>
       </div>
+
+      <label className="grid gap-1.5 text-sm text-text-secondary">
+        <span>链接 <span className="text-text-tertiary">（可选，点击昵称时新标签打开）</span></span>
+        <input name="guestLink" type="url" maxLength={2048} placeholder="https://" className="h-10 rounded-sm border border-border bg-bg px-3 text-text outline-none transition-colors focus:border-accent" />
+      </label>
 
       <label className="grid gap-1.5 text-sm text-text-secondary">
         {parentId ? '回复内容' : '发表评论'}

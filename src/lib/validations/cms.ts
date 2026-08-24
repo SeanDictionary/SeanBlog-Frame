@@ -52,6 +52,17 @@ const optionalEmailString = z.preprocess(
   z.string().trim().email().nullable().optional(),
 )
 
+const optionalUrlString = z.preprocess(
+  (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+  z
+    .string()
+    .trim()
+    .max(2048)
+    .refine((value) => /^https?:\/\//i.test(value), 'Link must start with http:// or https://')
+    .nullable()
+    .optional(),
+)
+
 export const paginationQuerySchema = z.object({
   page: queryPage,
   pageSize: queryPageSize,
@@ -140,6 +151,7 @@ export const commentInputSchema = z
     content: z.string().trim().min(1).max(5000),
     guestName: optionalTrimmedString,
     guestEmail: optionalEmailString,
+    guestLink: optionalUrlString,
     parentId: optionalTrimmedString,
   })
   .strict()

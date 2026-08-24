@@ -148,8 +148,8 @@ export function normalizeCommentModerationRules(value: unknown): CommentModerati
   }
 }
 
-export function getCommentModerationDecision(input: { content: string; guestName?: string | null; guestEmail?: string | null }, rules: CommentModerationRules): CommentModerationDecision {
-  const rawText = [input.content, input.guestName, input.guestEmail]
+export function getCommentModerationDecision(input: { content: string; guestName?: string | null; guestEmail?: string | null; guestLink?: string | null }, rules: CommentModerationRules): CommentModerationDecision {
+  const rawText = [input.content, input.guestName, input.guestEmail, input.guestLink]
     .filter(Boolean)
     .join('\n')
   const normalizedText = rawText.toLocaleLowerCase()

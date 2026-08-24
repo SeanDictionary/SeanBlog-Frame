@@ -10,6 +10,7 @@ type Comment = {
   status: 'PENDING' | 'APPROVED' | 'SPAM' | 'TRASHED'
   guestName: string | null
   guestEmail: string | null
+  guestLink: string | null
   isSpam: boolean
   createdAt: Date
   article?: { id: string; title: string; slug: string }
@@ -187,6 +188,12 @@ export function CommentModeration({ initialComments, emptyMessage = '当前没�
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="font-medium text-neutral-950 dark:text-neutral-50">{comment.guestName || '访客'}</span>
                               <span className="text-xs text-neutral-500">{comment.guestEmail || '匿名评论'}</span>
+                              {/^https?:\/\//i.test(comment.guestLink ?? '') && (
+                                <a href={comment.guestLink ?? undefined} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline dark:text-blue-400" onClick={(event) => event.stopPropagation()}>
+                                  <i className="fa-solid fa-arrow-up-right-from-square text-[0.625rem]" aria-hidden="true" />
+                                  链接
+                                </a>
+                              )}
 
                             </div>
                             <p className="mt-1 text-xs text-neutral-500">{comment.article?.title ?? '已删除文章'} · {comment.createdAt.toLocaleString('zh-CN')}</p>

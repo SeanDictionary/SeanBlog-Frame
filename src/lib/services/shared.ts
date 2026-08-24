@@ -62,6 +62,7 @@ const publicCommentBaseSelect = {
   id: true,
   content: true,
   guestName: true,
+  guestLink: true,
   createdAt: true,
   parentId: true,
 } satisfies Prisma.CommentSelect

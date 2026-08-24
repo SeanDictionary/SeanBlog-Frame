@@ -113,6 +113,7 @@ model Comment {
   userAgent  String?
   guestName  String?
   guestEmail String?
+  guestLink  String?
   isSpam     Boolean       @default(false)
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt

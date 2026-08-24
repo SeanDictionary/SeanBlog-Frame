@@ -8,6 +8,7 @@ type Comment = {
   id: string
   content: string
   guestName: string | null
+  guestLink: string | null
   createdAt: Date
   parentId: string | null
 }
@@ -32,6 +33,13 @@ function formatDate(date: Date) {
   }).format(date)
 }
 
+// Only render a visitor-provided link when it is an http(s) URL. The API
+// already rejects anything else, but this guards against stale or directly-
+// inserted data so a `javascript:` value can never reach an href.
+function isSafeLink(value: string | null | undefined): value is string {
+  return typeof value === 'string' && /^https?:\/\//i.test(value)
+}
+
 export function CommentItem({ articleId, comment, canReply = false }: CommentItemProps) {
   const [isReplying, setIsReplying] = useState(false)
 
@@ -42,7 +50,13 @@ export function CommentItem({ articleId, comment, canReply = false }: CommentIte
           <span className="grid size-7 place-items-center rounded-full bg-bg-tertiary text-xs font-semibold text-text-secondary">
             {(comment.guestName?.trim().charAt(0) || '访').toLocaleUpperCase()}
           </span>
-          <span className="font-medium">{comment.guestName || '访客'}</span>
+          {isSafeLink(comment.guestLink) ? (
+            <a href={comment.guestLink} target="_blank" rel="noopener noreferrer nofollow" className="font-medium transition-colors hover:text-accent">
+              {comment.guestName || '访客'}
+            </a>
+          ) : (
+            <span className="font-medium">{comment.guestName || '访客'}</span>
+          )}
         </div>
         <time className="text-xs text-text-tertiary" dateTime={comment.createdAt.toISOString()}>
           {formatDate(comment.createdAt)}

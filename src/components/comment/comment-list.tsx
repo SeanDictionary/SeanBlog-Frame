@@ -6,12 +6,14 @@ type Comment = {
   id: string
   content: string
   guestName: string | null
+  guestLink: string | null
   createdAt: Date
   parentId: string | null
   replies: Array<{
     id: string
     content: string
     guestName: string | null
+    guestLink: string | null
     createdAt: Date
     parentId: string | null
   }>
