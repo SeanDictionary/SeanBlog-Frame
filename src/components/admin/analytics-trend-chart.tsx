@@ -41,12 +41,23 @@ function shortDateLabel(date: string) {
   return date.length === 7 ? date : date.slice(5)
 }
 
-function yTickValues(max: number, segments = 4) {
+// Pick round y-axis ticks (10 / 20 / 50 / 100 / 500 ...) based on the data
+// so labels read as clean tens, fifties, hundreds instead of arbitrary
+// divisions of the max. Returns the nice ceiling the chart scales to.
+function niceTicks(rawMax: number, targetCount = 5) {
+  const max = Math.max(1, rawMax)
+  const roughStep = max / targetCount
+  const magnitude = Math.pow(10, Math.floor(Math.log10(roughStep)))
+  const normalized = roughStep / magnitude
+  const niceNormalized = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10
+  let step = niceNormalized * magnitude
+  if (step < 1) step = 1
+  const niceMax = Math.ceil(max / step) * step
   const ticks: number[] = []
-  for (let index = 0; index <= segments; index += 1) {
-    ticks.push(Math.round((max * index) / segments))
+  for (let value = 0; value <= niceMax + step * 0.5; value += step) {
+    ticks.push(value)
   }
-  return Array.from(new Set(ticks))
+  return { max: niceMax, ticks }
 }
 
 export function AnalyticsTrendChart({
@@ -61,8 +72,9 @@ export function AnalyticsTrendChart({
   const [hoverIndex, setHoverIndex] = useState<number | null>(null)
 
   const pointCount = trend.length
-  const maxValue = Math.max(1, ...trend.flatMap((point) => [point.views, point.visitors]))
-  const ticks = yTickValues(maxValue, 4)
+  const rawMax = Math.max(1, ...trend.flatMap((point) => [point.views, point.visitors]))
+  const { max: maxValue, ticks } = niceTicks(rawMax, 5)
+  const yOf = (value: number) => PAD.top + PLOT_H - (value / maxValue) * PLOT_H
 
   const naturalSpacing = pointCount > 1 ? PLOT_W / (pointCount - 1) : 0
   const spacing = Math.min(naturalSpacing, MAX_POINT_SPACING)
@@ -73,7 +85,7 @@ export function AnalyticsTrendChart({
     pointCount > 1
       ? PAD.left + dataOffset + index * spacing
       : PAD.left + PLOT_W / 2
-  const yOf = (value: number) => PAD.top + PLOT_H - (value / maxValue) * PLOT_H
+
 
   const buildPath = (key: 'views' | 'visitors') =>
     pointCount > 1
@@ -147,6 +159,23 @@ export function AnalyticsTrendChart({
           style={{ aspectRatio: `${WIDTH} / ${HEIGHT}` }}
           onMouseLeave={() => setHoverIndex(null)}
         >
+          {/* horizontal gridlines extending from each y-axis tick */}
+          {ticks.map((tick) => {
+            const y = yOf(tick)
+            return (
+              <line
+                key={`hgrid-${tick}`}
+                x1={PAD.left}
+                x2={PAD.left + PLOT_W}
+                y1={y}
+                y2={y}
+                className="stroke-neutral-200 dark:stroke-neutral-800"
+                strokeDasharray="3 4"
+                strokeWidth={1}
+              />
+            )
+          })}
+
           {/* background vertical dashed gridlines at each x tick */}
           {xTickIndices.map((index) => (
             <line
@@ -172,8 +201,8 @@ export function AnalyticsTrendChart({
             )
           })}
 
-          {/* axes (span the data extent so sparse data does not stretch to the edges) */}
-          <line x1={xOf(0)} x2={xOf(Math.max(0, pointCount - 1))} y1={PAD.top + PLOT_H} y2={PAD.top + PLOT_H} className="stroke-neutral-300 dark:stroke-neutral-700" strokeWidth={1} />
+          {/* axes: keep the x-axis line spanning the full plot width; only the data points are centered */}
+          <line x1={PAD.left} x2={PAD.left + PLOT_W} y1={PAD.top + PLOT_H} y2={PAD.top + PLOT_H} className="stroke-neutral-300 dark:stroke-neutral-700" strokeWidth={1} />
           <line x1={PAD.left} x2={PAD.left} y1={PAD.top} y2={PAD.top + PLOT_H} className="stroke-neutral-300 dark:stroke-neutral-700" strokeWidth={1} />
 
           {/* x tick labels */}
