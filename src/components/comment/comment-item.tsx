@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 
+import { ExternalLink } from '@/components/common/external-link'
 import { CommentForm } from '@/components/comment/comment-form'
 
 type Comment = {
@@ -51,9 +52,9 @@ export function CommentItem({ articleId, comment, canReply = false }: CommentIte
             {(comment.guestName?.trim().charAt(0) || '访').toLocaleUpperCase()}
           </span>
           {isSafeLink(comment.guestLink) ? (
-            <a href={comment.guestLink} target="_blank" rel="noopener noreferrer nofollow" className="font-medium transition-colors hover:text-accent">
+            <ExternalLink href={comment.guestLink} ariaLabel={`${comment.guestName || '访客'} 的个人链接`} className="font-medium transition-colors hover:text-accent">
               {comment.guestName || '访客'}
-            </a>
+            </ExternalLink>
           ) : (
             <span className="font-medium">{comment.guestName || '访客'}</span>
           )}
