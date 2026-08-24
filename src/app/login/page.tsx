@@ -32,7 +32,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             <input name="password" type="password" required autoComplete="current-password" className="h-10 rounded-md border border-neutral-300 bg-white px-3 text-neutral-950 outline-none transition-colors focus:border-blue-600 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-50 dark:focus:border-blue-400" />
           </label>
 
-          {error && <p className="text-sm text-red-600 dark:text-red-400">用户名或密码不正确。</p>}
+          {error && (
+            <p className="text-sm text-red-600 dark:text-red-400">
+              {error === 'ServiceUnavailable'
+                ? '服务暂时不可用，请稍后重试。'
+                : '用户名或密码不正确。'}
+            </p>
+          )}
 
           <button type="submit" className="w-full rounded-md bg-neutral-950 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 dark:bg-neutral-100 dark:text-neutral-950">
             登录

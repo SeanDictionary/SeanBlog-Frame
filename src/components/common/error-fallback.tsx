@@ -35,8 +35,8 @@ export function ErrorFallback({ error, reset, variant = 'public' }: ErrorFallbac
       <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em]">页面暂时无法加载</h1>
       <p className="mt-4 leading-7 text-text-secondary">
         {isDatabaseError
-          ? '数据库暂时不可用。请稍后重试；若问题持续，请检查数据库服务状态。'
-          : '服务出现异常，请稍后重试，或返回首页继续浏览。'}
+          ? '服务暂时不可用，请稍后重试。'
+          : '出了点问题，请稍后重试，或返回首页继续浏览。'}
       </p>
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         <button
