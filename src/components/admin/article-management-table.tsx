@@ -398,10 +398,21 @@ export function ArticleManagementTable({ articles, total, filters, initialNotice
               </thead>
               <tbody className="divide-y divide-neutral-100 dark:divide-neutral-900">
                 {articles.map((article) => (
-                  <tr key={article.id}>
-                    <td className="px-4 py-4 align-top"><input type="checkbox" checked={selectedIds.has(article.id)} onChange={() => toggleArticle(article.id)} aria-label={`选择 ${article.title}`} /></td>
-                    <td className="px-4 py-4 align-top">
-                      <Link href={`/admin/articles/${article.id}/edit`} className="font-medium transition-colors hover:text-blue-600 dark:hover:text-blue-300">{article.title}</Link>
+                  <tr
+                    key={article.id}
+                    className={`cursor-pointer transition-colors ${selectedIds.has(article.id) ? 'bg-blue-50/70 dark:bg-blue-950/20' : 'hover:bg-neutral-50 dark:hover:bg-neutral-900/60'}`}
+                    onClick={() => toggleArticle(article.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        toggleArticle(article.id)
+                      }
+                    }}
+                    tabIndex={0}
+                  >
+                    <td className="px-4 py-4 align-top"><input type="checkbox" checked={selectedIds.has(article.id)} onChange={() => toggleArticle(article.id)} aria-label={`选择 ${article.title}`} onClick={(event) => event.stopPropagation()} /></td>
+                    <td className="px-4 py-4 align-top" onClick={(event) => event.stopPropagation()}>
+                      <Link href={`/admin/articles/${article.id}/edit`} className="font-medium">{article.title}</Link>
                       <p className="mt-1 flex items-center gap-2 font-mono text-xs text-neutral-500">
                         /{article.slug}
                         <a href={`/articles/${article.slug}`} target="_blank" rel="noreferrer" className="text-neutral-400 transition-colors hover:text-neutral-950 dark:hover:text-neutral-50" aria-label="在新窗口打开文章">
@@ -410,7 +421,7 @@ export function ArticleManagementTable({ articles, total, filters, initialNotice
                       </p>
                     </td>
                     <td className="px-4 py-4 align-top"><div className="flex flex-wrap gap-1.5">{statusBadges(article).map((badge) => <span key={badge.label} className={`rounded-full px-2 py-1 text-xs ${badge.className}`}>{badge.label}</span>)}</div></td>
-                    <td className="px-4 py-4 align-top">
+                    <td className="px-4 py-4 align-top" onClick={(event) => event.stopPropagation()}>
                       <div className="max-w-56 space-y-1 text-neutral-500">
                         <p>
                           {article.category ? <TaxonomyLink type="category" slug={article.category.slug} label={article.category.name} /> : <span>未分类</span>}
