@@ -1,7 +1,7 @@
 import type { Route } from 'next'
 import type { Session } from 'next-auth'
 
-import { getSiteSettingsMap } from '@/lib/services/setting-service'
+import { getSiteSettingsMapSafe } from '@/lib/services/setting-service'
 import { signOut } from '@/lib/auth'
 import { adminLogActor, recordOperationLog } from '@/lib/services/operation-log-service'
 import { AdminSidebarClient } from '@/components/layout/admin-sidebar-client'
@@ -39,7 +39,7 @@ type AdminSidebarProps = {
 }
 
 export async function AdminSidebar({ session }: AdminSidebarProps) {
-  const settings = await getSiteSettingsMap()
+  const settings = await getSiteSettingsMapSafe()
   const siteName = typeof settings.siteName === 'string' && settings.siteName.trim() ? settings.siteName : 'SeanBlog'
 
   async function signOutAction() {

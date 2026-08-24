@@ -3,7 +3,7 @@ import { Suspense } from 'react'
 import { AnalyticsTracker } from '@/components/analytics/analytics-tracker'
 import { SiteFooter } from '@/components/layout/site-footer'
 import { SiteHeader } from '@/components/layout/site-header'
-import { getSiteSettingsMap } from '@/lib/services/setting-service'
+import { getSiteSettingsMapSafe } from '@/lib/services/setting-service'
 import { readThemeCss, readThemeManifest, readThemePart } from '@/lib/theme'
 
 function normalizeActiveTheme(value: unknown) {
@@ -31,7 +31,7 @@ export default async function PublicLayout({
 }: {
   children: React.ReactNode
 }) {
-  const settings = await getSiteSettingsMap()
+  const settings = await getSiteSettingsMapSafe()
   const activeTheme = normalizeActiveTheme(settings.activeTheme)
   const customThemeCss = await readThemeCss(activeTheme) ?? await readThemeCss('seanblog-default')
   const themeOptionsCss = await buildThemeOptionsCss(activeTheme, settings) ?? await buildThemeOptionsCss('seanblog-default', settings)

@@ -74,3 +74,17 @@ export async function getSiteSettingsMap() {
 
   return Object.fromEntries(settings.map((setting) => [setting.key, setting.value]))
 }
+
+/**
+ * Returns the site settings map, or an empty object when the database is
+ * unavailable. Used by always-on chrome (public layout, admin sidebar) so a
+ * database outage degrades to defaults instead of crashing the whole shell.
+ */
+export async function getSiteSettingsMapSafe(): Promise<Record<string, unknown>> {
+  try {
+    return await getSiteSettingsMap()
+  } catch (error) {
+    console.error('[settings] failed to load site settings, falling back to empty map:', error)
+    return {}
+  }
+}
