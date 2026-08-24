@@ -1,9 +1,14 @@
 import type { AnalyticsVisitRecord } from '@/lib/services/analytics-service'
+import { ExternalLink } from '@/components/common/external-link'
 
 function formatDuration(seconds: number | null) {
   if (seconds === null) return '未知'
   if (seconds < 60) return `${seconds}s`
   return `${Math.floor(seconds / 60)}m ${seconds % 60}s`
+}
+
+function isExternalUrl(value: string | null | undefined): value is string {
+  return typeof value === 'string' && /^https?:\/\//i.test(value)
 }
 
 export function VisitRecordTable({ visits }: { visits: AnalyticsVisitRecord[] }) {
@@ -18,11 +23,11 @@ export function VisitRecordTable({ visits }: { visits: AnalyticsVisitRecord[] })
             <tr key={visit.id}>
               <td className="py-3 pr-4 font-mono text-xs">{visit.createdAt.toLocaleString('zh-CN')}</td>
               <td className="py-3 pr-4">{formatDuration(visit.durationSeconds)}</td>
-              <td className="py-3 pr-4"><span className="block max-w-52 truncate font-medium">{visit.contentLabel}</span><span className="mt-0.5 block max-w-52 truncate font-mono text-xs text-neutral-500">{visit.contentSlug ?? visit.path}</span></td>
+              <td className="py-3 pr-4"><span className="block max-w-52 truncate font-medium">{visit.contentLabel}</span>{visit.contentSlug && <span className="mt-0.5 block max-w-52 truncate font-mono text-xs text-neutral-500">{visit.contentSlug}</span>}</td>
               <td className="py-3 pr-4"><span className="block">{visit.country ?? '未知'}</span><span className="mt-0.5 block font-mono text-xs text-neutral-500">{visit.ipAddress ?? '未采集'}</span></td>
               <td className="py-3 pr-4">{visit.operatingSystem}</td>
               <td className="py-3 pr-4">{visit.browser}</td>
-              <td className="py-3 pr-4"><span className="block max-w-56 truncate text-neutral-500">{visit.referrer ?? '直接访问 / 未采集'}</span></td>
+              <td className="py-3 pr-4">{isExternalUrl(visit.referrer) ? <ExternalLink href={visit.referrer} className="block max-w-56 truncate text-neutral-500 transition-colors hover:text-neutral-900 dark:hover:text-neutral-100">{visit.referrer}</ExternalLink> : <span className="block max-w-56 truncate text-neutral-500">直接访问 / 未采集</span>}</td>
             </tr>
           ))}
           {visits.length === 0 && <tr><td colSpan={7} className="py-10 text-center text-neutral-500">暂无访问记录。</td></tr>}

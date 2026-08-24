@@ -234,11 +234,20 @@ function parseOperatingSystem(userAgent: string | null) {
   return '其他系统'
 }
 
+const PAGE_LABELS: Record<string, string> = {
+  '/': '首页',
+  '/search': '搜索',
+  '/login': '登录',
+  '/categories': '分类列表',
+  '/tags': '标签列表',
+}
+
 function getContentLabel(event: AnalyticsEventWithContent) {
   if (event.article) return event.article.title
   if (event.category) return event.category.name
   if (event.tag) return `#${event.tag.name}`
-  return event.path
+  const base = event.path.split('?')[0]
+  return PAGE_LABELS[base] ?? event.path
 }
 
 function getContentSlug(event: AnalyticsEventWithContent) {

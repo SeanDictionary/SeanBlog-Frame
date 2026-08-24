@@ -280,7 +280,7 @@ model AnalyticsEvent {
   visitorHash        String?
   sessionId          String?
   referrer           String?
-  country            String?
+  country            String?      # 访问者国家/地区名称，由 IP 经本地 GeoLite2 库查得（data/geoip/GeoLite2-Country.mmdb，缺失则回退到平台 geo 请求头）
   ipAddress          String?
   userAgent          String?
   browserFingerprint String?
@@ -304,6 +304,7 @@ model AnalyticsEvent {
 说明：
 
 - 统计事件记录访问路径、内容类型、关联文章/分类/标签、访问地区和访问时长；事件明细永久保存，不做硬删除
+- `country` 由访问 IP 经本地 MaxMind GeoLite2 数据库查得（不依赖平台 geo 请求头）；缺失库时回退到 `x-vercel-ip-country`/`cf-ipcountry` 头
 - `visitorHash` 使用匿名访客 ID 的 hash 值，用于访客数去重，不保存原始访客 ID
 - `ipAddress`、`userAgent`、`browserFingerprint`、`hardware`、`referrer` 等隐私字段默认不采集，仅在后台设置中显式开启后写入
 - 文章 `viewCount` / `visitorCount` 由前台 analytics tracker 写入事件时回写，避免页面元数据渲染和详情渲染重复增加浏览量
