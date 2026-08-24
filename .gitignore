@@ -62,5 +62,3 @@ Thumbs.db
 # Runtime article content
 /content/articles/
 
-# GeoIP database (MaxMind GeoLite2, large, requires license)
-data/geoip/*.mmdb

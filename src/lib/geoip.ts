@@ -1,44 +1,37 @@
-import maxmind, { type CountryResponse, type Reader } from 'maxmind'
-import path from 'node:path'
+// Resolve a visitor-facing country name from an IP address via the
+// ipinfo.io lite API. The token is configured in the admin settings; when
+// no token is set we skip the request entirely. Private/loopback IPs (local
+// dev) are skipped too. Results are cached in memory to avoid repeated
+// external calls for the same IP.
 
-const DEFAULT_DB_PATH = path.join(process.cwd(), 'data', 'geoip', 'GeoLite2-Country.mmdb')
+const CACHE_TTL = 6 * 60 * 60 * 1000
+const cache = new Map<string, { country: string | null; expires: number }>()
 
-let readerPromise: Promise<Reader<CountryResponse> | null> | null = null
-
-function getDbPath() {
-  return process.env.GEOIP_DB_PATH ?? DEFAULT_DB_PATH
+function isPrivateIp(ip: string): boolean {
+  return /^(::1|::ffff:127\.0\.0\.1|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|fc|fd)/i.test(ip)
 }
 
-// The MaxMind reader is opened once and cached. If the GeoLite2 database file
-// is absent (e.g. not downloaded yet), lookup resolves to null so callers can
-// fall back to other signals without throwing.
-async function getReader() {
-  if (readerPromise) return readerPromise
-  readerPromise = (async () => {
-    try {
-      return await maxmind.open<CountryResponse>(getDbPath())
-    } catch {
-      // Cache the miss so a missing/invalid database does not cause a file
-      // read on every event; restart the process after adding the file.
-      return null
-    }
-  })()
-  return readerPromise
-}
+export async function getCountryByIp(ip?: string | null, token?: string | null): Promise<string | null> {
+  if (!ip || !token) return null
+  if (isPrivateIp(ip)) return null
 
-// Resolve a visitor-facing country name from an IP address using the local
-// GeoLite2 database (no external request, no platform header dependency).
-// Prefers the Chinese name, then English, then the ISO code.
-export async function getCountryByIp(ip?: string | null): Promise<string | null> {
-  if (!ip) return null
-
-  const reader = await getReader()
-  if (!reader) return null
+  const cached = cache.get(ip)
+  if (cached && cached.expires > Date.now()) {
+    return cached.country
+  }
 
   try {
-    const record = reader.get(ip)
-    const names = record?.country?.names
-    return names?.['zh-CN'] ?? names?.en ?? record?.country?.iso_code ?? null
+    const response = await fetch(`https://api.ipinfo.io/lite/${encodeURIComponent(ip)}?token=${encodeURIComponent(token)}`, {
+      signal: AbortSignal.timeout(4000),
+      headers: { Accept: 'application/json' },
+    })
+    if (!response.ok) return null
+
+    const data = (await response.json()) as { country?: string; country_name?: string }
+    const country = data.country_name ?? data.country ?? null
+
+    cache.set(ip, { country, expires: Date.now() + CACHE_TTL })
+    return country
   } catch {
     return null
   }

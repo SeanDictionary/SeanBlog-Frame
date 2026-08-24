@@ -11,6 +11,13 @@ function isExternalUrl(value: string | null | undefined): value is string {
   return typeof value === 'string' && /^https?:\/\//i.test(value)
 }
 
+function contentHref(visit: AnalyticsVisitRecord) {
+  if (visit.contentType === 'article' && visit.contentSlug) return `/articles/${visit.contentSlug}`
+  if (visit.contentType === 'category' && visit.contentSlug) return `/categories/${visit.contentSlug}`
+  if (visit.contentType === 'tag' && visit.contentSlug) return `/tags/${visit.contentSlug}`
+  return visit.path
+}
+
 export function VisitRecordTable({ visits }: { visits: AnalyticsVisitRecord[] }) {
   return (
     <div className="overflow-x-auto">
@@ -23,7 +30,7 @@ export function VisitRecordTable({ visits }: { visits: AnalyticsVisitRecord[] })
             <tr key={visit.id}>
               <td className="py-3 pr-4 font-mono text-xs">{visit.createdAt.toLocaleString('zh-CN')}</td>
               <td className="py-3 pr-4">{formatDuration(visit.durationSeconds)}</td>
-              <td className="py-3 pr-4"><span className="block max-w-52 truncate font-medium">{visit.contentLabel}</span>{visit.contentSlug && <span className="mt-0.5 block max-w-52 truncate font-mono text-xs text-neutral-500">{visit.contentSlug}</span>}</td>
+              <td className="py-3 pr-4"><a href={contentHref(visit)} target="_blank" rel="noopener noreferrer" className="block max-w-52 truncate font-medium text-neutral-800 transition-colors hover:text-blue-600 dark:text-neutral-100 dark:hover:text-blue-300">{visit.contentLabel}</a><span className="mt-0.5 block max-w-52 truncate font-mono text-xs text-neutral-500">{visit.contentSlug ?? visit.path}</span></td>
               <td className="py-3 pr-4"><span className="block">{visit.country ?? '未知'}</span><span className="mt-0.5 block font-mono text-xs text-neutral-500">{visit.ipAddress ?? '未采集'}</span></td>
               <td className="py-3 pr-4">{visit.operatingSystem}</td>
               <td className="py-3 pr-4">{visit.browser}</td>

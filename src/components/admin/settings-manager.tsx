@@ -140,6 +140,11 @@ function buildOperationLogRetentionDays(settings: Setting[]) {
   return Number.isFinite(number) ? Math.min(MAX_OPERATION_LOG_RETENTION_DAYS, Math.max(1, Math.round(number))) : DEFAULT_OPERATION_LOG_RETENTION_DAYS
 }
 
+function buildIpinfoToken(settings: Setting[]) {
+  const value = getSettingValue(settings, 'ipinfoToken')
+  return typeof value === 'string' ? value : typeof value === 'number' ? String(value) : ''
+}
+
 export function SettingsManager({ initialSettings }: SettingsManagerProps) {
   const router = useRouter()
   const [settings, setSettings] = useState(initialSettings)
@@ -148,6 +153,7 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
   const [analyticsSettings, setAnalyticsSettings] = useState(() => buildAnalyticsSettings(initialSettings))
   const [analyticsRetentionDays, setAnalyticsRetentionDays] = useState(() => buildAnalyticsRetentionDays(initialSettings))
   const [operationLogRetentionDays, setOperationLogRetentionDays] = useState(() => buildOperationLogRetentionDays(initialSettings))
+  const [ipinfoToken, setIpinfoToken] = useState(() => buildIpinfoToken(initialSettings))
   const [message, setMessage] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
@@ -388,13 +394,16 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
           const next = Object.fromEntries(ANALYTICS_CONFIGS.map((item) => [item.key, formData.get(item.key) === 'on'])) as Record<string, boolean>
           const nextRetentionDays = Math.min(3650, Math.max(1, Number(formData.get(ANALYTICS_RETENTION_SETTING_KEY) ?? DEFAULT_ANALYTICS_RETENTION_DAYS)))
           const nextOperationLogRetentionDays = Math.min(MAX_OPERATION_LOG_RETENTION_DAYS, Math.max(1, Number(formData.get(OPERATION_LOG_RETENTION_SETTING_KEY) ?? DEFAULT_OPERATION_LOG_RETENTION_DAYS)))
+          const nextIpinfoToken = String(formData.get('ipinfoToken') ?? '').trim()
           setAnalyticsSettings(next)
           setAnalyticsRetentionDays(nextRetentionDays)
           setOperationLogRetentionDays(nextOperationLogRetentionDays)
+          setIpinfoToken(nextIpinfoToken)
           saveAnalyticsSettings([
             ...ANALYTICS_CONFIGS.map((item) => ({ key: item.key, value: next[item.key] })),
             { key: ANALYTICS_RETENTION_SETTING_KEY, value: nextRetentionDays },
             { key: OPERATION_LOG_RETENTION_SETTING_KEY, value: nextOperationLogRetentionDays },
+            { key: 'ipinfoToken', value: nextIpinfoToken },
           ])
         }}>
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -414,6 +423,11 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
               <span className="font-medium">操作日志保留天数</span>
               <span className="text-xs text-neutral-500">默认 365 天。超过该天数的操作日志会被定期清理脚本删除；运行 <code className="font-mono">npm run logs:prune</code> 手动清理。</span>
               <input name="operationLogRetentionDays" type="number" min="1" max={MAX_OPERATION_LOG_RETENTION_DAYS} value={operationLogRetentionDays} onChange={(event) => setOperationLogRetentionDays(Number(event.target.value))} className="mt-2 h-10 rounded-md border border-neutral-300 bg-white px-3 dark:border-neutral-700 dark:bg-neutral-900" />
+            </label>
+            <label className="grid gap-1.5 rounded-md border border-neutral-200 p-4 text-sm dark:border-neutral-800">
+              <span className="font-medium">ipinfo.io 访问令牌（可选）</span>
+              <span className="text-xs text-neutral-500">地区按访问 IP 通过 https://api.ipinfo.io/lite/ 查询。留空则不调用接口，地区留空。在 https://ipinfo.io 注册免费账号获取 token。</span>
+              <input name="ipinfoToken" type="password" value={ipinfoToken} onChange={(event) => setIpinfoToken(event.target.value)} autoComplete="off" className="mt-2 h-10 rounded-md border border-neutral-300 bg-white px-3 font-mono text-sm dark:border-neutral-700 dark:bg-neutral-900" />
             </label>
             {ANALYTICS_CONFIGS.map((item) => (
               <label key={item.key} className="flex flex-wrap items-start justify-between gap-3 rounded-md border border-neutral-200 p-4 dark:border-neutral-800">

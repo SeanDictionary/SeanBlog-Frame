@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import type { Prisma } from '@prisma/client'
 
+import { getCountryByIp } from '@/lib/geoip'
 import { getPrisma } from '@/lib/prisma'
 import { pageMeta, paginate } from '@/lib/services/shared'
 import { getSiteSettingsMap } from '@/lib/services/setting-service'
@@ -48,6 +49,7 @@ type AnalyticsSettings = {
   analyticsCollectFingerprint: boolean
   analyticsCollectHardware: boolean
   analyticsRetentionDays: number
+  ipinfoToken: string | null
 }
 
 type AnalyticsEventWithContent = Prisma.AnalyticsEventGetPayload<{
@@ -95,6 +97,7 @@ function normalizeSettings(settings: Record<string, unknown>): AnalyticsSettings
     analyticsCollectFingerprint: toBoolean(settings.analyticsCollectFingerprint, false),
     analyticsCollectHardware: toBoolean(settings.analyticsCollectHardware, false),
     analyticsRetentionDays: clamp(retentionDays, 1, MAX_ANALYTICS_RETENTION_DAYS),
+    ipinfoToken: typeof settings.ipinfoToken === 'string' ? settings.ipinfoToken.trim() || null : null,
   }
 }
 
@@ -365,6 +368,8 @@ export async function createAnalyticsEvent(input: AnalyticsEventInput, metadata:
     ? await getPrisma().analyticsEvent.count({ where: { articleId: content.articleId, visitorHash } }).then((count) => count === 0)
     : false
 
+  const country = await getCountryByIp(metadata.ipAddress, settings.ipinfoToken)
+
   const event = await getPrisma().analyticsEvent.create({
     data: {
       path: input.path,
@@ -373,7 +378,7 @@ export async function createAnalyticsEvent(input: AnalyticsEventInput, metadata:
       visitorHash,
       sessionId: input.sessionId,
       referrer: settings.analyticsCollectReferrer ? input.referrer : null,
-      country: metadata.country ?? null,
+      country,
       ipAddress: settings.analyticsCollectIp ? metadata.ipAddress : null,
       userAgent: settings.analyticsCollectUserAgent ? metadata.userAgent : null,
       browserFingerprint: settings.analyticsCollectFingerprint ? input.browserFingerprint : null,

@@ -1,5 +1,4 @@
 import { handleApiError, json, parseJson } from '@/lib/api/response'
-import { getCountryByIp } from '@/lib/geoip'
 import { createAnalyticsEvent } from '@/lib/services/analytics-service'
 import { recordOperationLog } from '@/lib/services/operation-log-service'
 import { analyticsEventSchema } from '@/lib/validations/cms'
@@ -8,10 +7,6 @@ function getClientIp(request: Request) {
   const forwardedFor = request.headers.get('x-forwarded-for')
   if (forwardedFor) return forwardedFor.split(',')[0]?.trim() ?? null
   return request.headers.get('x-real-ip')
-}
-
-function getHeaderCountry(request: Request) {
-  return request.headers.get('x-vercel-ip-country') ?? request.headers.get('cf-ipcountry') ?? null
 }
 
 export async function POST(request: Request) {
@@ -24,7 +19,6 @@ export async function POST(request: Request) {
       const result = await createAnalyticsEvent(input, {
         ipAddress,
         userAgent: request.headers.get('user-agent'),
-        country: (await getCountryByIp(ipAddress)) ?? getHeaderCountry(request),
       })
 
       return json(result)
