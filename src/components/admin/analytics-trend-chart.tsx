@@ -298,7 +298,7 @@ export function AnalyticsTrendChart({
           {/* HTML tooltip overlay (not clipped by the SVG) */}
           {hover && hoveredPoint && (
             <div
-              className="pointer-events-none absolute z-10 rounded-md bg-neutral-900/95 px-3 py-2 text-xs text-white shadow-lg dark:bg-neutral-100/95 dark:text-neutral-900"
+              className="pointer-events-none absolute z-10 rounded-md border border-white/10 bg-neutral-900/95 px-3 py-2 text-xs text-white shadow-lg dark:border-black/10 dark:bg-neutral-100/95 dark:text-neutral-900"
               style={{ left: tooltipLeft, top: tooltipTop, width: TOOLTIP_WIDTH, opacity: 1, transition: 'opacity 0.15s ease, top 0.12s ease, left 0.12s ease' }}
             >
               <p className="font-semibold">{shortDateLabel(hoveredPoint.date)}</p>
