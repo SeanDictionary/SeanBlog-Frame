@@ -114,16 +114,13 @@ export function AnalyticsTrendChart({
   const tooltipWidth = 138
   const tooltipHeight = 64
   let tooltipX = PAD.left
-  let tooltipY = PAD.top
+  const tooltipY = PAD.top
   if (hovered && hoverIndex !== null) {
     const pointX = xOf(hoverIndex)
-    const topY = Math.min(yOf(hovered.views), yOf(hovered.visitors))
     tooltipX = Math.min(
       Math.max(pointX - tooltipWidth / 2, PAD.left + 2),
       PAD.left + PLOT_W - tooltipWidth - 2,
     )
-    const aboveY = topY - tooltipHeight - 10
-    tooltipY = aboveY >= PAD.top ? aboveY : Math.max(topY, Math.max(yOf(hovered.views), yOf(hovered.visitors))) + 10
   }
 
   function handleGranularityClick(event: React.MouseEvent<HTMLAnchorElement>, href: Route) {

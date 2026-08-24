@@ -66,7 +66,7 @@ export default async function AdminAnalyticsOverviewPage({ searchParams }: Admin
       </header>
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(22rem,0.9fr)]">
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           <AnalyticsTrendChart
             title="全站访问趋势"
             description="可按天、周、月采样，默认按天。在图表右侧切换粒度。"
@@ -97,7 +97,7 @@ export default async function AdminAnalyticsOverviewPage({ searchParams }: Admin
           </section>
         </div>
 
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           <section className="rounded-lg border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-950">
             <h2 className="font-semibold">全站访问量</h2>
             <div className="mt-4 divide-y divide-neutral-100 dark:divide-neutral-900">{data.periodStats.map((stat) => <div key={stat.label} className="grid grid-cols-3 gap-3 py-3 text-sm"><span className="font-medium">{stat.label}</span><span className="text-right">{stat.views} 访问</span><span className="text-right text-neutral-500">{stat.visitors} 人</span></div>)}</div>
