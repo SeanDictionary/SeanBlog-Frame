@@ -176,20 +176,6 @@ export function AnalyticsTrendChart({
             )
           })}
 
-          {/* background vertical dashed gridlines at each x tick */}
-          {xTickIndices.map((index) => (
-            <line
-              key={`grid-${index}`}
-              x1={xOf(index)}
-              x2={xOf(index)}
-              y1={PAD.top}
-              y2={PAD.top + PLOT_H}
-              className="stroke-neutral-200 dark:stroke-neutral-800"
-              strokeDasharray="3 4"
-              strokeWidth={1}
-            />
-          ))}
-
           {/* y-axis ticks + labels */}
           {ticks.map((tick) => {
             const y = yOf(tick)
