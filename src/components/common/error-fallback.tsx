@@ -76,7 +76,7 @@ export function ErrorFallback({ error, reset, variant = 'public' }: ErrorFallbac
 
   if (variant === 'root') {
     return (
-      <div className="grid min-h-screen place-items-center bg-bg-primary px-5 text-text-primary">
+      <div className="grid min-h-screen place-items-center bg-bg px-5 text-text">
         <main className="max-w-md">{content}</main>
       </div>
     )

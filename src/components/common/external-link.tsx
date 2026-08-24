@@ -61,7 +61,7 @@ export function ExternalLink({ href, children, className, ariaLabel }: ExternalL
           onClick={() => setOpen(false)}
         >
           <div
-            className="w-full max-w-md rounded-(--radius-lg) border border-border bg-bg-primary p-6 shadow-xl"
+            className="w-full max-w-md rounded-(--radius-lg) border border-border bg-bg p-6 shadow-xl"
             onClick={(event) => event.stopPropagation()}
           >
             <h2 id={titleId} className="text-lg font-semibold tracking-tight">即将打开外部链接</h2>

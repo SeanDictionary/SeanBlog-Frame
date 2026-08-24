@@ -52,8 +52,9 @@ export function CommentItem({ articleId, comment, canReply = false }: CommentIte
             {(comment.guestName?.trim().charAt(0) || '访').toLocaleUpperCase()}
           </span>
           {isSafeLink(comment.guestLink) ? (
-            <ExternalLink href={comment.guestLink} ariaLabel={`${comment.guestName || '访客'} 的个人链接`} className="font-medium transition-colors hover:text-accent">
-              {comment.guestName || '访客'}
+            <ExternalLink href={comment.guestLink} ariaLabel={`${comment.guestName || '访客'} 的个人链接`} className="inline-flex items-center gap-1.5 font-medium transition-colors hover:text-accent">
+              <span>{comment.guestName || '访客'}</span>
+              <i className="fa-solid fa-arrow-up-right-from-square text-[0.625rem] text-text-tertiary" aria-hidden="true" />
             </ExternalLink>
           ) : (
             <span className="font-medium">{comment.guestName || '访客'}</span>
