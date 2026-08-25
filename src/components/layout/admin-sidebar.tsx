@@ -25,7 +25,8 @@ const adminNavigation: Array<{ href: Route; label: string; icon: string; childre
     icon: 'fa-solid fa-chart-simple',
     children: [
       { href: '/admin/overview' as Route, label: '总览', icon: 'fa-solid fa-chart-line' },
-      { href: '/admin/visitors' as Route, label: '访客统计', icon: 'fa-solid fa-users-viewfinder' },
+      { href: '/admin/visitors' as Route, label: '访问记录', icon: 'fa-solid fa-list' },
+      { href: '/admin/visitor-list' as Route, label: '访客记录', icon: 'fa-solid fa-users' },
     ],
   },
   { href: '/admin/personalization' as Route, label: '个性化', icon: 'fa-solid fa-palette' },

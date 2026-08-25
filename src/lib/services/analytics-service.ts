@@ -583,3 +583,28 @@ export async function exportAnalyticsVisitorsCsv(query: AnalyticsVisitorQuery) {
 
   return rows.map((row) => row.map(escapeCsv).join(',')).join('\n')
 }
+
+export type VisitorRecord = {
+  visitorId: string
+  firstSeenAt: Date
+  lastSeenAt: Date
+  visitCount: number
+}
+
+export async function getVisitors(query: { page: number; pageSize: number }): Promise<{ items: VisitorRecord[]; meta: { total: number; page: number; pageSize: number; pageCount: number } }> {
+  const prisma = getPrisma()
+  const where = undefined
+  const [items, total] = await Promise.all([
+    prisma.visitor.findMany({
+      orderBy: { lastSeenAt: 'desc' },
+      ...paginate(query.page, query.pageSize),
+      select: { visitorId: true, firstSeenAt: true, lastSeenAt: true, visitCount: true },
+    }),
+    prisma.visitor.count(),
+  ])
+
+  return {
+    items: items as VisitorRecord[],
+    meta: pageMeta(total, query.page, query.pageSize),
+  }
+}
