@@ -29,23 +29,27 @@ function getContent(path: string) {
 }
 
 function getHardwareSummary() {
-  const parts = [
-    typeof navigator.hardwareConcurrency === 'number' ? `cores:${navigator.hardwareConcurrency}` : null,
-    'deviceMemory' in navigator && typeof navigator.deviceMemory === 'number' ? `memory:${navigator.deviceMemory}` : null,
-    `screen:${window.screen.width}x${window.screen.height}`,
-  ].filter(Boolean)
-
-  return parts.join(';')
+  const data: Record<string, number> = {
+    screenWidth: window.screen.width,
+    screenHeight: window.screen.height,
+  }
+  if (typeof navigator.hardwareConcurrency === 'number') {
+    data.cores = navigator.hardwareConcurrency
+  }
+  if ('deviceMemory' in navigator && typeof navigator.deviceMemory === 'number') {
+    data.memory = navigator.deviceMemory
+  }
+  return JSON.stringify(data)
 }
 
 function getFingerprintSource() {
-  return [
-    navigator.language,
-    Intl.DateTimeFormat().resolvedOptions().timeZone,
-    window.screen.width,
-    window.screen.height,
-    window.devicePixelRatio,
-  ].join('|')
+  return JSON.stringify({
+    language: navigator.language,
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    screenWidth: window.screen.width,
+    screenHeight: window.screen.height,
+    devicePixelRatio: window.devicePixelRatio,
+  })
 }
 
 function sendAnalyticsEvent(path: string, startedAt: number, referrer: string) {

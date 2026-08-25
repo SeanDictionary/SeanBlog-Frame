@@ -28,28 +28,40 @@ function referrerLabel(value: string | null) {
   return value
 }
 
-// Break the stored fingerprint/hardware summaries into labeled parts so the
-// detail dialog can spell out what each component means instead of showing a
-// raw pipe/semicolon string.
-function fingerprintParts(value: string | null): Array<{ label: string; value: string }> | null {
-  if (!value) return null
-  const parts = value.split('|')
-  const labels = ['语言', '时区', '屏幕宽度', '屏幕高度', '像素比']
-  if (parts.length !== labels.length) return null
-  return parts.map((part, index) => ({ label: labels[index], value: part }))
+// The fingerprint and hardware fields are stored as JSON objects (a single
+// string column). Parse them here and map keys to Chinese labels so the
+// detail dialog can spell out each component instead of showing the raw
+// delimited string.
+const FINGERPRINT_LABELS: Record<string, string> = {
+  language: '语言',
+  timezone: '时区',
+  screenWidth: '屏幕宽度',
+  screenHeight: '屏幕高度',
+  devicePixelRatio: '像素比',
 }
 
-function hardwareParts(value: string | null): Array<{ label: string; value: string }> | null {
+const HARDWARE_LABELS: Record<string, string> = {
+  cores: 'CPU 核心数',
+  memory: '内存',
+  screenWidth: '屏幕宽度',
+  screenHeight: '屏幕高度',
+}
+
+function toDetailParts(
+  value: string | null,
+  labels: Record<string, string>,
+  format: (key: string, value: unknown) => string = (_key, val) => `${val}`,
+): Array<{ label: string; value: string }> | null {
   if (!value) return null
-  const map: Record<string, string> = { cores: 'CPU 核心数', memory: '内存', screen: '屏幕分辨率' }
-  const parsed = value.split(';')
-    .map((entry) => {
-      const [key, val] = entry.split(':')
-      if (!key || val === undefined) return null
-      return { label: map[key] ?? key, value: key === 'memory' ? `${val} GB` : val }
-    })
-    .filter((entry): entry is { label: string; value: string } => entry !== null)
-  return parsed.length ? parsed : null
+  try {
+    const data = JSON.parse(value) as Record<string, unknown>
+    const entries = Object.entries(data)
+      .filter(([key]) => key in labels)
+      .map(([key, val]) => ({ label: labels[key], value: format(key, val) }))
+    return entries.length ? entries : null
+  } catch {
+    return null
+  }
 }
 
 function VisitDetailDialog({ visit, onClose }: { visit: AnalyticsVisitRecord; onClose: () => void }) {
@@ -65,8 +77,8 @@ function VisitDetailDialog({ visit, onClose }: { visit: AnalyticsVisitRecord; on
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [onClose])
 
-  const fingerprint = fingerprintParts(visit.browserFingerprint)
-  const hardware = hardwareParts(visit.hardware)
+  const fingerprint = toDetailParts(visit.browserFingerprint, FINGERPRINT_LABELS)
+  const hardware = toDetailParts(visit.hardware, HARDWARE_LABELS, (key, val) => key === 'memory' ? `${val} GB` : `${val}`)
   const fieldClass = 'grid grid-cols-[8rem_1fr] gap-2 py-2.5 border-b border-neutral-100 dark:border-neutral-900'
   const labelClass = 'text-sm text-neutral-500'
   const valueClass = 'min-w-0 break-all text-sm text-neutral-800 dark:text-neutral-100'
