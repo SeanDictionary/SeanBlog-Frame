@@ -97,7 +97,8 @@ export default async function AdminDashboardPage() {
     articleHeatTotal,
     totalComments,
     pendingComments,
-    allAnalyticsEvents,
+    totalViews,
+    totalVisitors,
     recentAnalyticsEvents,
     recentCommentsRaw,
     settings,
@@ -121,9 +122,8 @@ export default async function AdminDashboardPage() {
     prisma.article.aggregate({ _sum: { viewCount: true } }),
     prisma.comment.count(),
     prisma.comment.count({ where: { status: 'PENDING' } }),
-    prisma.analyticsEvent.findMany({
-      select: { visitorId: true, country: true, referrer: true, userAgent: true },
-    }),
+    prisma.analyticsDailyStat.aggregate({ where: { dimension: 'all' }, _sum: { views: true } }),
+    prisma.visitor.count(),
     prisma.analyticsEvent.findMany({
       where: {
         createdAt: {
@@ -143,7 +143,7 @@ export default async function AdminDashboardPage() {
   ])
 
   const totalArticleHeat = articleHeatTotal._sum.viewCount ?? 0
-  const totalVisitors = new Set(allAnalyticsEvents.map((event) => event.visitorId).filter(Boolean)).size
+  const siteViews = totalViews._sum.views ?? 0
   const commentAutoApprove = normalizeCommentModerationRules(settings[COMMENT_MODERATION_RULES_SETTING_KEY]).autoApprove
   const recentComments = commentAutoApprove
     ? recentCommentsRaw.map((comment) => ({
@@ -210,7 +210,7 @@ export default async function AdminDashboardPage() {
     {
       key: 'siteAnalytics',
       label: '总访问量',
-      value: allAnalyticsEvents.length,
+      value: siteViews,
       icon: 'fa-solid fa-chart-pie',
       href: '/admin/overview' as const,
       trend: getLast30DaysTrend(recentAnalyticsEvents),

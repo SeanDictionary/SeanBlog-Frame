@@ -469,9 +469,18 @@ export async function getAnalyticsDashboard(query: AnalyticsQuery) {
   }
 }
 
+function sumViewsInRange(stats: Array<{ date: Date; views: number }>, start: Date | undefined, end: Date | undefined) {
+  return stats
+    .filter((s) => (!start || s.date >= start) && (!end || s.date < end))
+    .reduce((sum, s) => sum + s.views, 0)
+}
+
+function countVisitorsSince(lastSeen: Array<{ lastSeenAt: Date }>, since: Date) {
+  return lastSeen.filter((v) => v.lastSeenAt >= since).length
+}
+
 export async function getAnalyticsOverview(options: OverviewOptions) {
   const prisma = getPrisma()
-  const settings = await getAnalyticsSettings()
   const retentionDays = DEFAULT_ANALYTICS_RANGE_DAYS
   const normalizeRange = (days: number) => clamp(Math.round(days), 1, retentionDays)
   const trendRange = getRangeForDays(normalizeRange(options.trendRangeDays))
@@ -480,7 +489,15 @@ export async function getAnalyticsOverview(options: OverviewOptions) {
   const sourcesRange = getRangeForDays(normalizeRange(options.sourcesRangeDays))
   const systemsRange = getRangeForDays(normalizeRange(options.systemsRangeDays))
   const currentYearStart = new Date(startOfDay(new Date()).getFullYear(), 0, 1)
-  const [trendEvents, articleEvents, recentEvents, sourceEvents, systemEvents, allEvents, currentYearEvents, todayEvents, yesterdayEvents, sevenDayEvents, thirtyDayEvents, ninetyDayEvents, retentionEvents] = await Promise.all([
+  const todayStart = startOfDay(new Date())
+  const yesterdayRange = getYesterdayRange()
+  const sevenDayRange = getRangeForDays(7)
+  const thirtyDayRange = getRangeForDays(30)
+  const ninetyDayRange = getRangeForDays(90)
+  const retentionRange = getRangeForDays(retentionDays)
+
+  // Bounded event queries for trend, top content, recent visits, sources, systems, and yesterday visitors.
+  const [trendEvents, articleEvents, recentEvents, sourceEvents, systemEvents, yesterdayEvents] = await Promise.all([
     prisma.analyticsEvent.findMany({
       where: whereForDateRange(trendRange.start, trendRange.end),
       orderBy: { createdAt: 'asc' },
@@ -496,17 +513,18 @@ export async function getAnalyticsOverview(options: OverviewOptions) {
       take: 20,
       include: { article: { select: { title: true, slug: true } }, category: { select: { name: true, slug: true } }, tag: { select: { name: true, slug: true } } },
     }),
-    prisma.analyticsEvent.findMany({ where: whereForDateRange(sourcesRange.start, sourcesRange.end), select: { country: true, visitorId: true } }),
-    prisma.analyticsEvent.findMany({ where: whereForDateRange(systemsRange.start, systemsRange.end), select: { userAgent: true, visitorId: true } }),
-    prisma.analyticsEvent.findMany({ select: { visitorId: true } }),
-    prisma.analyticsEvent.findMany({ where: whereForDateRange(currentYearStart), select: { visitorId: true } }),
-    prisma.analyticsEvent.findMany({ where: whereForDateRange(startOfDay(new Date()), addDays(startOfDay(new Date()), 1)), select: { visitorId: true } }),
-    prisma.analyticsEvent.findMany({ where: whereForDateRange(getYesterdayRange().start, getYesterdayRange().end), select: { visitorId: true } }),
-    prisma.analyticsEvent.findMany({ where: whereForDateRange(getRangeForDays(7).start, getRangeForDays(7).end), select: { visitorId: true } }),
-    prisma.analyticsEvent.findMany({ where: whereForDateRange(getRangeForDays(30).start, getRangeForDays(30).end), select: { visitorId: true } }),
-    prisma.analyticsEvent.findMany({ where: whereForDateRange(getRangeForDays(90).start, getRangeForDays(90).end), select: { visitorId: true } }),
-    prisma.analyticsEvent.findMany({ where: whereForDateRange(getRangeForDays(retentionDays).start, getRangeForDays(retentionDays).end), select: { visitorId: true } }),
+    prisma.analyticsEvent.findMany({ where: whereForDateRange(sourcesRange.start, sourcesRange.end), select: { country: true } }),
+    prisma.analyticsEvent.findMany({ where: whereForDateRange(systemsRange.start, systemsRange.end), select: { userAgent: true } }),
+    prisma.analyticsEvent.findMany({ where: whereForDateRange(yesterdayRange.start, yesterdayRange.end), select: { visitorId: true } }),
   ])
+
+  // Materialized views and visitors from the dedicated tables (no full-table event scan).
+  const [allDaily, allVisitors] = await Promise.all([
+    prisma.analyticsDailyStat.findMany({ where: { dimension: 'all' }, select: { date: true, views: true } }),
+    prisma.visitor.findMany({ select: { lastSeenAt: true } }),
+  ])
+
+  const yesterdayVisitorCount = new Set(yesterdayEvents.map((e) => e.visitorId).filter(Boolean)).size
 
   return {
     retentionDays,
@@ -522,14 +540,14 @@ export async function getAnalyticsOverview(options: OverviewOptions) {
     topArticles: buildContentBuckets(articleEvents).topArticles,
     recentVisits: recentEvents.map(serializeVisitRecord),
     periodStats: [
-      { label: '今天', ...summarizeEvents(todayEvents) },
-      { label: '昨天', ...summarizeEvents(yesterdayEvents) },
-      { label: '近 7 天', ...summarizeEvents(sevenDayEvents) },
-      { label: '近 30 天', ...summarizeEvents(thirtyDayEvents) },
-      { label: '近 90 天', ...summarizeEvents(ninetyDayEvents) },
-      { label: `近 ${retentionDays} 天`, ...summarizeEvents(retentionEvents) },
-      { label: '今年', ...summarizeEvents(currentYearEvents) },
-      { label: '有史以来', ...summarizeEvents(allEvents) },
+      { label: '今天', views: sumViewsInRange(allDaily, todayStart, addDays(todayStart, 1)), visitors: countVisitorsSince(allVisitors, todayStart) },
+      { label: '昨天', views: sumViewsInRange(allDaily, yesterdayRange.start, yesterdayRange.end), visitors: yesterdayVisitorCount },
+      { label: '近 7 天', views: sumViewsInRange(allDaily, sevenDayRange.start, undefined), visitors: countVisitorsSince(allVisitors, sevenDayRange.start) },
+      { label: '近 30 天', views: sumViewsInRange(allDaily, thirtyDayRange.start, undefined), visitors: countVisitorsSince(allVisitors, thirtyDayRange.start) },
+      { label: '近 90 天', views: sumViewsInRange(allDaily, ninetyDayRange.start, undefined), visitors: countVisitorsSince(allVisitors, ninetyDayRange.start) },
+      { label: `近 ${retentionDays} 天`, views: sumViewsInRange(allDaily, retentionRange.start, undefined), visitors: countVisitorsSince(allVisitors, retentionRange.start) },
+      { label: '今年', views: sumViewsInRange(allDaily, currentYearStart, undefined), visitors: countVisitorsSince(allVisitors, currentYearStart) },
+      { label: '有史以来', views: sumViewsInRange(allDaily, undefined, undefined), visitors: allVisitors.length },
     ],
     topCountries: topValues(sourceEvents.map((event) => event.country ?? '未知')),
     topSystems: topValues(systemEvents.map((event) => parseOperatingSystem(event.userAgent))),
