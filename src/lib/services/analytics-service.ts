@@ -438,36 +438,6 @@ export async function createAnalyticsEvent(input: AnalyticsEventInput, metadata:
   return { skipped: false as const, event }
 }
 
-export async function getAnalyticsDashboard(query: AnalyticsQuery) {
-  const prisma = getPrisma()
-  const where = buildWhere(query)
-  const events = await prisma.analyticsEvent.findMany({
-    where,
-    orderBy: { createdAt: 'asc' },
-    include: {
-      article: { select: { title: true, slug: true } },
-      category: { select: { name: true, slug: true } },
-      tag: { select: { name: true, slug: true } },
-    },
-  })
-  const visitorIds = new Set(events.map((event) => event.visitorId).filter(Boolean))
-  const durations = events.map((event) => event.durationSeconds).filter((value): value is number => typeof value === 'number')
-  const totalDuration = durations.reduce((sum, value) => sum + value, 0)
-  const buckets = buildContentBuckets(events)
-
-  return {
-    range: getRange(query),
-    summary: {
-      views: events.length,
-      visitors: visitorIds.size,
-      averageDurationSeconds: durations.length ? Math.round(totalDuration / durations.length) : 0,
-      events: events.length,
-    },
-    trend: buildTrend(events, query.granularity),
-    ...buckets,
-    events,
-  }
-}
 
 function sumViewsInRange(stats: Array<{ date: Date; views: number }>, start: Date | undefined, end: Date | undefined) {
   return stats
@@ -600,29 +570,6 @@ function visitToCsvRow(visit: AnalyticsVisitRecord) {
   ]
 }
 
-export async function exportAnalyticsCsv(query: AnalyticsQuery) {
-  const dashboard = await getAnalyticsDashboard(query)
-  const rows = [
-    ['createdAt', 'path', 'contentType', 'article', 'category', 'tag', 'visitorId', 'durationSeconds', 'referrer', 'ipAddress', 'userAgent', 'browserFingerprint', 'hardware'],
-    ...dashboard.events.map((event) => [
-      event.createdAt.toISOString(),
-      event.path,
-      event.contentType,
-      event.article?.title ?? '',
-      event.category?.name ?? '',
-      event.tag?.name ?? '',
-      event.visitorId ?? '',
-      event.durationSeconds ?? '',
-      event.referrer ?? '',
-      event.ipAddress ?? '',
-      event.userAgent ?? '',
-      event.browserFingerprint ?? '',
-      event.hardware ?? '',
-    ]),
-  ]
-
-  return rows.map((row) => row.map(escapeCsv).join(',')).join('\n')
-}
 
 export async function exportAnalyticsVisitorsCsv(query: AnalyticsVisitorQuery) {
   const settings = await getAnalyticsSettings()
