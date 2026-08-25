@@ -652,3 +652,133 @@ export async function getVisitors(query: { page: number; pageSize: number }): Pr
     meta: pageMeta(total, query.page, query.pageSize),
   }
 }
+
+export type VisitorDetail = {
+  visitorId: string
+  firstSeenAt: Date
+  lastSeenAt: Date
+  visitCount: number
+  totalDurationSeconds: number
+  eventCount: number
+  topArticles: Array<{ title: string; slug: string; views: number; visitors: number }>
+  topCategories: Array<{ title: string; slug: string; views: number }>
+  topTags: Array<{ title: string; slug: string; views: number }>
+  topReferrers: Array<{ referrer: string; count: number }>
+  fingerprints: Array<{ browserFingerprint: string; count: number }>
+  hardwareInfos: Array<{ hardware: string; count: number }>
+  topCountries: Array<{ country: string; count: number }>
+  topBrowsers: Array<{ browser: string; count: number }>
+  topSystems: Array<{ os: string; count: number }>
+  recentVisits: AnalyticsVisitRecord[]
+}
+
+export async function getVisitorDetail(visitorId: string): Promise<VisitorDetail | null> {
+  const prisma = getPrisma()
+  const visitor = await prisma.visitor.findUnique({ where: { visitorId } })
+  if (!visitor) return null
+
+  const events = await prisma.analyticsEvent.findMany({
+    where: { visitorId },
+    orderBy: { createdAt: 'desc' },
+    include: {
+      article: { select: { title: true, slug: true } },
+      category: { select: { name: true, slug: true } },
+      tag: { select: { name: true, slug: true } },
+    },
+  })
+
+  const totalDurationSeconds = events.map((e) => e.durationSeconds ?? 0).reduce((s, d) => s + d, 0)
+
+  // Article stats
+  const articleMap = new Map<string, { title: string; slug: string; views: number; visitors: Set<string> }>()
+  for (const e of events) {
+    if (!e.articleId || !e.article) continue
+    const existing = articleMap.get(e.articleId)
+    if (existing) { existing.views++; if (e.visitorId) existing.visitors.add(e.visitorId) }
+    else articleMap.set(e.articleId, { title: e.article.title, slug: e.article.slug, views: 1, visitors: new Set(e.visitorId ? [e.visitorId] : []) })
+  }
+  const topArticles = [...articleMap.values()].map(a => ({ title: a.title, slug: a.slug, views: a.views, visitors: a.visitors.size })).sort((a, b) => b.views - a.views)
+
+  // Category stats
+  const catMap = new Map<string, { title: string; slug: string; views: number }>()
+  for (const e of events) {
+    if (!e.categoryId || !e.category) continue
+    const ex = catMap.get(e.categoryId)
+    if (ex) ex.views++
+    else catMap.set(e.categoryId, { title: e.category.name, slug: e.category.slug, views: 1 })
+  }
+  const topCategories = [...catMap.values()].sort((a, b) => b.views - a.views)
+
+  // Tag stats
+  const tagMap = new Map<string, { title: string; slug: string; views: number }>()
+  for (const e of events) {
+    if (!e.tagId || !e.tag) continue
+    const ex = tagMap.get(e.tagId)
+    if (ex) ex.views++
+    else tagMap.set(e.tagId, { title: e.tag.name, slug: e.tag.slug, views: 1 })
+  }
+  const topTags = [...tagMap.values()].sort((a, b) => b.views - a.views)
+
+  // Referrer stats
+  const refMap = new Map<string, number>()
+  for (const e of events) {
+    if (!e.referrer || e.referrer === '') continue
+    refMap.set(e.referrer, (refMap.get(e.referrer) ?? 0) + 1)
+  }
+  const topReferrers = [...refMap.entries()].map(([referrer, count]) => ({ referrer, count })).sort((a, b) => b.count - a.count)
+
+  // Fingerprint stats
+  const fpMap = new Map<string, number>()
+  for (const e of events) {
+    if (!e.browserFingerprint) continue
+    fpMap.set(e.browserFingerprint, (fpMap.get(e.browserFingerprint) ?? 0) + 1)
+  }
+  const fingerprints = [...fpMap.entries()].map(([browserFingerprint, count]) => ({ browserFingerprint, count })).sort((a, b) => b.count - a.count)
+
+  // Hardware stats
+  const hwMap = new Map<string, number>()
+  for (const e of events) {
+    if (!e.hardware) continue
+    hwMap.set(e.hardware, (hwMap.get(e.hardware) ?? 0) + 1)
+  }
+  const hardwareInfos = [...hwMap.entries()].map(([hardware, count]) => ({ hardware, count })).sort((a, b) => b.count - a.count)
+
+  // Country stats
+  const countryMap = new Map<string, number>()
+  for (const e of events) {
+    const c = e.country ?? '未知'
+    countryMap.set(c, (countryMap.get(c) ?? 0) + 1)
+  }
+  const topCountries = [...countryMap.entries()].map(([country, count]) => ({ country, count })).sort((a, b) => b.count - a.count)
+
+  // Browser/OS stats
+  const browserMap = new Map<string, number>()
+  const osMap = new Map<string, number>()
+  for (const e of events) {
+    const b = parseBrowser(e.userAgent)
+    browserMap.set(b, (browserMap.get(b) ?? 0) + 1)
+    const os = parseOperatingSystem(e.userAgent)
+    osMap.set(os, (osMap.get(os) ?? 0) + 1)
+  }
+  const topBrowsers = [...browserMap.entries()].map(([browser, count]) => ({ browser, count })).sort((a, b) => b.count - a.count)
+  const topSystems = [...osMap.entries()].map(([os, count]) => ({ os, count })).sort((a, b) => b.count - a.count)
+
+  return {
+    visitorId: visitor.visitorId,
+    firstSeenAt: visitor.firstSeenAt,
+    lastSeenAt: visitor.lastSeenAt,
+    visitCount: visitor.visitCount,
+    totalDurationSeconds,
+    eventCount: events.length,
+    topArticles,
+    topCategories,
+    topTags,
+    topReferrers,
+    fingerprints,
+    hardwareInfos,
+    topCountries,
+    topBrowsers,
+    topSystems,
+    recentVisits: events.slice(0, 10).map(serializeVisitRecord),
+  }
+}

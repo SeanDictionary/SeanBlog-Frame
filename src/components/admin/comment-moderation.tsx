@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState, useTransition } from 'react'
+import Link from 'next/link'
+import type { Route } from 'next'
 
 import { useAdminToast } from '@/components/admin/admin-toast-provider'
 import { ExternalLink } from '@/components/common/external-link'
@@ -12,6 +14,7 @@ type Comment = {
   guestName: string | null
   guestEmail: string | null
   guestLink: string | null
+  visitorId: string | null
   isSpam: boolean
   createdAt: Date
   article?: { id: string; title: string; slug: string }
@@ -197,6 +200,9 @@ export function CommentModeration({ initialComments, emptyMessage = '当前没�
                                 )
                               }
                               <span className="text-xs text-neutral-500">{comment.guestEmail || '匿名评论'}</span>
+                              {comment.visitorId && (
+                                <Link href={`/admin/visitor-list/${comment.visitorId}` as Route} className="text-xs text-blue-600 transition-colors hover:underline dark:text-blue-400" title={comment.visitorId}>访客</Link>
+                              )}
 
                             </div>
                             <p className="mt-1 text-xs text-neutral-500">{comment.article?.title ?? '已删除文章'} · {comment.createdAt.toLocaleString('zh-CN')}</p>

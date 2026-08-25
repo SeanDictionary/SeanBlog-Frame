@@ -36,6 +36,7 @@ function toAdminComment(comment: {
   guestName: string | null
   guestEmail: string | null
   guestLink: string | null
+  visitorId: string | null
   isSpam: boolean
   createdAt: Date
   updatedAt: Date
@@ -54,6 +55,7 @@ function toAdminComment(comment: {
     guestName: comment.guestName,
     guestEmail: comment.guestEmail,
     guestLink: comment.guestLink,
+    visitorId: comment.visitorId,
     isSpam: comment.isSpam,
     createdAt: comment.createdAt,
     updatedAt: comment.updatedAt,
