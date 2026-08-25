@@ -72,9 +72,15 @@ export function AnalyticsTracker() {
       currentRef.current = null
     }
 
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'hidden') flush()
+    }
+
     window.addEventListener('pagehide', flush)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
     return () => {
       window.removeEventListener('pagehide', flush)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
       flush()
     }
   }, [])
