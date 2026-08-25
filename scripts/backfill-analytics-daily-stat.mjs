@@ -7,9 +7,11 @@
 // Visitor table is NOT backfilled (old events have visitorId=null after the
 // migration dropped visitorHash). Visitors accumulate from new visits onward.
 
-import 'dotenv/config'
+import { config } from 'dotenv'
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
+
+config({ path: '.env.local' })
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
