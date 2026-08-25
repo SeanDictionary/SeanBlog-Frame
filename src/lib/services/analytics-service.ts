@@ -589,12 +589,16 @@ export type VisitorRecord = {
   firstSeenAt: Date
   lastSeenAt: Date
   visitCount: number
+  totalDurationSeconds: number
+  topArticleTitle: string | null
+  topArticleSlug: string | null
+  topArticleViews: number
+  eventCount: number
 }
 
 export async function getVisitors(query: { page: number; pageSize: number }): Promise<{ items: VisitorRecord[]; meta: { total: number; page: number; pageSize: number; pageCount: number } }> {
   const prisma = getPrisma()
-  const where = undefined
-  const [items, total] = await Promise.all([
+  const [visitors, total] = await Promise.all([
     prisma.visitor.findMany({
       orderBy: { lastSeenAt: 'desc' },
       ...paginate(query.page, query.pageSize),
@@ -603,8 +607,48 @@ export async function getVisitors(query: { page: number; pageSize: number }): Pr
     prisma.visitor.count(),
   ])
 
+  // For each visitor, fetch aggregate stats from their events.
+  const items: VisitorRecord[] = await Promise.all(
+    visitors.map(async (v) => {
+      const events = await prisma.analyticsEvent.findMany({
+        where: { visitorId: v.visitorId },
+        select: {
+          durationSeconds: true,
+          articleId: true,
+          article: { select: { title: true, slug: true } },
+        },
+      })
+
+      const totalDurationSeconds = events
+        .map((e) => e.durationSeconds ?? 0)
+        .reduce((sum, d) => sum + d, 0)
+
+      // Find the most-visited article.
+      const articleCounts = new Map<string, { title: string; slug: string; count: number }>()
+      for (const e of events) {
+        if (!e.articleId || !e.article) continue
+        const existing = articleCounts.get(e.articleId)
+        if (existing) {
+          existing.count += 1
+        } else {
+          articleCounts.set(e.articleId, { title: e.article.title, slug: e.article.slug, count: 1 })
+        }
+      }
+      const topArticle = [...articleCounts.values()].sort((a, b) => b.count - a.count)[0] ?? null
+
+      return {
+        ...v,
+        totalDurationSeconds,
+        topArticleTitle: topArticle?.title ?? null,
+        topArticleSlug: topArticle?.slug ?? null,
+        topArticleViews: topArticle?.count ?? 0,
+        eventCount: events.length,
+      }
+    }),
+  )
+
   return {
-    items: items as VisitorRecord[],
+    items,
     meta: pageMeta(total, query.page, query.pageSize),
   }
 }

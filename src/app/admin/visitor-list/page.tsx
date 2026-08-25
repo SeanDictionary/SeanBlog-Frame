@@ -70,6 +70,8 @@ export default async function VisitorListPage({
                 <th className="py-2 pr-4">首次访问</th>
                 <th className="py-2 pr-4">最近访问</th>
                 <th className="py-2 pr-4 text-right">访问次数</th>
+                <th className="py-2 pr-4 text-right">总时长</th>
+                <th className="py-2 pr-4">访问最多文章</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100 dark:divide-neutral-900">
@@ -79,9 +81,17 @@ export default async function VisitorListPage({
                   <td className="py-3 pr-4 text-neutral-500">{formatDateTime(visitor.firstSeenAt)}</td>
                   <td className="py-3 pr-4 text-neutral-500">{formatDateTime(visitor.lastSeenAt)}</td>
                   <td className="py-3 pr-4 text-right font-medium">{visitor.visitCount}</td>
+                  <td className="py-3 pr-4 text-right text-neutral-500">{visitor.totalDurationSeconds < 60 ? `${visitor.totalDurationSeconds}s` : `${Math.floor(visitor.totalDurationSeconds / 60)}m`}</td>
+                  <td className="py-3 pr-4">
+                    {visitor.topArticleTitle ? (
+                      <a href={`/articles/${visitor.topArticleSlug}`} target="_blank" rel="noopener noreferrer" className="block max-w-48 truncate font-medium text-neutral-700 transition-colors hover:text-blue-600 dark:text-neutral-200 dark:hover:text-blue-300">{visitor.topArticleTitle}</a>
+                    ) : (
+                      <span className="text-neutral-400">—</span>
+                    )}
+                  </td>
                 </tr>
               ))}
-              {result.items.length === 0 && <tr><td colSpan={4} className="py-10 text-center text-neutral-500">暂无访客记录。</td></tr>}
+              {result.items.length === 0 && <tr><td colSpan={6} className="py-10 text-center text-neutral-500">暂无访客记录。</td></tr>}
             </tbody>
           </table>
         </div>
