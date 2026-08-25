@@ -181,8 +181,7 @@ model Comment {
   id        String        @id @default(cuid())
   content   String
   status    CommentStatus @default(PENDING)
-  ip        String?
-  userAgent String?
+  visitorId  String?
 
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
@@ -196,12 +195,14 @@ model Comment {
   parentId   String?
   parent     Comment?     @relation("CommentReplies", fields: [parentId], references: [id], onDelete: SetNull)
   replies    Comment[]    @relation("CommentReplies")
+  visitor   Visitor?     @relation(fields: [visitorId], references: [visitorId], onDelete: SetNull)
 
   isSpam     Boolean      @default(false)
 
   @@index([articleId, status, createdAt])
   @@index([parentId])
   @@index([guestEmail])
+  @@index([visitorId])
 }
 ```
 
@@ -277,8 +278,7 @@ model AnalyticsEvent {
   articleId          String?
   categoryId         String?
   tagId              String?
-  visitorHash        String?
-  sessionId          String?
+  visitorId          String?
   referrer           String?
   country            String?      # 访问者国家/地区名称，由 IP 经 ipinfo.io lite 接口查得（需在后台设置 ipinfoToken，未设置则不查询、留空）
   ipAddress          String?
@@ -297,7 +297,7 @@ model AnalyticsEvent {
   @@index([categoryId, createdAt])
   @@index([tagId, createdAt])
   @@index([contentType, createdAt])
-  @@index([visitorHash])
+  @@index([visitorId])
 }
 ```
 
@@ -305,12 +305,13 @@ model AnalyticsEvent {
 
 - 统计事件记录访问路径、内容类型、关联文章/分类/标签、访问地区和访问时长；事件明细永久保存，不做硬删除
 - `country` 由访问 IP 通过 ipinfo.io lite 接口查询（不依赖平台 geo 请求头）；需在后台“访问统计与隐私”设置 ipinfoToken，未设置 token 时不调用接口、地区留空
-- `visitorHash` 使用匿名访客 ID 的 hash 值，用于访客数去重，不保存原始访客 ID
+- `visitorId` 直接使用客户端生成的随机 UUID（localStorage），与 Visitor 表关联，用于访客去重
 - `ipAddress`、`userAgent`、`browserFingerprint`、`hardware`、`referrer` 等隐私字段默认不采集，仅在后台设置中显式开启后写入
 - 文章 `viewCount` / `visitorCount` 由前台 analytics tracker 写入事件时回写，避免页面元数据渲染和详情渲染重复增加浏览量
 - 后台统计页包含“总览”和“访客统计”子页：总览按天/周/月展示趋势、Top 文章、最近访问、分段访问量、来源地区和系统统计；访客统计按访问记录分页展示并支持 CSV 导出
 - `analyticsRetentionDays` 站点设置控制后台每日明细、单卡片范围和访客导出的最大时间窗口，默认 180 天
 
+### 4.5b Visitor（访客注册表）访客注册表，每个唯一 visitorId 一行，用于快速计数访客数和判断新老访客。```model Visitor {  visitorId       String   @id  firstSeenAt     DateTime @default(now())  lastSeenAt      DateTime @default(now())  visitCount      Int      @default(1)  analyticsEvents AnalyticsEvent[]  comments        Comment[]  @@index([lastSeenAt])  @@index([firstSeenAt])}```- `visitorId` 是客户端 localStorage 生成的随机 UUID，直接做主键- `firstSeenAt` / `lastSeenAt` 用于判定区间内是否有该访客（lastSeenAt ≥ T ⟺ 在 [T,now] 有访问）### 4.5c AnalyticsDailyStat（每日访问量物化）每日按维度的访问量聚合表，用于快速计算区间访问量、趋势和 Top 内容，避免全量扫描事件表。```enum AnalyticsDimension { all article category tag }model AnalyticsDailyStat {  date       DateTime  dimension  AnalyticsDimension  contentId  String  views      Int      @default(0)  @@id([date, dimension, contentId])  @@index([dimension, date])  @@index([contentId, date])}```- `contentId` 为 article/category/tag 的 id，`dimension=all` 时为空串- 复合主键确保每天每维度每内容一行
 ### 4.6 OperationLog（操作日志）
 
 ```prisma
@@ -330,6 +331,8 @@ model OperationLog {
   metadata     Json?
   ipAddress    String?
   userAgent    String?
+  browserFingerprint String?
+  hardware          String?
   method       String?
   path         String?
   createdAt    DateTime           @default(now())
