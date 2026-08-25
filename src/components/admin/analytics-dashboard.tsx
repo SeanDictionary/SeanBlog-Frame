@@ -124,7 +124,7 @@ function VisitDetailDialog({ visit, onClose }: { visit: AnalyticsVisitRecord; on
       >
         <div className="mb-3 flex items-center justify-between gap-4">
           <h2 id={titleId} className="text-lg font-semibold tracking-tight">访问详情</h2>
-          <button type="button" onClick={onClose} className="text-sm text-neutral-500 transition-colors hover:text-neutral-900 dark:hover:text-neutral-100">关闭</button>
+          <button ref={closeRef} type="button" onClick={onClose} className="rounded-md bg-neutral-950 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:opacity-90 dark:bg-neutral-100 dark:text-neutral-950">关闭</button>
         </div>
         <dl className="divide-y divide-neutral-100 dark:divide-neutral-900">
           <div className={fieldClass}><dt className={labelClass}>访问时间</dt><dd className={valueClass}>{visit.createdAt.toLocaleString('zh-CN')}</dd></div>
@@ -140,9 +140,6 @@ function VisitDetailDialog({ visit, onClose }: { visit: AnalyticsVisitRecord; on
           <div className={fieldClass}><dt className={labelClass}>浏览器指纹</dt><dd className={valueClass}>{fingerprint ? <ul className="space-y-0.5">{fingerprint.map((part) => <li key={part.label} className="flex justify-between gap-3"><span className="text-neutral-500">{part.label}</span><span className="font-mono">{part.value}</span></li>)}</ul> : <span>未采集</span>}</dd></div>
           <div className={fieldClass}><dt className={labelClass}>硬件信息</dt><dd className={valueClass}>{hardware ? <ul className="space-y-0.5">{hardware.map((part) => <li key={part.label} className="flex justify-between gap-3"><span className="text-neutral-500">{part.label}</span><span className="font-mono">{part.value}</span></li>)}</ul> : <span>未采集</span>}</dd></div>
         </dl>
-        <div className="mt-6 flex justify-end">
-          <button ref={closeRef} type="button" onClick={onClose} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90 dark:bg-neutral-100 dark:text-neutral-950">关闭</button>
-        </div>
       </div>
     </div>
   )
