@@ -1,5 +1,7 @@
 'use client'
 
+import type { Route } from 'next'
+import Link from 'next/link'
 import { useEffect, useId, useRef, useState } from 'react'
 
 import { ExternalLink } from '@/components/common/external-link'
@@ -42,11 +44,11 @@ function isExternalUrl(value: string | null | undefined): value is string {
   return typeof value === 'string' && /^https?:\/\//i.test(value)
 }
 
-function contentHref(visit: AnalyticsVisitRecord) {
-  if (visit.contentType === 'article' && visit.contentSlug) return `/articles/${visit.contentSlug}`
-  if (visit.contentType === 'category' && visit.contentSlug) return `/categories/${visit.contentSlug}`
-  if (visit.contentType === 'tag' && visit.contentSlug) return `/tags/${visit.contentSlug}`
-  return visit.path
+function contentHref(visit: AnalyticsVisitRecord): Route {
+  if (visit.contentType === 'article' && visit.contentSlug) return `/articles/${visit.contentSlug}` as Route
+  if (visit.contentType === 'category' && visit.contentSlug) return `/categories/${visit.contentSlug}` as Route
+  if (visit.contentType === 'tag' && visit.contentSlug) return `/tags/${visit.contentSlug}` as Route
+  return visit.path as Route
 }
 
 function referrerLabel(value: string | null) {
@@ -130,7 +132,7 @@ function VisitDetailDialog({ visit, onClose }: { visit: AnalyticsVisitRecord; on
           <div className={fieldClass}><dt className={labelClass}>访问时间</dt><dd className={valueClass}>{visit.createdAt.toLocaleString('zh-CN')}</dd></div>
           <div className={fieldClass}><dt className={labelClass}>访问时长</dt><dd className={valueClass}>{formatDurationFull(visit.durationSeconds)}</dd></div>
           <div className={fieldClass}><dt className={labelClass}>内容类型</dt><dd className={valueClass}>{visit.contentType}</dd></div>
-          <div className={fieldClass}><dt className={labelClass}>访问内容</dt><dd className={valueClass}><a href={contentHref(visit)} target="_blank" rel="noopener noreferrer" className="font-medium text-neutral-800 transition-colors hover:text-blue-600 dark:text-neutral-100 dark:hover:text-blue-300">{visit.contentLabel}</a><span className="mt-1 block font-mono text-xs text-neutral-500">{visit.path}</span></dd></div>
+          <div className={fieldClass}><dt className={labelClass}>访问内容</dt><dd className={valueClass}><Link href={contentHref(visit)} className="font-medium">{visit.contentLabel}</Link><p className="mt-1 flex items-center gap-2 font-mono text-xs text-neutral-500"><span className="break-all">{visit.path}</span><a href={contentHref(visit) as string} target="_blank" rel="noreferrer" className="shrink-0 text-neutral-400 transition-colors hover:text-neutral-950 dark:hover:text-neutral-50" aria-label="在新窗口打开"><i className="fa-solid fa-arrow-up-right-from-square" aria-hidden="true" /></a></p></dd></div>
           <div className={fieldClass}><dt className={labelClass}>地区</dt><dd className={valueClass}>{visit.country ?? '未知'}</dd></div>
           <div className={fieldClass}><dt className={labelClass}>IP</dt><dd className={`font-mono text-xs ${valueClass}`}>{visit.ipAddress ?? '未采集'}</dd></div>
           <div className={fieldClass}><dt className={labelClass}>系统</dt><dd className={valueClass}>{visit.operatingSystem}</dd></div>
@@ -165,7 +167,7 @@ export function VisitRecordTable({ visits }: { visits: AnalyticsVisitRecord[] })
               >
                 <td className="py-3 pr-4 font-mono text-xs">{visit.createdAt.toLocaleString('zh-CN')}</td>
                 <td className="py-3 pr-4">{formatDurationShort(visit.durationSeconds)}</td>
-                <td className="py-3 pr-4"><a href={contentHref(visit)} target="_blank" rel="noopener noreferrer" onClick={(event) => event.stopPropagation()} className="block max-w-52 truncate font-medium text-neutral-800 transition-colors hover:text-blue-600 dark:text-neutral-100 dark:hover:text-blue-300">{visit.contentLabel}</a><span className="mt-0.5 block max-w-52 truncate font-mono text-xs text-neutral-500">{visit.contentSlug ?? visit.path}</span></td>
+                <td className="py-3 pr-4" onClick={(event) => event.stopPropagation()}><Link href={contentHref(visit)} className="block max-w-52 truncate font-medium">{visit.contentLabel}</Link><p className="mt-0.5 flex items-center gap-2 font-mono text-xs text-neutral-500"><span className="max-w-48 truncate">{visit.contentSlug ?? visit.path}</span><a href={contentHref(visit) as string} target="_blank" rel="noreferrer" className="shrink-0 text-neutral-400 transition-colors hover:text-neutral-950 dark:hover:text-neutral-50" aria-label="在新窗口打开"><i className="fa-solid fa-arrow-up-right-from-square" aria-hidden="true" /></a></p></td>
                 <td className="py-3 pr-4"><span className="block">{visit.country ?? '未知'}</span><span className="mt-0.5 block font-mono text-xs text-neutral-500">{visit.ipAddress ?? '未采集'}</span></td>
                 <td className="py-3 pr-4">{visit.operatingSystem}</td>
                 <td className="py-3 pr-4">{visit.browser}</td>

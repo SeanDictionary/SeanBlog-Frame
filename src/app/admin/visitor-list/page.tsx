@@ -50,7 +50,7 @@ export default async function VisitorListPage({
       <header className="mb-8">
         <p className="mb-2 text-sm text-neutral-500">数据分析 / 访客记录</p>
         <h1 className="text-3xl font-semibold tracking-tight">访客记录</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral-500">按访客维度展示，每行一个唯一访客（基于浏览器 localStorage 标识），显示首次访问、最近访问和访问次数。</p>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral-500">显示有史以来的访客记录，可按时间范围导出 CSV。</p>
       </header>
 
       <section className="rounded-lg border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-950">

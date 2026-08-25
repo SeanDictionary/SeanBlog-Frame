@@ -187,14 +187,16 @@ export function CommentModeration({ initialComments, emptyMessage = '当前没�
                         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className="font-medium text-neutral-950 dark:text-neutral-50">{comment.guestName || '访客'}</span>
+                              {
+                                /^https?:\/\//i.test(comment.guestLink ?? '') ? (
+                                  <ExternalLink href={comment.guestLink ?? ''} className="font-medium text-neutral-950 dark:text-neutral-50 transition-colors hover:text-blue-600 dark:hover:text-blue-300">
+                                    {comment.guestEmail || '匿名评论'} <i className="fa-solid fa-arrow-up-right-from-square text-[0.625rem]" aria-hidden="true" />
+                                  </ExternalLink>
+                                ) : (
+                                  <span className="font-medium text-neutral-950 dark:text-neutral-50">{comment.guestName || '匿名访客'}</span>
+                                )
+                              }
                               <span className="text-xs text-neutral-500">{comment.guestEmail || '匿名评论'}</span>
-                              {/^https?:\/\//i.test(comment.guestLink ?? '') && (
-                                <ExternalLink href={comment.guestLink ?? ''} className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline dark:text-blue-400">
-                                  <i className="fa-solid fa-arrow-up-right-from-square text-[0.625rem]" aria-hidden="true" />
-                                  链接
-                                </ExternalLink>
-                              )}
 
                             </div>
                             <p className="mt-1 text-xs text-neutral-500">{comment.article?.title ?? '已删除文章'} · {comment.createdAt.toLocaleString('zh-CN')}</p>
