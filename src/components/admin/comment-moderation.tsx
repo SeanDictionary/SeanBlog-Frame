@@ -201,7 +201,7 @@ export function CommentModeration({ initialComments, emptyMessage = '当前没�
                               }
                               <span className="text-xs text-neutral-500">{comment.guestEmail || '匿名评论'}</span>
                               {comment.visitorId && (
-                                <Link href={`/admin/visitor-list/${comment.visitorId}` as Route} className="text-xs text-blue-600 transition-colors hover:underline dark:text-blue-400" title={comment.visitorId}>访客</Link>
+                                <Link href={`/admin/visitor-list/${comment.visitorId}` as Route} className="text-xs text-neutral-950 dark:text-neutral-50 transition-colors hover:text-blue-600 dark:hover:text-blue-300" title={comment.visitorId}>{comment.visitorId.slice(0, 8)}…</Link>
                               )}
 
                             </div>

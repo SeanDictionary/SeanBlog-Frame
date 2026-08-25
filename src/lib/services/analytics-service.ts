@@ -480,7 +480,7 @@ export async function getAnalyticsOverview(options: OverviewOptions) {
     prisma.analyticsEvent.findMany({
       where: whereForDateRange(recentRange.start, recentRange.end),
       orderBy: { createdAt: 'desc' },
-      take: 20,
+      take: 10,
       include: { article: { select: { title: true, slug: true } }, category: { select: { name: true, slug: true } }, tag: { select: { name: true, slug: true } } },
     }),
     prisma.analyticsEvent.findMany({ where: whereForDateRange(sourcesRange.start, sourcesRange.end), select: { country: true } }),

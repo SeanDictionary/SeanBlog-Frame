@@ -82,8 +82,8 @@ export default async function AdminAnalyticsOverviewPage({ searchParams }: Admin
           />
 
           <section className="rounded-lg border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-950">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-semibold">最近 20 个访问记录</h2><p className="mt-1 text-sm text-neutral-500">按访问时间倒序。</p></div><RangeSelectForm paramKey="recentRangeDays" currentParams={rawSearchParams} /></div>
-            <VisitRecordTable visits={data.recentVisits} />
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-semibold">最近访问记录</h2><p className="mt-1 text-sm text-neutral-500">按访问时间倒序。</p></div><RangeSelectForm paramKey="recentRangeDays" currentParams={rawSearchParams} /></div>
+            <VisitRecordTable visits={data.recentVisits} tiny />
           </section>
         </div>
 

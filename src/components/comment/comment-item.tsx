@@ -49,15 +49,15 @@ export function CommentItem({ articleId, comment, canReply = false }: CommentIte
       <header className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <span className="grid size-7 place-items-center rounded-full bg-bg-tertiary text-xs font-semibold text-text-secondary">
-            {(comment.guestName?.trim().charAt(0) || '访').toLocaleUpperCase()}
+            {(comment.guestName?.trim().charAt(0) || '匿').toLocaleUpperCase()}
           </span>
           {isSafeLink(comment.guestLink) ? (
-            <ExternalLink href={comment.guestLink} ariaLabel={`${comment.guestName || '访客'} 的个人链接`} className="inline-flex items-center gap-1.5 font-medium transition-colors hover:text-accent">
-              <span>{comment.guestName || '访客'}</span>
+            <ExternalLink href={comment.guestLink} ariaLabel={`${comment.guestName || '匿名访客'} 的个人链接`} className="inline-flex items-center gap-1.5 font-medium transition-colors hover:text-accent">
+              <span>{comment.guestName || '匿名访客'}</span>
               <i className="fa-solid fa-arrow-up-right-from-square text-[0.625rem] text-text-tertiary" aria-hidden="true" />
             </ExternalLink>
           ) : (
-            <span className="font-medium">{comment.guestName || '访客'}</span>
+            <span className="font-medium">{comment.guestName || '匿名访客'}</span>
           )}
         </div>
         <time className="text-xs text-text-tertiary" dateTime={comment.createdAt.toISOString()}>

@@ -97,7 +97,7 @@ export default async function VisitorListPage({
               {result.items.map((visitor) => (
                 <tr key={visitor.visitorId} className="transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900/60">
                   <td className="py-3 pr-4">
-                    <Link href={`/admin/visitor-list/${visitor.visitorId}` as Route} className="font-mono text-xs text-blue-600 transition-colors hover:underline dark:text-blue-400" title={visitor.visitorId}>{visitor.visitorId.slice(0, 8)}…</Link>
+                    <Link href={`/admin/visitor-list/${visitor.visitorId}` as Route} className="font-mono text-xs text-neutral-950 dark:text-neutral-50 transition-colors hover:text-blue-600 dark:hover:text-blue-300" title={visitor.visitorId}>{visitor.visitorId}</Link>
                   </td>
                   <td className="py-3 pr-4 text-neutral-500">{formatDateTime(visitor.firstSeenAt)}</td>
                   <td className="py-3 pr-4 text-neutral-500">{formatDateTime(visitor.lastSeenAt)}</td>
