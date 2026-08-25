@@ -46,7 +46,7 @@ export default async function VisitorListPage({
   const pageItems = getPageItems(page, pageCount)
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="mx-auto max-w-7xl">
       <header className="mb-8">
         <p className="mb-2 text-sm text-neutral-500">数据分析 / 访客记录</p>
         <h1 className="text-3xl font-semibold tracking-tight">访客记录</h1>
