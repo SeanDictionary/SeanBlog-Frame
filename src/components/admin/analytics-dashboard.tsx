@@ -5,10 +5,37 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { ExternalLink } from '@/components/common/external-link'
 import type { AnalyticsVisitRecord } from '@/lib/services/analytics-service'
 
-function formatDuration(seconds: number | null) {
+const DURATION_UNITS = [
+  { unit: 86400, short: 'd', full: '天' },
+  { unit: 3600, short: 'h', full: '时' },
+  { unit: 60, short: 'm', full: '分' },
+  { unit: 1, short: 's', full: '秒' },
+] as const
+
+// List view: only the two largest non-zero units (e.g. 1h35m, 12d34h, 5s).
+function formatDurationShort(seconds: number | null) {
   if (seconds === null) return '未采集'
-  if (seconds < 60) return `${seconds}s`
-  return `${Math.floor(seconds / 60)}m ${seconds % 60}s`
+  let remaining = Math.max(0, Math.round(seconds))
+  const parts: string[] = []
+  for (const { unit, short } of DURATION_UNITS) {
+    const value = Math.floor(remaining / unit)
+    remaining %= unit
+    if (value > 0 && parts.length < 2) parts.push(`${value}${short}`)
+  }
+  return parts.length ? parts.join('') : '0s'
+}
+
+// Detail dialog: the full breakdown (e.g. 1 时 35 分 48 秒).
+function formatDurationFull(seconds: number | null) {
+  if (seconds === null) return '未采集'
+  let remaining = Math.max(0, Math.round(seconds))
+  const parts: string[] = []
+  for (const { unit, full } of DURATION_UNITS) {
+    const value = Math.floor(remaining / unit)
+    remaining %= unit
+    if (value > 0) parts.push(`${value} ${full}`)
+  }
+  return parts.length ? parts.join(' ') : '0 秒'
 }
 
 function isExternalUrl(value: string | null | undefined): value is string {
@@ -101,7 +128,7 @@ function VisitDetailDialog({ visit, onClose }: { visit: AnalyticsVisitRecord; on
         </div>
         <dl className="divide-y divide-neutral-100 dark:divide-neutral-900">
           <div className={fieldClass}><dt className={labelClass}>访问时间</dt><dd className={valueClass}>{visit.createdAt.toLocaleString('zh-CN')}</dd></div>
-          <div className={fieldClass}><dt className={labelClass}>访问时长</dt><dd className={valueClass}>{formatDuration(visit.durationSeconds)}</dd></div>
+          <div className={fieldClass}><dt className={labelClass}>访问时长</dt><dd className={valueClass}>{formatDurationFull(visit.durationSeconds)}</dd></div>
           <div className={fieldClass}><dt className={labelClass}>内容类型</dt><dd className={valueClass}>{visit.contentType}</dd></div>
           <div className={fieldClass}><dt className={labelClass}>访问内容</dt><dd className={valueClass}><a href={contentHref(visit)} target="_blank" rel="noopener noreferrer" className="font-medium text-neutral-800 transition-colors hover:text-blue-600 dark:text-neutral-100 dark:hover:text-blue-300">{visit.contentLabel}</a><span className="mt-1 block font-mono text-xs text-neutral-500">{visit.path}</span></dd></div>
           <div className={fieldClass}><dt className={labelClass}>地区</dt><dd className={valueClass}>{visit.country ?? '未知'}</dd></div>
@@ -140,7 +167,7 @@ export function VisitRecordTable({ visits }: { visits: AnalyticsVisitRecord[] })
                 className={`cursor-pointer transition-colors ${activeId === visit.id ? 'bg-blue-50/70 dark:bg-blue-950/20' : 'hover:bg-neutral-50 dark:hover:bg-neutral-900/60'}`}
               >
                 <td className="py-3 pr-4 font-mono text-xs">{visit.createdAt.toLocaleString('zh-CN')}</td>
-                <td className="py-3 pr-4">{formatDuration(visit.durationSeconds)}</td>
+                <td className="py-3 pr-4">{formatDurationShort(visit.durationSeconds)}</td>
                 <td className="py-3 pr-4"><a href={contentHref(visit)} target="_blank" rel="noopener noreferrer" onClick={(event) => event.stopPropagation()} className="block max-w-52 truncate font-medium text-neutral-800 transition-colors hover:text-blue-600 dark:text-neutral-100 dark:hover:text-blue-300">{visit.contentLabel}</a><span className="mt-0.5 block max-w-52 truncate font-mono text-xs text-neutral-500">{visit.contentSlug ?? visit.path}</span></td>
                 <td className="py-3 pr-4"><span className="block">{visit.country ?? '未知'}</span><span className="mt-0.5 block font-mono text-xs text-neutral-500">{visit.ipAddress ?? '未采集'}</span></td>
                 <td className="py-3 pr-4">{visit.operatingSystem}</td>
