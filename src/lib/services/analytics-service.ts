@@ -51,7 +51,6 @@ type AnalyticsSettings = {
   analyticsCollectReferrer: boolean
   analyticsCollectFingerprint: boolean
   analyticsCollectHardware: boolean
-  analyticsRetentionDays: number
   ipinfoToken: string | null
 }
 
@@ -73,8 +72,7 @@ type OverviewOptions = {
 }
 
 const DEFAULT_RANGE_DAYS = 30
-const DEFAULT_ANALYTICS_RETENTION_DAYS = 180
-const MAX_ANALYTICS_RETENTION_DAYS = 3650
+const DEFAULT_ANALYTICS_RANGE_DAYS = 180
 
 function toBoolean(value: unknown, fallback: boolean) {
   return typeof value === 'boolean' ? value : fallback
@@ -90,7 +88,7 @@ function clamp(value: number, min: number, max: number) {
 }
 
 function normalizeSettings(settings: Record<string, unknown>): AnalyticsSettings {
-  const retentionDays = Math.round(toNumber(settings.analyticsRetentionDays, DEFAULT_ANALYTICS_RETENTION_DAYS))
+  const retentionDays = DEFAULT_ANALYTICS_RANGE_DAYS
 
   return {
     analyticsEnabled: toBoolean(settings.analyticsEnabled, true),
@@ -99,7 +97,6 @@ function normalizeSettings(settings: Record<string, unknown>): AnalyticsSettings
     analyticsCollectReferrer: toBoolean(settings.analyticsCollectReferrer, false),
     analyticsCollectFingerprint: toBoolean(settings.analyticsCollectFingerprint, false),
     analyticsCollectHardware: toBoolean(settings.analyticsCollectHardware, false),
-    analyticsRetentionDays: clamp(retentionDays, 1, MAX_ANALYTICS_RETENTION_DAYS),
     ipinfoToken: typeof settings.ipinfoToken === 'string' ? settings.ipinfoToken.trim() || null : null,
   }
 }
@@ -475,7 +472,7 @@ export async function getAnalyticsDashboard(query: AnalyticsQuery) {
 export async function getAnalyticsOverview(options: OverviewOptions) {
   const prisma = getPrisma()
   const settings = await getAnalyticsSettings()
-  const retentionDays = settings.analyticsRetentionDays
+  const retentionDays = DEFAULT_ANALYTICS_RANGE_DAYS
   const normalizeRange = (days: number) => clamp(Math.round(days), 1, retentionDays)
   const trendRange = getRangeForDays(normalizeRange(options.trendRangeDays))
   const articlesRange = getRangeForDays(normalizeRange(options.articlesRangeDays))
@@ -612,7 +609,7 @@ export async function exportAnalyticsCsv(query: AnalyticsQuery) {
 export async function exportAnalyticsVisitorsCsv(query: AnalyticsVisitorQuery) {
   const settings = await getAnalyticsSettings()
   const end = query.end ? addDays(startOfDay(query.end), 1) : addDays(startOfDay(new Date()), 1)
-  const start = query.start ? startOfDay(query.start) : addDays(end, -settings.analyticsRetentionDays)
+  const start = query.start ? startOfDay(query.start) : addDays(end, -DEFAULT_ANALYTICS_RANGE_DAYS)
   const result = await getAnalyticsVisitors({ ...query, start, end, page: 1, pageSize: 10000 })
   const rows = [
     ['createdAt', 'path', 'contentType', 'content', 'country', 'ipAddress', 'operatingSystem', 'browser', 'durationSeconds', 'referrer', 'userAgent', 'browserFingerprint', 'hardware'],
