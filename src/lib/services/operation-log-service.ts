@@ -162,6 +162,14 @@ function safePath(request?: Request) {
   }
 }
 
+function getCookieValue(request: Request | undefined, name: string) {
+  if (!request) return null
+  const cookieHeader = request.headers.get('cookie')
+  if (!cookieHeader) return null
+  const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${name}=([^;]+)`))
+  return match ? decodeURIComponent(match[1]) : null
+}
+
 export async function recordOperationLog(input: OperationLogInput) {
   const { errorCode, errorMessage } = normalizeError(input.error)
   const recordRequest = shouldRecordRequestDetails(input.requestDetails)
@@ -181,8 +189,10 @@ export async function recordOperationLog(input: OperationLogInput) {
         errorCode,
         errorMessage,
         metadata: sanitizeMetadata(input.metadata) ?? undefined,
-        ipAddress: recordRequest ? getClientIp(input.request) : null,
-        userAgent: recordRequest ? input.request?.headers.get('user-agent') ?? null : null,
+        ipAddress: getClientIp(input.request),
+        userAgent: input.request?.headers.get('user-agent') ?? null,
+        browserFingerprint: getCookieValue(input.request, 'sb-fp'),
+        hardware: getCookieValue(input.request, 'sb-hw'),
         method: recordRequest ? input.request?.method ?? null : null,
         path: recordRequest ? safePath(input.request) : null,
       },
@@ -264,7 +274,7 @@ function escapeCsv(value: unknown) {
 const CSV_EXPORT_BATCH_SIZE = 1000
 
 export async function exportOperationLogsCsv(query: OperationLogQuery) {
-  const headers = ['createdAt', 'result', 'module', 'action', 'actorType', 'actorName', 'summary', 'targetType', 'targetId', 'errorCode', 'errorMessage', 'method', 'path', 'ipAddress', 'userAgent', 'metadata']
+  const headers = ['createdAt', 'result', 'module', 'action', 'actorType', 'actorName', 'summary', 'targetType', 'targetId', 'errorCode', 'errorMessage', 'method', 'path', 'ipAddress', 'userAgent', 'browserFingerprint', 'hardware', 'metadata']
   const lines = [headers.join(',')]
 
   let page = 1
@@ -290,6 +300,8 @@ export async function exportOperationLogsCsv(query: OperationLogQuery) {
         log.path ?? '',
         log.ipAddress ?? '',
         log.userAgent ?? '',
+        log.browserFingerprint ?? '',
+        log.hardware ?? '',
         log.metadata ? JSON.stringify(log.metadata) : '',
       ]
 
