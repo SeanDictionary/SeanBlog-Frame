@@ -2,6 +2,8 @@
 
 import { useState, useTransition, type FormEvent } from 'react'
 
+import { getVisitorId } from '@/lib/client/identity'
+
 type CommentFormProps = {
   articleId: string
   parentId?: string
@@ -83,6 +85,7 @@ export function CommentForm({ articleId, parentId, onCancel }: CommentFormProps)
             ...(guestName ? { guestName } : {}),
             ...(guestEmail ? { guestEmail } : {}),
             ...(guestLink ? { guestLink } : {}),
+            visitorId: getVisitorId(),
           }),
         })
 

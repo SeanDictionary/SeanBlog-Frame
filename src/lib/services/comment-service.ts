@@ -1,7 +1,7 @@
 import { CommentStatus, Prisma } from '@prisma/client'
 
 import { forbidden, notFound, tooManyRequests } from '@/lib/api/errors'
-import { checkCommentRateLimit, extractIp, getClientRateLimitIdentifier } from '@/lib/api/rate-limit'
+import { checkCommentRateLimit, getClientRateLimitIdentifier } from '@/lib/api/rate-limit'
 import { canSubmitArticleComments, fromPrismaArticleCommentsMode } from '@/lib/comment-settings'
 import { COMMENT_MODERATION_RULES_SETTING_KEY, getCommentModerationDecision, normalizeCommentModerationRules } from '@/lib/comment-moderation-rules'
 import { getPrisma } from '@/lib/prisma'
@@ -64,8 +64,6 @@ function toAdminComment(comment: {
 }
 
 export async function createComment(input: CommentInput, request?: Request) {
-  const ip = extractIp(request)
-
   if (!checkCommentRateLimit(getClientRateLimitIdentifier(request))) {
     throw tooManyRequests('Too many comments. Please try again later.')
   }
@@ -106,6 +104,19 @@ export async function createComment(input: CommentInput, request?: Request) {
     normalizeCommentModerationRules(settings[COMMENT_MODERATION_RULES_SETTING_KEY]),
   )
 
+  const visitorId = input.visitorId ?? null
+  if (visitorId) {
+    const existing = await prisma.visitor.findUnique({ where: { visitorId } })
+    if (existing) {
+      await prisma.visitor.update({
+        where: { visitorId },
+        data: { lastSeenAt: new Date(), visitCount: { increment: 1 } },
+      })
+    } else {
+      await prisma.visitor.create({ data: { visitorId } })
+    }
+  }
+
   const comment = await prisma.comment.create({
     data: {
       articleId: input.articleId,
@@ -116,8 +127,7 @@ export async function createComment(input: CommentInput, request?: Request) {
       guestName: input.guestName,
       guestEmail: input.guestEmail,
       guestLink: input.guestLink,
-      ip,
-      userAgent: request?.headers.get('user-agent'),
+      visitorId,
     },
   })
 

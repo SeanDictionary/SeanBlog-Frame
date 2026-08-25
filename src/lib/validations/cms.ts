@@ -152,6 +152,7 @@ export const commentInputSchema = z
     guestName: optionalTrimmedString,
     guestEmail: optionalEmailString,
     guestLink: optionalUrlString,
+    visitorId: optionalTrimmedString,
     parentId: optionalTrimmedString,
   })
   .strict()
@@ -389,7 +390,6 @@ export const analyticsEventSchema = z
     path: z.string().trim().min(1).max(2048),
     contentType: z.enum(['page', 'article', 'category', 'tag']).default('page'),
     slug: optionalTrimmedString,
-    sessionId: optionalTrimmedString,
     visitorId: optionalTrimmedString,
     referrer: optionalTrimmedString,
     browserFingerprint: optionalTrimmedString,

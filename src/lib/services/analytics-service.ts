@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { AnalyticsDimension } from '@prisma/client'
 import type { Prisma } from '@prisma/client'
 
 import { getCountryByIp, isPrivateIp } from '@/lib/geoip'
@@ -279,10 +280,10 @@ function serializeVisitRecord(event: AnalyticsEventWithContent): AnalyticsVisitR
   }
 }
 
-function summarizeEvents(events: Array<{ visitorHash: string | null }>) {
+function summarizeEvents(events: Array<{ visitorId: string | null }>) {
   return {
     views: events.length,
-    visitors: new Set(events.map((event) => event.visitorHash).filter(Boolean)).size,
+    visitors: new Set(events.map((event) => event.visitorId).filter(Boolean)).size,
   }
 }
 
@@ -307,7 +308,7 @@ function buildTrend(events: AnalyticsEventWithContent[], granularity: AnalyticsG
     const key = getGranularityKey(event.createdAt, granularity)
     const bucket = buckets.get(key) ?? { date: key, views: 0, visitors: new Set<string>() }
     bucket.views += 1
-    if (event.visitorHash) bucket.visitors.add(event.visitorHash)
+    if (event.visitorId) bucket.visitors.add(event.visitorId)
     buckets.set(key, bucket)
   }
 
@@ -325,21 +326,21 @@ function buildContentBuckets(events: AnalyticsEventWithContent[]) {
     if (event.article) {
       const bucket = byArticle.get(event.article.slug) ?? { label: event.article.title, slug: event.article.slug, views: 0, visitors: new Set<string>() }
       bucket.views += 1
-      if (event.visitorHash) bucket.visitors.add(event.visitorHash)
+      if (event.visitorId) bucket.visitors.add(event.visitorId)
       byArticle.set(event.article.slug, bucket)
     }
 
     if (event.category) {
       const bucket = byCategory.get(event.category.slug) ?? { label: event.category.name, slug: event.category.slug, views: 0, visitors: new Set<string>() }
       bucket.views += 1
-      if (event.visitorHash) bucket.visitors.add(event.visitorHash)
+      if (event.visitorId) bucket.visitors.add(event.visitorId)
       byCategory.set(event.category.slug, bucket)
     }
 
     if (event.tag) {
       const bucket = byTag.get(event.tag.slug) ?? { label: event.tag.name, slug: event.tag.slug, views: 0, visitors: new Set<string>() }
       bucket.views += 1
-      if (event.visitorHash) bucket.visitors.add(event.visitorHash)
+      if (event.visitorId) bucket.visitors.add(event.visitorId)
       byTag.set(event.tag.slug, bucket)
     }
   }
@@ -359,6 +360,26 @@ function buildContentBuckets(events: AnalyticsEventWithContent[]) {
   }
 }
 
+async function incrementDailyStat(
+  prisma: Prisma.TransactionClient,
+  content: { articleId?: string | null; categoryId?: string | null; tagId?: string | null },
+  createdAt: Date,
+) {
+  const date = startOfDay(createdAt)
+  const rows: Array<{ dimension: AnalyticsDimension; contentId: string }> = [
+    { dimension: 'all', contentId: '' },
+  ]
+  if (content.articleId) rows.push({ dimension: 'article', contentId: content.articleId })
+  if (content.categoryId) rows.push({ dimension: 'category', contentId: content.categoryId })
+  if (content.tagId) rows.push({ dimension: 'tag', contentId: content.tagId })
+
+  await Promise.all(rows.map((row) => prisma.analyticsDailyStat.upsert({
+    where: { date_dimension_contentId: { date, dimension: row.dimension, contentId: row.contentId } },
+    create: { date, dimension: row.dimension, contentId: row.contentId, views: 1 },
+    update: { views: { increment: 1 } },
+  })))
+}
+
 export async function createAnalyticsEvent(input: AnalyticsEventInput, metadata: RequestMetadata) {
   const settings = await getAnalyticsSettings()
 
@@ -366,21 +387,35 @@ export async function createAnalyticsEvent(input: AnalyticsEventInput, metadata:
     return { skipped: true as const }
   }
 
+  const prisma = getPrisma()
   const content = await resolveContent(input)
-  const visitorHash = hashValue(input.visitorId ?? input.sessionId ?? null)
-  const isNewArticleVisitor = content.articleId && visitorHash
-    ? await getPrisma().analyticsEvent.count({ where: { articleId: content.articleId, visitorHash } }).then((count) => count === 0)
-    : false
-
+  const visitorId = input.visitorId ?? null
   const country = await getCountryByIp(metadata.ipAddress, settings.ipinfoToken)
 
-  const event = await getPrisma().analyticsEvent.create({
+  // Ensure the Visitor row exists before creating the event (FK). A new visitor
+  // is one we just inserted; reused visitors bump lastSeen/visitCount.
+  if (visitorId) {
+    const existing = await prisma.visitor.findUnique({ where: { visitorId } })
+    if (existing) {
+      await prisma.visitor.update({
+        where: { visitorId },
+        data: { lastSeenAt: new Date(), visitCount: { increment: 1 } },
+      })
+    } else {
+      await prisma.visitor.create({ data: { visitorId } })
+    }
+  }
+
+  const isNewArticleVisitor = content.articleId && visitorId
+    ? await prisma.analyticsEvent.count({ where: { articleId: content.articleId, visitorId } }).then((count) => count === 0)
+    : false
+
+  const event = await prisma.analyticsEvent.create({
     data: {
       path: input.path,
       contentType: input.contentType,
       ...content,
-      visitorHash,
-      sessionId: input.sessionId,
+      visitorId,
       referrer: settings.analyticsCollectReferrer ? (input.referrer ?? '') : null,
       country,
       ipAddress: settings.analyticsCollectIp ? metadata.ipAddress : null,
@@ -391,8 +426,10 @@ export async function createAnalyticsEvent(input: AnalyticsEventInput, metadata:
     },
   })
 
+  await incrementDailyStat(prisma, content, event.createdAt)
+
   if (content.articleId) {
-    await getPrisma().article.update({
+    await prisma.article.update({
       where: { id: content.articleId },
       data: {
         viewCount: { increment: 1 },
@@ -416,7 +453,7 @@ export async function getAnalyticsDashboard(query: AnalyticsQuery) {
       tag: { select: { name: true, slug: true } },
     },
   })
-  const visitorIds = new Set(events.map((event) => event.visitorHash).filter(Boolean))
+  const visitorIds = new Set(events.map((event) => event.visitorId).filter(Boolean))
   const durations = events.map((event) => event.durationSeconds).filter((value): value is number => typeof value === 'number')
   const totalDuration = durations.reduce((sum, value) => sum + value, 0)
   const buckets = buildContentBuckets(events)
@@ -462,16 +499,16 @@ export async function getAnalyticsOverview(options: OverviewOptions) {
       take: 20,
       include: { article: { select: { title: true, slug: true } }, category: { select: { name: true, slug: true } }, tag: { select: { name: true, slug: true } } },
     }),
-    prisma.analyticsEvent.findMany({ where: whereForDateRange(sourcesRange.start, sourcesRange.end), select: { country: true, visitorHash: true } }),
-    prisma.analyticsEvent.findMany({ where: whereForDateRange(systemsRange.start, systemsRange.end), select: { userAgent: true, visitorHash: true } }),
-    prisma.analyticsEvent.findMany({ select: { visitorHash: true } }),
-    prisma.analyticsEvent.findMany({ where: whereForDateRange(currentYearStart), select: { visitorHash: true } }),
-    prisma.analyticsEvent.findMany({ where: whereForDateRange(startOfDay(new Date()), addDays(startOfDay(new Date()), 1)), select: { visitorHash: true } }),
-    prisma.analyticsEvent.findMany({ where: whereForDateRange(getYesterdayRange().start, getYesterdayRange().end), select: { visitorHash: true } }),
-    prisma.analyticsEvent.findMany({ where: whereForDateRange(getRangeForDays(7).start, getRangeForDays(7).end), select: { visitorHash: true } }),
-    prisma.analyticsEvent.findMany({ where: whereForDateRange(getRangeForDays(30).start, getRangeForDays(30).end), select: { visitorHash: true } }),
-    prisma.analyticsEvent.findMany({ where: whereForDateRange(getRangeForDays(90).start, getRangeForDays(90).end), select: { visitorHash: true } }),
-    prisma.analyticsEvent.findMany({ where: whereForDateRange(getRangeForDays(retentionDays).start, getRangeForDays(retentionDays).end), select: { visitorHash: true } }),
+    prisma.analyticsEvent.findMany({ where: whereForDateRange(sourcesRange.start, sourcesRange.end), select: { country: true, visitorId: true } }),
+    prisma.analyticsEvent.findMany({ where: whereForDateRange(systemsRange.start, systemsRange.end), select: { userAgent: true, visitorId: true } }),
+    prisma.analyticsEvent.findMany({ select: { visitorId: true } }),
+    prisma.analyticsEvent.findMany({ where: whereForDateRange(currentYearStart), select: { visitorId: true } }),
+    prisma.analyticsEvent.findMany({ where: whereForDateRange(startOfDay(new Date()), addDays(startOfDay(new Date()), 1)), select: { visitorId: true } }),
+    prisma.analyticsEvent.findMany({ where: whereForDateRange(getYesterdayRange().start, getYesterdayRange().end), select: { visitorId: true } }),
+    prisma.analyticsEvent.findMany({ where: whereForDateRange(getRangeForDays(7).start, getRangeForDays(7).end), select: { visitorId: true } }),
+    prisma.analyticsEvent.findMany({ where: whereForDateRange(getRangeForDays(30).start, getRangeForDays(30).end), select: { visitorId: true } }),
+    prisma.analyticsEvent.findMany({ where: whereForDateRange(getRangeForDays(90).start, getRangeForDays(90).end), select: { visitorId: true } }),
+    prisma.analyticsEvent.findMany({ where: whereForDateRange(getRangeForDays(retentionDays).start, getRangeForDays(retentionDays).end), select: { visitorId: true } }),
   ])
 
   return {
@@ -551,7 +588,7 @@ function visitToCsvRow(visit: AnalyticsVisitRecord) {
 export async function exportAnalyticsCsv(query: AnalyticsQuery) {
   const dashboard = await getAnalyticsDashboard(query)
   const rows = [
-    ['createdAt', 'path', 'contentType', 'article', 'category', 'tag', 'visitorHash', 'durationSeconds', 'referrer', 'ipAddress', 'userAgent', 'browserFingerprint', 'hardware'],
+    ['createdAt', 'path', 'contentType', 'article', 'category', 'tag', 'visitorId', 'durationSeconds', 'referrer', 'ipAddress', 'userAgent', 'browserFingerprint', 'hardware'],
     ...dashboard.events.map((event) => [
       event.createdAt.toISOString(),
       event.path,
@@ -559,7 +596,7 @@ export async function exportAnalyticsCsv(query: AnalyticsQuery) {
       event.article?.title ?? '',
       event.category?.name ?? '',
       event.tag?.name ?? '',
-      event.visitorHash ?? '',
+      event.visitorId ?? '',
       event.durationSeconds ?? '',
       event.referrer ?? '',
       event.ipAddress ?? '',

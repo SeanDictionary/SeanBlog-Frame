@@ -3,17 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 
-const visitorStorageKey = 'seanblog:analytics-visitor-id'
-const sessionStorageKey = 'seanblog:analytics-session-id'
-
-function getOrCreateStorageValue(storage: Storage, key: string) {
-  const existing = storage.getItem(key)
-  if (existing) return existing
-
-  const value = crypto.randomUUID()
-  storage.setItem(key, value)
-  return value
-}
+import { getBrowserFingerprint, getHardwareSummary, getVisitorId } from '@/lib/client/identity'
 
 function getContent(path: string) {
   const articleMatch = path.match(/^\/articles\/([^/]+)/)
@@ -28,40 +18,15 @@ function getContent(path: string) {
   return { contentType: 'page', slug: null }
 }
 
-function getHardwareSummary() {
-  const data: Record<string, number> = {
-    screenWidth: window.screen.width,
-    screenHeight: window.screen.height,
-  }
-  if (typeof navigator.hardwareConcurrency === 'number') {
-    data.cores = navigator.hardwareConcurrency
-  }
-  if ('deviceMemory' in navigator && typeof navigator.deviceMemory === 'number') {
-    data.memory = navigator.deviceMemory
-  }
-  return JSON.stringify(data)
-}
-
-function getFingerprintSource() {
-  return JSON.stringify({
-    language: navigator.language,
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    screenWidth: window.screen.width,
-    screenHeight: window.screen.height,
-    devicePixelRatio: window.devicePixelRatio,
-  })
-}
-
 function sendAnalyticsEvent(path: string, startedAt: number, referrer: string) {
   const durationSeconds = Math.max(0, Math.round((Date.now() - startedAt) / 1000))
   const content = getContent(path)
   const payload = {
     path,
     ...content,
-    visitorId: getOrCreateStorageValue(window.localStorage, visitorStorageKey),
-    sessionId: getOrCreateStorageValue(window.sessionStorage, sessionStorageKey),
+    visitorId: getVisitorId(),
     referrer: referrer || null,
-    browserFingerprint: getFingerprintSource(),
+    browserFingerprint: getBrowserFingerprint(),
     hardware: getHardwareSummary(),
     durationSeconds,
   }

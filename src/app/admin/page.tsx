@@ -22,7 +22,7 @@ function formatDateKey(date: Date) {
   return date.toISOString().slice(0, 10)
 }
 
-function getLast30DaysTrend(events: Array<{ createdAt: Date; visitorHash: string | null }>) {
+function getLast30DaysTrend(events: Array<{ createdAt: Date; visitorId: string | null }>) {
   const end = addDays(startOfDay(new Date()), 1)
   const start = addDays(end, -SITE_ANALYTICS_RANGE_DAYS)
   const buckets = new Map<string, { date: string; views: number; visitors: Set<string> }>()
@@ -39,7 +39,7 @@ function getLast30DaysTrend(events: Array<{ createdAt: Date; visitorHash: string
     if (!bucket) continue
 
     bucket.views += 1
-    if (event.visitorHash) bucket.visitors.add(event.visitorHash)
+    if (event.visitorId) bucket.visitors.add(event.visitorId)
   }
 
   return [...buckets.values()].map((bucket) => ({
@@ -122,7 +122,7 @@ export default async function AdminDashboardPage() {
     prisma.comment.count(),
     prisma.comment.count({ where: { status: 'PENDING' } }),
     prisma.analyticsEvent.findMany({
-      select: { visitorHash: true, country: true, referrer: true, userAgent: true },
+      select: { visitorId: true, country: true, referrer: true, userAgent: true },
     }),
     prisma.analyticsEvent.findMany({
       where: {
@@ -132,7 +132,7 @@ export default async function AdminDashboardPage() {
         },
       },
       orderBy: { createdAt: 'asc' },
-      select: { createdAt: true, visitorHash: true, country: true, referrer: true, userAgent: true },
+      select: { createdAt: true, visitorId: true, country: true, referrer: true, userAgent: true },
     }),
     prisma.comment.findMany({
       orderBy: { createdAt: 'desc' },
@@ -143,7 +143,7 @@ export default async function AdminDashboardPage() {
   ])
 
   const totalArticleHeat = articleHeatTotal._sum.viewCount ?? 0
-  const totalVisitors = new Set(allAnalyticsEvents.map((event) => event.visitorHash).filter(Boolean)).size
+  const totalVisitors = new Set(allAnalyticsEvents.map((event) => event.visitorId).filter(Boolean)).size
   const commentAutoApprove = normalizeCommentModerationRules(settings[COMMENT_MODERATION_RULES_SETTING_KEY]).autoApprove
   const recentComments = commentAutoApprove
     ? recentCommentsRaw.map((comment) => ({

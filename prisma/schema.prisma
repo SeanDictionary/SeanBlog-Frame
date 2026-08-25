@@ -22,7 +22,7 @@ model Category {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  articles Article[]
+  articles        Article[]
   analyticsEvents AnalyticsEvent[]
 
   @@index([slug])
@@ -36,7 +36,7 @@ model Tag {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  articles ArticleTag[]
+  articles        ArticleTag[]
   analyticsEvents AnalyticsEvent[]
 
   @@index([slug])
@@ -55,31 +55,31 @@ enum ArticleCommentsMode {
 }
 
 model Article {
-  id                    String        @id @default(cuid())
+  id                    String              @id @default(cuid())
   title                 String
-  slug                  String        @unique
+  slug                  String              @unique
   excerpt               String?
   contentPath           String?
-  legacyContentMarkdown String?       @map("contentMarkdown")
-  legacyContentHtml     String?       @map("contentHtml")
+  legacyContentMarkdown String?             @map("contentMarkdown")
+  legacyContentHtml     String?             @map("contentHtml")
   coverImage            String?
   status                ArticleStatus       @default(DRAFT)
   commentsMode          ArticleCommentsMode @default(ENABLED)
-  metaTitle       String?
-  metaDescription String?
-  metaKeywords    String?
-  isPinned        Boolean       @default(false)
-  publishedAt     DateTime?
-  viewCount       Int           @default(0)
-  visitorCount    Int           @default(0)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  metaTitle             String?
+  metaDescription       String?
+  metaKeywords          String?
+  isPinned              Boolean             @default(false)
+  publishedAt           DateTime?
+  viewCount             Int                 @default(0)
+  visitorCount          Int                 @default(0)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
 
-  categoryId String?
-  category   Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  tags       ArticleTag[]
-  comments   Comment[]
-  revisions  ArticleRevision[]
+  categoryId      String?
+  category        Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tags            ArticleTag[]
+  comments        Comment[]
+  revisions       ArticleRevision[]
   analyticsEvents AnalyticsEvent[]
 
   @@index([status, publishedAt])
@@ -109,24 +109,25 @@ model Comment {
   id         String        @id @default(cuid())
   content    String
   status     CommentStatus @default(PENDING)
-  ip         String?
-  userAgent  String?
   guestName  String?
   guestEmail String?
   guestLink  String?
+  visitorId  String?
   isSpam     Boolean       @default(false)
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
 
   articleId String
-  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  article   Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
   parentId  String?
-  parent    Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: SetNull)
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: SetNull)
   replies   Comment[] @relation("CommentReplies")
+  visitor   Visitor?  @relation(fields: [visitorId], references: [visitorId], onDelete: SetNull)
 
   @@index([articleId, status, createdAt])
   @@index([parentId])
   @@index([guestEmail])
+  @@index([visitorId])
 }
 
 model ArticleRevision {
@@ -138,8 +139,8 @@ model ArticleRevision {
   legacyContentHtml     String?  @map("contentHtml")
   title                 String
   version               Int
-  changeNote      String?
-  createdAt       DateTime @default(now())
+  changeNote            String?
+  createdAt             DateTime @default(now())
 
   @@index([articleId, version])
 }
@@ -165,14 +166,13 @@ model SiteSetting {
 }
 
 model AnalyticsEvent {
-  id                 String    @id @default(cuid())
+  id                 String   @id @default(cuid())
   path               String
   contentType        String
   articleId          String?
   categoryId         String?
   tagId              String?
-  visitorHash        String?
-  sessionId          String?
+  visitorId          String?
   referrer           String?
   country            String?
   ipAddress          String?
@@ -180,18 +180,50 @@ model AnalyticsEvent {
   browserFingerprint String?
   hardware           String?
   durationSeconds    Int?
-  createdAt          DateTime  @default(now())
+  createdAt          DateTime @default(now())
 
   article  Article?  @relation(fields: [articleId], references: [id], onDelete: SetNull)
   category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   tag      Tag?      @relation(fields: [tagId], references: [id], onDelete: SetNull)
+  visitor  Visitor?  @relation(fields: [visitorId], references: [visitorId], onDelete: SetNull)
 
   @@index([createdAt])
   @@index([articleId, createdAt])
   @@index([categoryId, createdAt])
   @@index([tagId, createdAt])
   @@index([contentType, createdAt])
-  @@index([visitorHash])
+  @@index([visitorId])
+  @@index([articleId, visitorId])
+}
+
+enum AnalyticsDimension {
+  all
+  article
+  category
+  tag
+}
+
+model AnalyticsDailyStat {
+  date      DateTime
+  dimension AnalyticsDimension
+  contentId String
+  views     Int                @default(0)
+
+  @@id([date, dimension, contentId])
+  @@index([dimension, date])
+  @@index([contentId, date])
+}
+
+model Visitor {
+  visitorId       String           @id
+  firstSeenAt     DateTime         @default(now())
+  lastSeenAt      DateTime         @default(now())
+  visitCount      Int              @default(1)
+  analyticsEvents AnalyticsEvent[]
+  comments        Comment[]
+
+  @@index([lastSeenAt])
+  @@index([firstSeenAt])
 }
 
 enum OperationLogResult {
@@ -200,24 +232,26 @@ enum OperationLogResult {
 }
 
 model OperationLog {
-  id           String             @id @default(cuid())
-  actorId      String?
-  actorName    String?
-  actorType    String
-  module       String
-  action       String
-  targetType   String?
-  targetId     String?
-  summary      String
-  result       OperationLogResult
-  errorCode    String?
-  errorMessage String?
-  metadata     Json?
-  ipAddress    String?
-  userAgent    String?
-  method       String?
-  path         String?
-  createdAt    DateTime           @default(now())
+  id                 String             @id @default(cuid())
+  actorId            String?
+  actorName          String?
+  actorType          String
+  module             String
+  action             String
+  targetType         String?
+  targetId           String?
+  summary            String
+  result             OperationLogResult
+  errorCode          String?
+  errorMessage       String?
+  metadata           Json?
+  ipAddress          String?
+  userAgent          String?
+  browserFingerprint String?
+  hardware           String?
+  method             String?
+  path               String?
+  createdAt          DateTime           @default(now())
 
   @@index([createdAt])
   @@index([result, createdAt])
