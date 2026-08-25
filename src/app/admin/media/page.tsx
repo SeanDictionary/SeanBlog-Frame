@@ -7,7 +7,7 @@ export default async function AdminMediaPage() {
   const [result, settings] = await Promise.all([listMedia({ page: 1, pageSize: 100 }), listSettings()])
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div className="mx-auto max-w-7xl">
       <header className="mb-8"><p className="mb-2 text-sm text-neutral-500">资源管理</p><h1 className="text-3xl font-semibold tracking-tight">媒体</h1></header>
       <div className="space-y-7">
         <MediaStorageSettings initialSettings={settings} />

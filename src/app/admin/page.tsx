@@ -225,7 +225,7 @@ export default async function AdminDashboardPage() {
   ]
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div className="mx-auto max-w-7xl">
       <header className="mb-3">
         <p className="mb-2 text-sm text-neutral-500">后台概览</p>
         <h1 className="text-4xl font-semibold tracking-tight">欢迎回来</h1>
