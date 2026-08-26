@@ -63,7 +63,7 @@ export default async function VisitorListPage({
         <div>
           <p className="mb-2 text-sm text-neutral-500">数据分析 / 访客记录</p>
           <h1 className="text-3xl font-semibold tracking-tight">访客记录</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral-500">按访客维度展示，每位唯一访客一行。点击访客标识可进入详情页。</p>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral-500">显示有史以来的访客记录，可按时间范围导出 CSV。</p>
         </div>
         <div className="flex gap-2 text-sm"><a href="/admin/visits" className="rounded-md border border-neutral-300 px-4 py-2 dark:border-neutral-700">访问记录</a><a href={buildExportHref(rawSearchParams)} className="rounded-md bg-neutral-950 px-4 py-2 text-white dark:bg-neutral-100 dark:text-neutral-950">导出 CSV</a></div>
       </header>
@@ -86,7 +86,7 @@ export default async function VisitorListPage({
           <table className="w-full min-w-2xl text-left text-sm">
             <thead className="border-b border-neutral-100 text-xs text-neutral-500 dark:border-neutral-900">
               <tr>
-                <th className="py-2 pl-5 pr-4">访客标识</th>
+                <th className="py-2 pl-5 pr-4">访客ID</th>
                 <th className="py-2 pr-4">首次访问</th>
                 <th className="py-2 pr-4">最近访问</th>
                 <th className="py-2 pr-4 text-right">访问次数</th>
