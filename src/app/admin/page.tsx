@@ -366,7 +366,9 @@ export default async function AdminDashboardPage() {
         }
       >
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
-          <AnalyticsTrendChart trend={trend} granularityOptions={[]} bare />
+          <div className="min-w-0">
+            <AnalyticsTrendChart trend={trend} granularityOptions={[]} bare />
+          </div>
           <div className="grid gap-3 sm:grid-cols-2">
             {insights.map((item) => (
               <Link
