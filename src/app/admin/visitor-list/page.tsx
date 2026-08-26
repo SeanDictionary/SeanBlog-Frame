@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import type { Route } from 'next'
 
+import { formatDurationShort } from '@/lib/format'
 import { getVisitors } from '@/lib/services/analytics-service'
 import { paginationQuerySchema } from '@/lib/validations/cms'
 import { AutoSubmitForm } from '@/components/common/auto-submit-form'
@@ -102,7 +103,7 @@ export default async function VisitorListPage({
                   <td className="py-3 pr-4 text-neutral-500">{formatDateTime(visitor.firstSeenAt)}</td>
                   <td className="py-3 pr-4 text-neutral-500">{formatDateTime(visitor.lastSeenAt)}</td>
                   <td className="py-3 pr-4 text-right font-medium">{visitor.visitCount}</td>
-                  <td className="py-3 pr-4 text-right text-neutral-500">{visitor.totalDurationSeconds < 60 ? `${visitor.totalDurationSeconds}s` : `${Math.floor(visitor.totalDurationSeconds / 60)}m`}</td>
+                  <td className="py-3 pr-4 text-right text-neutral-500">{formatDurationShort(visitor.totalDurationSeconds)}</td>
                   <td className="py-3 pr-5">
                     {visitor.topArticleTitle ? (
                       <a href={`/articles/${visitor.topArticleSlug}`} target="_blank" rel="noopener noreferrer" className="block max-w-48 truncate font-medium text-neutral-700 transition-colors hover:text-blue-600 dark:text-neutral-200 dark:hover:text-blue-300">{visitor.topArticleTitle}</a>

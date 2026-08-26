@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import type { Route } from 'next'
 
+import { formatDurationFull } from '@/lib/format'
 import { getVisitorDetail } from '@/lib/services/analytics-service'
 import { VisitRecordTable } from '@/components/admin/analytics-dashboard'
 import { ExternalLink } from '@/components/common/external-link'
@@ -9,13 +10,6 @@ function formatDateTime(date: Date) {
   return new Intl.DateTimeFormat('zh-CN', { dateStyle: 'short', timeStyle: 'short' }).format(date)
 }
 
-function formatDuration(seconds: number) {
-  if (seconds < 60) return `${seconds}s`
-  const m = Math.floor(seconds / 60)
-  if (m < 60) return `${m}m`
-  const h = Math.floor(m / 60)
-  return `${h}h${m % 60}m`
-}
 
 function isExternalUrl(value: string | null | undefined): value is string {
   return typeof value === 'string' && /^https?:\/\//i.test(value)
@@ -98,7 +92,7 @@ export default async function VisitorDetailPage({
       <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatItem label="访问次数" value={String(data.visitCount)} />
         <StatItem label="事件数" value={String(data.eventCount)} />
-        <StatItem label="总时长" value={formatDuration(data.totalDurationSeconds)} />
+        <StatItem label="总时长" value={formatDurationFull(data.totalDurationSeconds)} />
         <StatItem label="首次访问" value={formatDateTime(data.firstSeenAt)} />
       </div>
 
