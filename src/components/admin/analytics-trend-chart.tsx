@@ -272,22 +272,23 @@ export function AnalyticsTrendChart({
               </>
             )}
 
-            {/* points */}
-            <g key={`points-${currentGranularity}`} style={{ animation: 'analytics-trend-fade 0.6s ease' }}>
-              {trend.map((point, index) => (
-                <g key={`pt-${index}`}>
-                  <circle cx={xOf(index)} cy={yOf(point.visitors)} r={pointCount === 1 ? 5 : 3} fill="#d97706" />
-                  <circle cx={xOf(index)} cy={yOf(point.views)} r={pointCount === 1 ? 5 : 3} fill="#2563eb" />
+            {/* points: only show on the hovered column or single-point case */}
+            {pointCount === 1 ? (
+              <g key={`points-${currentGranularity}`} style={{ animation: 'analytics-trend-fade 0.6s ease' }}>
+                {trend.map((point, index) => (
+                  <g key={`pt-${index}`}>
+                    <circle cx={xOf(index)} cy={yOf(point.visitors)} r={5} fill="#d97706" />
+                    <circle cx={xOf(index)} cy={yOf(point.views)} r={5} fill="#2563eb" />
+                  </g>
+                ))}
+              </g>
+            ) : (
+              hoveredPoint && hoverIndex !== null && (
+                <g key={`points-hover`}>
+                  <circle cx={xOf(hoverIndex)} cy={yOf(hoveredPoint.visitors)} r={4} fill="#d97706" style={{ transition: 'opacity 0.15s ease' }} />
+                  <circle cx={xOf(hoverIndex)} cy={yOf(hoveredPoint.views)} r={4} fill="#2563eb" style={{ transition: 'opacity 0.15s ease' }} />
                 </g>
-              ))}
-            </g>
-
-            {/* hovered point halo */}
-            {hoveredPoint && hoverIndex !== null && (
-              <>
-                <circle cx={xOf(hoverIndex)} cy={yOf(hoveredPoint.visitors)} r={7} fill="#d97706" style={{ opacity: 0.25, transition: 'opacity 0.15s ease' }} />
-                <circle cx={xOf(hoverIndex)} cy={yOf(hoveredPoint.views)} r={7} fill="#2563eb" style={{ opacity: 0.25, transition: 'opacity 0.15s ease' }} />
-              </>
+              )
             )}
 
             {/* invisible hover columns */}
