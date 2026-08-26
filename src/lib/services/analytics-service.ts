@@ -141,6 +141,28 @@ function getGranularityKey(date: Date, granularity: AnalyticsGranularity) {
   return formatDateKey(date)
 }
 
+// Generate every granularity key (YYYY-MM-DD / week / month) in [start, end)
+// so the trend chart can fill zero-value days instead of skipping them.
+function generateGranularityKeys(start: Date, end: Date, granularity: AnalyticsGranularity): string[] {
+  const keys: string[] = []
+  const seen = new Set<string>()
+  let cursor = startOfDay(start)
+  const limit = startOfDay(addDays(end, -1))
+
+  let iterations = 0
+  while (cursor <= limit && iterations < 400) {
+    const key = getGranularityKey(cursor, granularity)
+    if (!seen.has(key)) {
+      seen.add(key)
+      keys.push(key)
+    }
+    cursor = addDays(cursor, 1)
+    iterations++
+  }
+
+  return keys
+}
+
 function getRange(query: AnalyticsQuery) {
   const end = query.end ? addDays(startOfDay(query.end), 1) : addDays(startOfDay(new Date()), 1)
   const start = query.start ? startOfDay(query.start) : addDays(end, -DEFAULT_RANGE_DAYS)
@@ -298,7 +320,7 @@ function topValues(values: string[], take = 5) {
     .slice(0, take)
 }
 
-function buildTrend(events: AnalyticsEventWithContent[], granularity: AnalyticsGranularity): AnalyticsTrendPoint[] {
+function buildTrend(events: AnalyticsEventWithContent[], granularity: AnalyticsGranularity, rangeStart?: Date, rangeEnd?: Date): AnalyticsTrendPoint[] {
   const buckets = new Map<string, { date: string; views: number; visitors: Set<string> }>()
 
   for (const event of events) {
@@ -307,6 +329,17 @@ function buildTrend(events: AnalyticsEventWithContent[], granularity: AnalyticsG
     bucket.views += 1
     if (event.visitorId) bucket.visitors.add(event.visitorId)
     buckets.set(key, bucket)
+  }
+
+  // Fill in missing dates in the range with 0 values so the chart shows
+  // a continuous x-axis instead of skipping days without visits.
+  if (rangeStart && rangeEnd) {
+    const allKeys = generateGranularityKeys(rangeStart, rangeEnd, granularity)
+    for (const key of allKeys) {
+      if (!buckets.has(key)) {
+        buckets.set(key, { date: key, views: 0, visitors: new Set<string>() })
+      }
+    }
   }
 
   return [...buckets.values()]
@@ -505,7 +538,7 @@ export async function getAnalyticsOverview(options: OverviewOptions) {
       sources: normalizeRange(options.sourcesRangeDays),
       systems: normalizeRange(options.systemsRangeDays),
     },
-    trend: buildTrend(trendEvents, options.trendGranularity),
+    trend: buildTrend(trendEvents, options.trendGranularity, trendRange.start, trendRange.end),
     trendGranularity: options.trendGranularity,
     topArticles: buildContentBuckets(articleEvents).topArticles,
     recentVisits: recentEvents.map(serializeVisitRecord),
