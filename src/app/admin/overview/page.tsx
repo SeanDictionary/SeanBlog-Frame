@@ -58,7 +58,7 @@ export default async function AdminAnalyticsOverviewPage({ searchParams }: Admin
           <h1 className="text-3xl font-semibold tracking-tight">统计总览</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral-500">左侧展示趋势、文章排行和最近访问，右侧展示关键时间段、来源地区和系统统计。单卡片时间范围最大不超过 180 天。</p>
         </div>
-        <div className="flex gap-2 text-sm"><a href="/admin/visitors" className="rounded-md border border-neutral-300 px-4 py-2 dark:border-neutral-700">访客统计</a></div>
+        <div className="flex gap-2 text-sm"><a href="/admin/visits" className="rounded-md border border-neutral-300 px-4 py-2 dark:border-neutral-700">访客统计</a></div>
       </header>
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(22rem,0.9fr)]">

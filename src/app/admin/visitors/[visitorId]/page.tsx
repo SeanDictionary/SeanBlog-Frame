@@ -80,9 +80,9 @@ export default async function VisitorDetailPage({
     <div className="mx-auto max-w-7xl">
       <header className="mb-8">
         <div className="mb-2 flex items-center gap-3">
-          <Link href="/admin/visitor-list" className="text-sm text-neutral-500 transition-colors hover:text-neutral-900 dark:hover:text-neutral-100">
+          <a href="/admin/visitors" className="text-sm text-neutral-500 transition-colors hover:text-neutral-900 dark:hover:text-neutral-100">
             <i className="fa-solid fa-arrow-left mr-2 text-xs" aria-hidden="true" />访客记录
-          </Link>
+          </a>
         </div>
         <p className="mb-2 text-sm text-neutral-500">数据分析 / 访客记录 / 详情</p>
         <h1 className="text-3xl font-semibold tracking-tight">访客详情</h1>

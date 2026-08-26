@@ -1,11 +1,10 @@
-import { VisitRecordTable } from '@/components/admin/analytics-dashboard'
-import { AutoSubmitForm } from '@/components/common/auto-submit-form'
-import { getAnalyticsVisitors } from '@/lib/services/analytics-service'
-import { analyticsVisitorQuerySchema } from '@/lib/validations/cms'
+import Link from 'next/link'
+import type { Route } from 'next'
 
-type AdminAnalyticsVisitorsPageProps = {
-  searchParams: Promise<Record<string, string | undefined>>
-}
+import { formatDurationShort } from '@/lib/format'
+import { getVisitors } from '@/lib/services/analytics-service'
+import { paginationQuerySchema } from '@/lib/validations/cms'
+import { AutoSubmitForm } from '@/components/common/auto-submit-form'
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100]
 
@@ -16,7 +15,7 @@ function buildPageHref(params: Record<string, string | undefined>, page: number)
   }
   if (page > 1) search.set('page', String(page))
   const query = search.toString()
-  return `/admin/visitors${query ? `?${query}` : ''}`
+  return `/admin/visitors${query ? `?${query}` : ''}` as Route
 }
 
 function buildExportHref(params: Record<string, string | undefined>) {
@@ -40,10 +39,18 @@ function getPageItems(current: number, total: number): Array<number | 'ellipsis'
   return items
 }
 
-export default async function AdminAnalyticsVisitorsPage({ searchParams }: AdminAnalyticsVisitorsPageProps) {
+function formatDateTime(date: Date) {
+  return new Intl.DateTimeFormat('zh-CN', { dateStyle: 'short', timeStyle: 'short' }).format(date)
+}
+
+export default async function VisitorListPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>
+}) {
   const rawSearchParams = await searchParams
-  const query = analyticsVisitorQuerySchema.parse(rawSearchParams)
-  const result = await getAnalyticsVisitors(query)
+  const query = paginationQuerySchema.parse(rawSearchParams)
+  const result = await getVisitors(query)
   const startValue = rawSearchParams.start ?? ''
   const endValue = rawSearchParams.end ?? ''
   const page = result.meta.page
@@ -54,18 +61,18 @@ export default async function AdminAnalyticsVisitorsPage({ searchParams }: Admin
     <div className="mx-auto max-w-7xl">
       <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="mb-2 text-sm text-neutral-500">数据分析 / 访问记录</p>
-          <h1 className="text-3xl font-semibold tracking-tight">访问记录</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral-500">显示有史以来的访问记录，可按时间范围导出 CSV。</p>
+          <p className="mb-2 text-sm text-neutral-500">数据分析 / 访客记录</p>
+          <h1 className="text-3xl font-semibold tracking-tight">访客记录</h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral-500">按访客维度展示，每位唯一访客一行。点击访客标识可进入详情页。</p>
         </div>
-        <div className="flex gap-2 text-sm"><a href="/admin/visitor-list" className="rounded-md border border-neutral-300 px-4 py-2 dark:border-neutral-700">访客记录</a><a href={buildExportHref(rawSearchParams)} className="rounded-md bg-neutral-950 px-4 py-2 text-white dark:bg-neutral-100 dark:text-neutral-950">导出 CSV</a></div>
+        <div className="flex gap-2 text-sm"><a href="/admin/visits" className="rounded-md border border-neutral-300 px-4 py-2 dark:border-neutral-700">访问记录</a><a href={buildExportHref(rawSearchParams)} className="rounded-md bg-neutral-950 px-4 py-2 text-white dark:bg-neutral-100 dark:text-neutral-950">导出 CSV</a></div>
       </header>
 
       <section className="rounded-lg border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-950">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="font-semibold">访问记录</h2>
-            <p className="mt-1 text-sm text-neutral-500">共 {result.meta.total} 条记录，第 {page} / {pageCount} 页。</p>
+            <h2 className="font-semibold">访客列表</h2>
+            <p className="mt-1 text-sm text-neutral-500">共 {result.meta.total} 位访客，第 {page} / {pageCount} 页。</p>
           </div>
           <AutoSubmitForm action="/admin/visitors" className="flex flex-wrap items-center gap-2 text-sm">
             <input type="hidden" name="pageSize" value={query.pageSize} />
@@ -75,7 +82,43 @@ export default async function AdminAnalyticsVisitorsPage({ searchParams }: Admin
           </AutoSubmitForm>
         </div>
 
-        <VisitRecordTable visits={result.items} />
+        <div className="overflow-x-auto -mx-5">
+          <table className="w-full min-w-2xl text-left text-sm">
+            <thead className="border-b border-neutral-100 text-xs text-neutral-500 dark:border-neutral-900">
+              <tr>
+                <th className="py-2 pl-5 pr-4">访客标识</th>
+                <th className="py-2 pr-4">首次访问</th>
+                <th className="py-2 pr-4">最近访问</th>
+                <th className="py-2 pr-4 text-right">访问次数</th>
+                <th className="py-2 pr-4 text-right">总时长</th>
+                <th className="py-2 pr-5">访问最多文章</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-neutral-100 dark:divide-neutral-900">
+              {result.items.map((visitor) => (
+                <tr key={visitor.visitorId} className="relative transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900/60">
+                  <td className="py-3 pl-5 pr-4">
+                    <Link href={`/admin/visitors/${visitor.visitorId}` as Route} className="before:absolute before:inset-0 before:content-['']">
+                      <span className="relative z-10 block font-mono text-xs text-neutral-950 dark:text-neutral-50" title={visitor.visitorId}>{visitor.visitorId}</span>
+                    </Link>
+                  </td>
+                  <td className="relative z-10 py-3 pr-4 text-neutral-500">{formatDateTime(visitor.firstSeenAt)}</td>
+                  <td className="relative z-10 py-3 pr-4 text-neutral-500">{formatDateTime(visitor.lastSeenAt)}</td>
+                  <td className="relative z-10 py-3 pr-4 text-right font-medium">{visitor.visitCount}</td>
+                  <td className="relative z-10 py-3 pr-4 text-right text-neutral-500">{formatDurationShort(visitor.totalDurationSeconds)}</td>
+                  <td className="relative z-10 py-3 pr-5">
+                    {visitor.topArticleTitle ? (
+                      <Link href={`/articles/${visitor.topArticleSlug}` as Route} className="block max-w-48 truncate font-medium">{visitor.topArticleTitle}</Link>
+                    ) : (
+                      <span className="text-neutral-400">—</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {result.items.length === 0 && <tr><td colSpan={6} className="py-10 text-center text-neutral-500">暂无访客记录。</td></tr>}
+            </tbody>
+          </table>
+        </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
           {pageItems.map((item, index) =>
