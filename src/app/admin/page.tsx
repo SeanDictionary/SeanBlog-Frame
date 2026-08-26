@@ -2,6 +2,7 @@ import { ArticleStatus } from '@prisma/client'
 import Link from 'next/link'
 import type { Route } from 'next'
 
+import { AnalyticsTrendChart } from '@/components/admin/analytics-trend-chart'
 import { COMMENT_MODERATION_RULES_SETTING_KEY, normalizeCommentModerationRules } from '@/lib/comment-moderation-rules'
 import { Card, CardHeader } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -100,33 +101,6 @@ function parseOperatingSystem(userAgent: string | null) {
 
 function formatNumber(value: number | string | undefined) {
   return typeof value === 'number' ? value.toLocaleString('zh-CN') : value ?? '—'
-}
-
-type TrendPoint = { date: string; views: number; visitors: number }
-
-function TrendChart({ points }: { points: TrendPoint[] }) {
-  const width = 600
-  const height = 160
-  const padding = 10
-  const maxValue = Math.max(1, ...points.flatMap((point) => [point.views, point.visitors]))
-  const buildPath = (key: 'views' | 'visitors') => points.map((point, index) => {
-    const x = points.length > 1 ? (index / (points.length - 1)) * width : width / 2
-    const y = height - padding - (point[key] / maxValue) * (height - padding * 2)
-    return `${index === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`
-  }).join(' ')
-
-  return (
-    <div>
-      <svg viewBox={`0 0 ${width} ${height}`} className="h-40 w-full" role="img" aria-label="近 30 天访问量和访问人数趋势">
-        <path d={buildPath('views')} fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        <path d={buildPath('visitors')} fill="none" stroke="#d97706" strokeWidth="2" strokeDasharray="5 5" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-      <div className="mt-3 flex gap-4 text-xs text-neutral-500">
-        <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-blue-600" aria-hidden="true" />访问量</span>
-        <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-amber-600" aria-hidden="true" />访问人数</span>
-      </div>
-    </div>
-  )
 }
 
 function StatCard({
@@ -383,30 +357,32 @@ export default async function AdminDashboardPage() {
       </div>
 
       {/* Analytics: trend + insights */}
-      <Panel
+      <AnalyticsTrendChart
+        trend={trend}
+        granularityOptions={[]}
         title="近 30 天访问趋势"
-        action={
+        toolbar={
           <Link href="/admin/overview" className="text-sm text-neutral-500 transition-colors hover:text-neutral-900 dark:hover:text-neutral-100">
             详细统计
           </Link>
         }
-      >
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
-          <TrendChart points={trend} />
-          <div className="grid gap-3 sm:grid-cols-2">
-            {insights.map((item) => (
-              <Link
-                key={item.label}
-                href="/admin/overview"
-                className="block rounded-lg bg-neutral-50 px-4 py-3 transition-colors hover:bg-neutral-100 dark:bg-neutral-900 dark:hover:bg-neutral-800"
-              >
-                <p className="text-xs text-neutral-500">{item.label}</p>
-                <p className="mt-1 truncate text-sm font-medium text-neutral-800 dark:text-neutral-100">{item.value}</p>
-              </Link>
-            ))}
-          </div>
+      />
+
+      <Card className="mt-6">
+        <CardHeader title="访问来源洞察" description="基于近 30 天访问事件的 Top 统计。" />
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {insights.map((item) => (
+            <Link
+              key={item.label}
+              href="/admin/overview"
+              className="block rounded-lg bg-neutral-50 px-4 py-3 transition-colors hover:bg-neutral-100 dark:bg-neutral-900 dark:hover:bg-neutral-800"
+            >
+              <p className="text-xs text-neutral-500">{item.label}</p>
+              <p className="mt-1 truncate text-sm font-medium text-neutral-800 dark:text-neutral-100">{item.value}</p>
+            </Link>
+          ))}
         </div>
-      </Panel>
+      </Card>
     </div>
   )
 }
