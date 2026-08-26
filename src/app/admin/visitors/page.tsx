@@ -54,7 +54,7 @@ export default async function VisitorListPage({
           <h1 className="text-3xl font-semibold tracking-tight">访客记录</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral-500">显示有史以来的访客记录，可按时间范围导出 CSV。</p>
         </div>
-        <div className="flex gap-2 text-sm"><LinkButton href="/admin/visits">访问记录</LinkButton><ExportCsvButton href={buildExportHref('/api/admin/analytics/visitors/export', rawSearchParams)} /></div>
+        <ExportCsvButton href={buildExportHref('/api/admin/analytics/visitors/export', rawSearchParams)} />
       </header>
 
       <Card>

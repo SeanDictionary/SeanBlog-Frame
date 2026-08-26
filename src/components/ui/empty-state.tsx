@@ -24,7 +24,7 @@ export function ExportCsvButton({ href }: ExportCsvButtonProps) {
   return (
     <a
       href={href}
-      className="rounded-md bg-neutral-950 px-4 py-2 text-sm text-white transition-colors hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-950 dark:hover:bg-neutral-200"
+      className="rounded-md bg-neutral-950 px-3 py-1.5 text-sm text-white transition-colors hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-950 dark:hover:bg-neutral-200"
     >
       导出 CSV
     </a>
