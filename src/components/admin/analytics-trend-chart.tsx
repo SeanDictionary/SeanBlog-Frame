@@ -20,6 +20,7 @@ type AnalyticsTrendChartProps = {
   granularityOptions: AnalyticsGranularityOption[]
   currentGranularity?: string
   toolbar?: ReactNode
+  bare?: boolean
 }
 
 const WIDTH = 820
@@ -76,6 +77,7 @@ export function AnalyticsTrendChart({
   granularityOptions,
   currentGranularity,
   toolbar,
+  bare = false,
 }: AnalyticsTrendChartProps) {
   const router = useRouter()
   const svgRef = useRef<SVGSVGElement | null>(null)
@@ -166,8 +168,8 @@ export function AnalyticsTrendChart({
     router.push(href)
   }
 
-  return (
-    <Card>
+  const content = (
+    <>
       <style>{`
         @keyframes analytics-trend-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
         @keyframes analytics-trend-fade { from { opacity: 0; } to { opacity: 1; } }
@@ -183,7 +185,7 @@ export function AnalyticsTrendChart({
       )}
 
       {pointCount === 0 ? (
-        <div className="grid h-64 place-items-center rounded-md bg-neutral-50 text-sm text-neutral-500 dark:bg-neutral-900">暂无趋势数据。</div>
+        <div className="grid h-64 place-items-center text-sm text-neutral-500">暂无趋势数据。</div>
       ) : (
         <div className="relative" onMouseLeave={() => setHover(null)}>
           <svg
@@ -192,7 +194,7 @@ export function AnalyticsTrendChart({
             role="img"
             aria-label="访问量和访客数趋势图"
             preserveAspectRatio="xMidYMid meet"
-            className="w-full rounded-md bg-neutral-50 dark:bg-neutral-900"
+            className="w-full"
             style={{ aspectRatio: `${WIDTH} / ${HEIGHT}` }}
           >
             {/* horizontal gridlines extending from each y-axis tick */}
@@ -349,6 +351,10 @@ export function AnalyticsTrendChart({
           </div>
         )}
       </div>
-    </Card>
+    </>
   )
+
+  if (bare) return content
+
+  return <Card>{content}</Card>
 }

@@ -357,32 +357,30 @@ export default async function AdminDashboardPage() {
       </div>
 
       {/* Analytics: trend + insights */}
-      <AnalyticsTrendChart
-        trend={trend}
-        granularityOptions={[]}
+      <Panel
         title="近 30 天访问趋势"
-        toolbar={
+        action={
           <Link href="/admin/overview" className="text-sm text-neutral-500 transition-colors hover:text-neutral-900 dark:hover:text-neutral-100">
             详细统计
           </Link>
         }
-      />
-
-      <Card className="mt-6">
-        <CardHeader title="访问来源洞察" description="基于近 30 天访问事件的 Top 统计。" />
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {insights.map((item) => (
-            <Link
-              key={item.label}
-              href="/admin/overview"
-              className="block rounded-lg bg-neutral-50 px-4 py-3 transition-colors hover:bg-neutral-100 dark:bg-neutral-900 dark:hover:bg-neutral-800"
-            >
-              <p className="text-xs text-neutral-500">{item.label}</p>
-              <p className="mt-1 truncate text-sm font-medium text-neutral-800 dark:text-neutral-100">{item.value}</p>
-            </Link>
-          ))}
+      >
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+          <AnalyticsTrendChart trend={trend} granularityOptions={[]} bare />
+          <div className="grid gap-3 sm:grid-cols-2">
+            {insights.map((item) => (
+              <Link
+                key={item.label}
+                href="/admin/overview"
+                className="block rounded-lg bg-neutral-50 px-4 py-3 transition-colors hover:bg-neutral-100 dark:bg-neutral-900 dark:hover:bg-neutral-800"
+              >
+                <p className="text-xs text-neutral-500">{item.label}</p>
+                <p className="mt-1 truncate text-sm font-medium text-neutral-800 dark:text-neutral-100">{item.value}</p>
+              </Link>
+            ))}
+          </div>
         </div>
-      </Card>
+      </Panel>
     </div>
   )
 }
