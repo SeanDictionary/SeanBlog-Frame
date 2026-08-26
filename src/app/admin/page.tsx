@@ -217,7 +217,22 @@ export default async function AdminDashboardPage() {
   const trend = getLast30DaysTrend(recentAnalyticsEvents)
   const maxHeat = Math.max(1, ...hottestArticles.map((article) => article.viewCount))
 
+  const uniqueVisitorIds = new Set(recentAnalyticsEvents.map((event) => event.visitorId).filter(Boolean))
+  const totalEvents30d = recentAnalyticsEvents.length
+  const dailyAvg = (totalEvents30d / SITE_ANALYTICS_RANGE_DAYS).toFixed(1)
+  const hourBuckets = new Map<string, number>()
+  for (const event of recentAnalyticsEvents) {
+    const h = new Date(event.createdAt).getHours()
+    const range = h < 6 ? '凌晨' : h < 12 ? '上午' : h < 18 ? '下午' : '晚间'
+    hourBuckets.set(range, (hourBuckets.get(range) ?? 0) + 1)
+  }
+  const peakPeriod = [...hourBuckets.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? '暂无数据'
+
   const insights = [
+    { label: '30 天访问量', value: totalEvents30d.toLocaleString('zh-CN') },
+    { label: '30 天访客数', value: uniqueVisitorIds.size.toLocaleString('zh-CN') },
+    { label: '日均访问量', value: dailyAvg },
+    { label: '高峰时段', value: peakPeriod },
     { label: '最多来源地区', value: pickTopValue(recentAnalyticsEvents.map((event) => event.country)) },
     { label: '最多操作系统', value: pickTopValue(recentAnalyticsEvents.map((event) => parseOperatingSystem(event.userAgent))) },
     { label: '最多浏览器', value: pickTopValue(recentAnalyticsEvents.map((event) => parseBrowser(event.userAgent))) },
@@ -369,15 +384,15 @@ export default async function AdminDashboardPage() {
           <div className="min-w-0">
             <AnalyticsTrendChart trend={trend} granularityOptions={[]} bare />
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid content-center gap-2 sm:grid-cols-2">
             {insights.map((item) => (
               <Link
                 key={item.label}
                 href="/admin/overview"
-                className="block rounded-lg bg-neutral-50 px-4 py-3 transition-colors hover:bg-neutral-100 dark:bg-neutral-900 dark:hover:bg-neutral-800"
+                className="flex flex-col gap-0.5 rounded-lg border border-neutral-200 px-3 py-2 transition-colors hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-800 dark:hover:border-neutral-700 dark:hover:bg-neutral-900"
               >
-                <p className="text-xs text-neutral-500">{item.label}</p>
-                <p className="mt-1 truncate text-sm font-medium text-neutral-800 dark:text-neutral-100">{item.value}</p>
+                <span className="text-xs text-neutral-500">{item.label}</span>
+                <span className="truncate text-sm font-medium text-neutral-800 dark:text-neutral-100">{item.value}</span>
               </Link>
             ))}
           </div>
