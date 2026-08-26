@@ -81,29 +81,29 @@ export default async function VisitorListPage({
           </AutoSubmitForm>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto -mx-5">
           <table className="w-full min-w-2xl text-left text-sm">
             <thead className="border-b border-neutral-100 text-xs text-neutral-500 dark:border-neutral-900">
               <tr>
-                <th className="py-2 pr-4">访客标识</th>
+                <th className="py-2 pl-5 pr-4">访客标识</th>
                 <th className="py-2 pr-4">首次访问</th>
                 <th className="py-2 pr-4">最近访问</th>
                 <th className="py-2 pr-4 text-right">访问次数</th>
                 <th className="py-2 pr-4 text-right">总时长</th>
-                <th className="py-2 pr-4">访问最多文章</th>
+                <th className="py-2 pr-5">访问最多文章</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100 dark:divide-neutral-900">
               {result.items.map((visitor) => (
                 <tr key={visitor.visitorId} className="transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900/60">
-                  <td className="py-3 pr-4">
+                  <td className="py-3 pl-5 pr-4">
                     <Link href={`/admin/visitor-list/${visitor.visitorId}` as Route} className="font-mono text-xs text-neutral-950 dark:text-neutral-50 transition-colors hover:text-blue-600 dark:hover:text-blue-300" title={visitor.visitorId}>{visitor.visitorId}</Link>
                   </td>
                   <td className="py-3 pr-4 text-neutral-500">{formatDateTime(visitor.firstSeenAt)}</td>
                   <td className="py-3 pr-4 text-neutral-500">{formatDateTime(visitor.lastSeenAt)}</td>
                   <td className="py-3 pr-4 text-right font-medium">{visitor.visitCount}</td>
                   <td className="py-3 pr-4 text-right text-neutral-500">{visitor.totalDurationSeconds < 60 ? `${visitor.totalDurationSeconds}s` : `${Math.floor(visitor.totalDurationSeconds / 60)}m`}</td>
-                  <td className="py-3 pr-4">
+                  <td className="py-3 pr-5">
                     {visitor.topArticleTitle ? (
                       <a href={`/articles/${visitor.topArticleSlug}`} target="_blank" rel="noopener noreferrer" className="block max-w-48 truncate font-medium text-neutral-700 transition-colors hover:text-blue-600 dark:text-neutral-200 dark:hover:text-blue-300">{visitor.topArticleTitle}</a>
                     ) : (
