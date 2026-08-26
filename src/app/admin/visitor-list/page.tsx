@@ -96,17 +96,19 @@ export default async function VisitorListPage({
             </thead>
             <tbody className="divide-y divide-neutral-100 dark:divide-neutral-900">
               {result.items.map((visitor) => (
-                <tr key={visitor.visitorId} className="transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900/60">
+                <tr key={visitor.visitorId} className="relative transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900/60">
                   <td className="py-3 pl-5 pr-4">
-                    <Link href={`/admin/visitor-list/${visitor.visitorId}` as Route} className="font-mono text-xs text-neutral-950 dark:text-neutral-50 transition-colors hover:text-blue-600 dark:hover:text-blue-300" title={visitor.visitorId}>{visitor.visitorId}</Link>
+                    <Link href={`/admin/visitor-list/${visitor.visitorId}` as Route} className="before:absolute before:inset-0 before:content-['']">
+                      <span className="relative z-10 block font-mono text-xs text-neutral-950 dark:text-neutral-50" title={visitor.visitorId}>{visitor.visitorId}</span>
+                    </Link>
                   </td>
-                  <td className="py-3 pr-4 text-neutral-500">{formatDateTime(visitor.firstSeenAt)}</td>
-                  <td className="py-3 pr-4 text-neutral-500">{formatDateTime(visitor.lastSeenAt)}</td>
-                  <td className="py-3 pr-4 text-right font-medium">{visitor.visitCount}</td>
-                  <td className="py-3 pr-4 text-right text-neutral-500">{formatDurationShort(visitor.totalDurationSeconds)}</td>
-                  <td className="py-3 pr-5">
+                  <td className="relative z-10 py-3 pr-4 text-neutral-500">{formatDateTime(visitor.firstSeenAt)}</td>
+                  <td className="relative z-10 py-3 pr-4 text-neutral-500">{formatDateTime(visitor.lastSeenAt)}</td>
+                  <td className="relative z-10 py-3 pr-4 text-right font-medium">{visitor.visitCount}</td>
+                  <td className="relative z-10 py-3 pr-4 text-right text-neutral-500">{formatDurationShort(visitor.totalDurationSeconds)}</td>
+                  <td className="relative z-10 py-3 pr-5">
                     {visitor.topArticleTitle ? (
-                      <a href={`/articles/${visitor.topArticleSlug}`} target="_blank" rel="noopener noreferrer" className="block max-w-48 truncate font-medium text-neutral-700 transition-colors hover:text-blue-600 dark:text-neutral-200 dark:hover:text-blue-300">{visitor.topArticleTitle}</a>
+                      <Link href={`/articles/${visitor.topArticleSlug}` as Route} className="block max-w-48 truncate font-medium">{visitor.topArticleTitle}</Link>
                     ) : (
                       <span className="text-neutral-400">—</span>
                     )}
