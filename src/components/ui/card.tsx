@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react'
 
-type CardPadding = 'sm' | 'md' | 'lg'
+type CardPadding = 'none' | 'sm' | 'md' | 'lg'
 type CardRounded = 'lg' | 'xl' | '2xl'
 
 const PADDING: Record<CardPadding, string> = {
+  none: '',
   sm: 'p-4',
   md: 'p-5',
   lg: 'p-6',

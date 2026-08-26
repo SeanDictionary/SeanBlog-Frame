@@ -8,6 +8,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useAdminToast, type AdminToastLevel } from '@/components/admin/admin-toast-provider'
 import { Card } from '@/components/ui/card'
 import { Badge, type BadgeTone } from '@/components/ui/badge'
+import { EmptyState } from '@/components/ui/empty-state'
 import { formatDateCompact } from '@/lib/format'
 
 type ArticleStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
@@ -332,7 +333,7 @@ export function ArticleManagementTable({ articles, total, filters, initialNotice
 
   return (
     <div className="space-y-5">
-      <Card padding="sm" rounded="2xl" shadow>
+      <Card padding="md" rounded="lg" shadow>
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-wrap items-center gap-3">
             <label className="relative block md:w-96">
@@ -378,7 +379,7 @@ export function ArticleManagementTable({ articles, total, filters, initialNotice
         </div>
       </Card>
 
-      <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950">
+      <Card padding="none" rounded="lg">
         {articles.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full min-w-245 text-left text-sm">
@@ -447,9 +448,9 @@ export function ArticleManagementTable({ articles, total, filters, initialNotice
             </table>
           </div>
         ) : (
-          <div className="px-5 py-16 text-center text-sm text-neutral-500">当前搜索条件下没有文章。</div>
+          <EmptyState>当前搜索条件下没有文章。</EmptyState>
         )}
-      </div>
+      </Card>
     </div>
   )
 }

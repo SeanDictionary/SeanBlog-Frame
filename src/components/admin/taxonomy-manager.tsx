@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useMemo, useState, useTransition } from 'react'
 
 import { createSlugFromTitle } from '@/lib/content/pinyin-slug'
+import { Card } from '@/components/ui/card'
 
 type TaxonomyType = 'categories' | 'tags'
 type SortKey = 'name' | 'slug' | 'articleCount'
@@ -360,7 +361,7 @@ export function TaxonomyManager({ type, initialItems }: TaxonomyManagerProps) {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(20rem,0.85fr)]">
-      <section className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
+      <Card padding="none" rounded="lg" shadow>
         <div className="border-b border-neutral-200 p-5 dark:border-neutral-800">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -423,9 +424,9 @@ export function TaxonomyManager({ type, initialItems }: TaxonomyManagerProps) {
         ) : (
           <p className="px-6 py-16 text-center text-sm text-neutral-500">暂无匹配的{copy.singular}。</p>
         )}
-      </section>
+      </Card>
 
-      <aside className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-950 lg:sticky lg:top-6 lg:self-start">
+      <Card padding="lg" rounded="lg" shadow className="lg:sticky lg:top-6 lg:self-start">
         <div className="mb-5 flex items-start justify-between gap-3">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <h2 className="mt-1 text-xl font-semibold">{detailTitle}</h2>
@@ -486,7 +487,7 @@ export function TaxonomyManager({ type, initialItems }: TaxonomyManagerProps) {
         </div>
 
         {message && <p className="mt-4 text-sm text-neutral-500" role="status">{message}</p>}
-      </aside>
+      </Card>
     </div>
   )
 }

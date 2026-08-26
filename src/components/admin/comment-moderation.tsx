@@ -162,7 +162,7 @@ export function CommentModeration({ initialComments, emptyMessage = '当前没�
       )}
 
       {comments.length > 0 ? (
-        <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950">
+        <Card padding="none" rounded="lg">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="border-b border-neutral-200 bg-neutral-50 text-xs text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900">
@@ -231,7 +231,7 @@ export function CommentModeration({ initialComments, emptyMessage = '当前没�
               </tbody>
             </table>
           </div>
-        </div>
+        </Card>
       ) : <EmptyState>{emptyMessage}</EmptyState>}
     </div>
   )
