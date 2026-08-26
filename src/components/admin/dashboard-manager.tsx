@@ -79,6 +79,29 @@ const DASHBOARD_CARD_SIZE_CLASSES: Record<DashboardCardSize, string> = {
 
 type DashboardCardKind = 'summary' | 'articleHeat' | 'comments' | 'create' | 'siteAnalytics'
 
+type DashboardCardTheme = {
+  iconBg: string
+  iconText: string
+}
+
+const CARD_THEMES: Record<string, DashboardCardTheme> = {
+  drafts: { iconBg: 'bg-amber-50 dark:bg-amber-950/40', iconText: 'text-amber-600 dark:text-amber-400' },
+  articles: { iconBg: 'bg-blue-50 dark:bg-blue-950/40', iconText: 'text-blue-600 dark:text-blue-400' },
+  articleHeat: { iconBg: 'bg-orange-50 dark:bg-orange-950/40', iconText: 'text-orange-600 dark:text-orange-400' },
+  comments: { iconBg: 'bg-emerald-50 dark:bg-emerald-950/40', iconText: 'text-emerald-600 dark:text-emerald-400' },
+  quickCreateArticle: { iconBg: 'bg-violet-50 dark:bg-violet-950/40', iconText: 'text-violet-600 dark:text-violet-400' },
+  siteAnalytics: { iconBg: 'bg-rose-50 dark:bg-rose-950/40', iconText: 'text-rose-600 dark:text-rose-400' },
+}
+
+const DEFAULT_CARD_THEME: DashboardCardTheme = {
+  iconBg: 'bg-neutral-100 dark:bg-neutral-900',
+  iconText: 'text-neutral-500 dark:text-neutral-400',
+}
+
+function getCardTheme(key: string) {
+  return CARD_THEMES[key] ?? DEFAULT_CARD_THEME
+}
+
 type DashboardCardConfiguration = {
   allowedSizes: readonly DashboardCardSize[]
   defaultSize: DashboardCardSize
@@ -250,10 +273,13 @@ function CardLink({ href, disabled, children, className, ariaLabel }: { href: Ro
 }
 
 function MetricStack({ card, label, value, className = '' }: { card: DashboardCard; label?: string; value?: number | string; className?: string }) {
+  const theme = getCardTheme(card.key)
   return (
     <span className={`flex min-w-0 flex-col ${className}`} data-dashboard-metric>
-      <i className={`${card.icon} text-neutral-400`} aria-hidden="true" data-dashboard-metric-icon />
-      <span className="mt-5 block text-3xl font-semibold tracking-tight" data-dashboard-metric-value>{formatNumber(value ?? card.value)}</span>
+      <span className={`grid size-10 place-items-center rounded-lg ${theme.iconBg} ${theme.iconText}`} data-dashboard-metric-icon>
+        <i className={card.icon} aria-hidden="true" />
+      </span>
+      <span className="mt-4 block text-3xl font-semibold tracking-tight" data-dashboard-metric-value>{formatNumber(value ?? card.value)}</span>
       <span className="mt-1 block text-sm text-neutral-500" data-dashboard-metric-label>{label ?? card.label}</span>
     </span>
   )
@@ -471,7 +497,7 @@ function DashboardStatCard({
   const actionLabel = action === 'add' ? '添加卡片' : '移除卡片'
   const actionIcon = action === 'add' ? 'fa-plus' : 'fa-xmark'
   const hasTopRightControls = action || onSizeChange
-  const cardClassName = `dashboard-card relative h-full rounded-xl border border-neutral-200 bg-white p-5 transition-[border-color,box-shadow,transform,opacity] duration-200 ease-out dark:border-neutral-800 dark:bg-neutral-950 ${DASHBOARD_CARD_SIZE_CLASSES[size]} ${sorting ? 'cursor-grab select-none touch-none active:cursor-grabbing' : ''} ${dragging ? 'opacity-40 outline outline-2 outline-dashed outline-neutral-300 dark:outline-neutral-700' : ''} ${dragPreview ? 'cursor-grabbing shadow-2xl ring-2 ring-blue-500 ring-offset-2 ring-offset-neutral-50 dark:ring-blue-400 dark:ring-offset-neutral-900' : ''}`
+  const cardClassName = `dashboard-card relative h-full rounded-xl border border-neutral-200 bg-white p-5 shadow-sm transition-[border-color,box-shadow,transform,opacity] duration-200 ease-out hover:shadow-md hover:border-neutral-300 dark:border-neutral-800 dark:bg-neutral-950 dark:hover:border-neutral-700 ${DASHBOARD_CARD_SIZE_CLASSES[size]} ${sorting ? 'cursor-grab select-none touch-none active:cursor-grabbing' : ''} ${dragging ? 'opacity-40 outline outline-2 outline-dashed outline-neutral-300 dark:outline-neutral-700' : ''} ${dragPreview ? 'cursor-grabbing shadow-2xl ring-2 ring-blue-500 ring-offset-2 ring-offset-neutral-50 dark:ring-blue-400 dark:ring-offset-neutral-900' : ''}`
   const cardContent = (
     <>
       {hasTopRightControls && (
