@@ -17,7 +17,7 @@ export async function POST(request: Request) {
       buildThemeCssBundle(),
     ])
 
-    return json({ html, themeCss: themeCssBundle?.css ?? '' })
+    return json({ html, themeCss: themeCssBundle?.css ?? '', calloutCss: themeCssBundle?.calloutCss ?? '' })
   } catch (error) {
     return handleApiError(error)
   }

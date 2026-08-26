@@ -427,6 +427,18 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
       </Card>
 
       <Card padding="lg">
+        <h2 className="font-semibold">自定义 Callout CSS</h2>
+        <p className="mt-1 text-sm text-neutral-500">在此粘贴 CSS 代码，为文章中 <code>:::callout{`{type=xxx}`}</code> 或 <code>:::xxx</code> 语法定义自定义样式。内置类型（note/tip/important/warning/caution）跟随主题，无需在此定义。</p>
+        <form action={(formData) => save('calloutCustomCss', String(formData.get('css') ?? ''))} className="mt-5 space-y-3">
+          <textarea name="css" defaultValue={stringifyValue(settings.find((s) => s.key === 'calloutCustomCss')?.value) ?? ''} rows={8} placeholder=".callout--success { --callout-color: #16a34a; }" className="w-full rounded-md border border-neutral-300 bg-white p-3 font-mono text-xs outline-none focus:border-blue-600 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-blue-400" />
+          <div className="flex items-center gap-3">
+            <button disabled={isPending} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950">保存</button>
+            {isPending && <span className="text-sm text-neutral-500">正在保存…</span>}
+          </div>
+        </form>
+      </Card>
+
+      <Card padding="lg">
         <h2 className="font-semibold">其他设置</h2>
         <div className="mt-5 space-y-4">{settings.filter((setting) => !EXCLUDED_SETTING_KEYS.has(setting.key) && !setting.key.startsWith('themeSetting:') && !setting.key.startsWith('publicHeader') && !setting.key.startsWith('publicFooter') && !setting.key.startsWith('adminSidebar')).map((setting) => <form key={setting.id} action={(formData) => save(setting.key, String(formData.get('value') ?? ''))} className="grid gap-2 sm:grid-cols-[12rem_1fr_auto]"><label className="font-mono text-sm sm:pt-2.5">{setting.key}</label><textarea name="value" defaultValue={stringifyValue(setting.value)} rows={2} className="rounded-md border border-neutral-300 bg-white p-3 font-mono text-xs outline-none dark:border-neutral-700 dark:bg-neutral-900" /><button disabled={isPending} className="text-sm text-blue-600">保存</button></form>)}</div>
       </Card>

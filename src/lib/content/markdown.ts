@@ -1,8 +1,12 @@
+import rehypeRaw from 'rehype-raw'
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize'
 import rehypeStringify from 'rehype-stringify'
+import remarkDirective from 'remark-directive'
+import remarkGithubAdmonitions from 'remark-github-admonitions-to-directives'
 import remarkGfm from 'remark-gfm'
 import remarkParse from 'remark-parse'
 import remarkRehype from 'remark-rehype'
+import { visit } from 'unist-util-visit'
 import { unified } from 'unified'
 
 type HtmlNode = {
@@ -163,27 +167,95 @@ function enhanceCodeBlock(node: HtmlNode) {
 
 function rehypeCodeBlockEnhancements() {
   return (tree: HtmlNode) => {
-    function visit(node: HtmlNode) {
+    function visitNode(node: HtmlNode) {
       if (node.type === 'element' && node.tagName === 'pre') {
         enhanceCodeBlock(node)
       }
 
-      node.children?.forEach(visit)
+      node.children?.forEach(visitNode)
     }
 
-    visit(tree)
+    visitNode(tree)
   }
+}
+
+// --- Admonition / Callout directive plugin ---
+
+const CALLOUT_TYPES = new Set(['note', 'tip', 'important', 'warning', 'caution', 'info', 'success', 'danger'])
+
+/**
+ * remark plugin: converts directive nodes (:::callout, :::note, etc.) into
+ * <div class="callout callout--{type}"> for the rehype phase.
+ * Handles both `:::callout{type=warning}` and `:::note` (bare directive name).
+ */
+function remarkCalloutDirectives() {
+  return (tree: any) => {
+    visit(tree, (node: any) => {
+      if (
+        node.type !== 'containerDirective' &&
+        node.type !== 'leafDirective' &&
+        node.type !== 'textDirective'
+      ) return
+
+      const name = node.name as string
+      let calloutType: string | null = null
+
+      // :::callout{type=warning} or :::callout{.warning}
+      if (name === 'callout') {
+        const attrs = node.attributes || {}
+        calloutType = (attrs.type as string) || getClassFromAttrs(attrs) || 'note'
+      }
+      // :::note / :::warning / etc. (directive name IS the type)
+      else if (CALLOUT_TYPES.has(name)) {
+        calloutType = name
+      }
+
+      if (!calloutType) return
+
+      const data = node.data || (node.data = {})
+      const isInline = node.type === 'textDirective'
+      data.hName = isInline ? 'span' : 'div'
+      data.hProperties = {
+        className: ['callout', `callout--${calloutType}`],
+      }
+    })
+  }
+}
+
+function getClassFromAttrs(attrs: Record<string, unknown>): string | null {
+  const cls = getClassNames(attrs.className)
+  return cls.find((c) => CALLOUT_TYPES.has(c)) ?? cls[0] ?? null
 }
 
 const processor = unified()
   .use(remarkParse)
   .use(remarkGfm)
-  .use(remarkRehype)
+  .use(remarkGithubAdmonitions)
+  .use(remarkDirective)
+  .use(remarkCalloutDirectives)
+  .use(remarkRehype, { allowDangerousHtml: true })
+  .use(rehypeRaw)
   .use(rehypeCodeBlockEnhancements)
   .use(rehypeSanitize, {
     ...defaultSchema,
+    tagNames: [
+      ...(defaultSchema.tagNames ?? []),
+      'div', 'span', 'figure', 'figcaption', 'iframe', 'details', 'summary',
+    ],
     attributes: {
       ...defaultSchema.attributes,
+      '*': [
+        ...(defaultSchema.attributes?.['*'] ?? []),
+        'className', 'style', 'dataType',
+      ],
+      div: [
+        ...(defaultSchema.attributes?.div ?? []),
+        'className', 'style', 'dataType',
+      ],
+      iframe: [
+        'src', 'title', 'allow', 'allowFullScreen', 'loading',
+        ['className', /^.*$/],
+      ],
       code: [
         ...(defaultSchema.attributes?.code ?? []),
         ['className', /^language-/],
@@ -197,6 +269,10 @@ const processor = unified()
         ...(defaultSchema.attributes?.span ?? []),
         ['className', /^token-/],
       ],
+    },
+    protocols: {
+      ...defaultSchema.protocols,
+      src: ['http', 'https', 'data'],
     },
   })
   .use(rehypeStringify)

@@ -29,6 +29,7 @@ export default async function PublicLayout({
   return (
     <div className="flex min-h-screen flex-col">
       {themeCssBundle?.css && <style>{themeCssBundle.css}</style>}
+      {themeCssBundle?.calloutCss && <style>{themeCssBundle.calloutCss}</style>}
       {showHeader && <SiteHeader settings={settings} />}
       <main className="flex-1">{children}</main>
       <Suspense fallback={null}>

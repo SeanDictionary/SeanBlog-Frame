@@ -74,6 +74,7 @@ type SlugCheckResponse = {
 type PreviewResponse = {
   html?: string
   themeCss?: string
+  calloutCss?: string
   error?: { message?: string }
 }
 
@@ -197,6 +198,7 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
   const [editorMode, setEditorMode] = useState<EditorMode>('edit')
   const [previewHtml, setPreviewHtml] = useState(article?.contentHtml ?? '')
   const [previewThemeCss, setPreviewThemeCss] = useState('')
+  const [previewCalloutCss, setPreviewCalloutCss] = useState('')
   const [previewStatus, setPreviewStatus] = useState('预览会在输入后自动更新。')
   const [pendingDraft, setPendingDraft] = useState<DraftSnapshot | null>(null)
   const [lastDraftSavedAt, setLastDraftSavedAt] = useState<Date | null>(null)
@@ -366,6 +368,9 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
         setPreviewHtml(data.html)
         if (typeof data.themeCss === 'string' && data.themeCss !== previewThemeCss) {
           setPreviewThemeCss(data.themeCss)
+        }
+        if (typeof data.calloutCss === 'string' && data.calloutCss !== previewCalloutCss) {
+          setPreviewCalloutCss(data.calloutCss)
         }
         setPreviewStatus('预览已更新。')
       } catch (error) {
@@ -887,6 +892,7 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
             <div className={`col-start-1 row-start-1 min-h-[calc(100vh-20rem)] bg-transparent pb-24 transition-all duration-300 ease-out ${showPreview ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-3 opacity-0'}`} aria-hidden={!showPreview}>
               <p className="mb-6 text-xs text-neutral-500" role="status">{previewStatus}</p>
               {previewThemeCss && <style dangerouslySetInnerHTML={{ __html: previewThemeCss }} />}
+              {previewCalloutCss && <style dangerouslySetInnerHTML={{ __html: previewCalloutCss }} />}
               {previewHtml ? <div className="article-content" dangerouslySetInnerHTML={{ __html: previewHtml }} /> : <p className="text-sm text-neutral-500">输入 Markdown 后显示预览。</p>}
             </div>
             <textarea

@@ -27,7 +27,7 @@ async function buildThemeOptionsCss(themeSlug: string, settings: Record<string, 
  * Used by both the public layout and the article editor preview to ensure
  * preview rendering matches the live site.
  */
-export async function buildThemeCssBundle(): Promise<{ css: string; optionsCss: string } | null> {
+export async function buildThemeCssBundle(): Promise<{ css: string; calloutCss: string } | null> {
   const settings = await getSiteSettingsMapSafe()
   const activeTheme = normalizeActiveTheme(settings.activeTheme)
 
@@ -37,8 +37,8 @@ export async function buildThemeCssBundle(): Promise<{ css: string; optionsCss: 
     ?? await buildThemeOptionsCss('seanblog-default', settings)
 
   const css = [customThemeCss, themeOptionsCss].filter(Boolean).join('\n')
-  const optionsCss = themeOptionsCss ?? ''
+  const calloutCss = typeof settings.calloutCustomCss === 'string' ? settings.calloutCustomCss : ''
 
-  if (!css) return null
-  return { css, optionsCss }
+  if (!css && !calloutCss) return null
+  return { css, calloutCss }
 }
