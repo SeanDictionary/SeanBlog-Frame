@@ -44,7 +44,7 @@
 ### 1.1 管理员认证
 
 - [ ] Auth.js 配置（Credentials + JWT session）
-- [ ] `/admin/login` 登录页
+- [ ] `/login` 登录页
 - [ ] `proxy.ts` / middleware 保护 `/admin/*` 路径
 - [ ] 单管理员鉴权工具函数（`requireAdmin` / `isAdminAuthenticated`）
 - [ ] Admin 共享 layout（可展开/缩小且固定左侧的侧栏导航 + 鉴权，缩小时仅显示图标）
@@ -126,13 +126,24 @@
 
 ### 2.5 后台增强
 
-- [x] 仪表盘统计（草稿、全部文章、文章热度、评论、新建文章、站点统计），支持 1×1 / 1×2 / 2×2 卡片、拖拽动画排序、显示/隐藏并自动保存
-- [ ] 站点设置页 `/admin/settings`（`SiteSetting` 数据表）
+- [x] 仪表盘：固定布局分析仪表盘（由 `analytics-dashboard.tsx` + `analytics-trend-chart.tsx` 实现），包含 4 个统计卡片（草稿 / 文章 / 评论 / 访问量，带彩色图标徽标）、文章热度 Top 6（进度条）、最近评论（状态徽标）、交互式 SVG 趋势图（hover tooltip + 网格线 + 轴标签）、8 个洞察单元格（已废弃拖拽卡片/1×1·1×2·2×2 规格/显示隐藏方案）
+- [x] 站点设置页 `/admin/settings`（`SiteSetting` 数据表）
 
 ### 2.6 内容分发
 
 - [ ] RSS feed：`/rss.xml`
 - [ ] 文章 JSON-LD 结构化数据
+
+### 2.7 访问分析
+
+- [x] `AnalyticsEvent` / `Visitor` / `AnalyticsDailyStat` 数据表迁移
+- [x] `/admin/overview` 数据分析总览页
+- [x] `/admin/visits` 访问记录页
+- [x] `/admin/visitors` 访客记录页、`/admin/visitors/[visitorId]` 访客详情页
+- [x] ipinfo.io lite 地理位置解析
+- [x] `AdminIdentityBootstrap` 指纹 / 硬件 cookie 识别
+- [x] 每日统计物化（`AnalyticsDailyStat` 聚合任务）
+- [x] 访问趋势交互式图表
 
 ### 验收标准
 
@@ -141,6 +152,7 @@
 - 可上传图片并在文章中引用
 - 搜索功能可用（标题 + 正文内容搜索）
 - RSS 可被阅读器订阅
+- `/admin/overview`、`/admin/visits`、`/admin/visitors` 可查看访问记录与访客详情
 
 ---
 
@@ -166,7 +178,7 @@
 
 - [ ] Sentry 错误监控接入
 - [ ] `/api/health` 健康检查端点
-- [ ] 基础访问统计（文章阅读量异步更新）
+- [ ] 访问统计增强：访问分析已在 Phase 2 基本建成（`/admin/overview`、`/admin/visits`、`/admin/visitors` 页面、`AnalyticsDailyStat` 每日统计物化、交互式趋势图），此处补齐阅读量 Redis HLL 异步回写、读者来源分析、阅读时长估算等深度指标
 
 ### 3.4 CI/CD
 
@@ -230,7 +242,8 @@
 - [ ] 阅读量统计（Redis HLL + 异步回写 DB）
 - [ ] 读者来源分析
 - [ ] 文章阅读时长估算
-- [ ] 仪表盘图表化（`recharts`）
+- [x] 仪表盘图表化（已使用自研 `analytics-trend-chart.tsx` 交互式 SVG 趋势图，未采用 recharts）
+- [ ] 进一步图表化（recharts 等库用于访客画像、来源分析等多维可视化）
 
 ### 4.6 开放 API
 
@@ -259,7 +272,8 @@ Phase 0 (初始化)
         ├── 2.3 版本历史─┤
         ├── 2.4 搜索 ───┤
         ├── 2.5 后台增强─┤
-        └── 2.6 RSS ───┘
+        ├── 2.6 RSS ───┤
+        └── 2.7 访问分析─┘
               │
               ▼
         Phase 3 (生产级)

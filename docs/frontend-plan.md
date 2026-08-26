@@ -34,17 +34,25 @@ src/app/
 │       └── page.tsx                    # 搜索结果页
 ├── admin/                              # 后台路由组（不跟随主题）
 │   ├── layout.tsx                      # 后台布局：侧边栏 + 鉴权守卫
-│   ├── page.tsx                        # 仪表盘
+│   ├── page.tsx                        # 后台概览（固定布局：统计卡片 + 文章热度 + 最近评论 + 访问趋势图表 + 洞察）
+│   ├── overview/page.tsx               # 数据分析总览
+│   ├── visits/page.tsx                 # 访问记录
+│   ├── visitors/
+│   │   ├── page.tsx                    # 访客记录
+│   │   └── [visitorId]/page.tsx        # 访客详情
 │   ├── articles/
 │   │   ├── page.tsx                    # 文章列表
 │   │   ├── new/page.tsx                # 新建文章
 │   │   └── [id]/edit/page.tsx          # 编辑文章
-│   ├── categories/page.tsx             # 分类管理
-│   ├── tags/page.tsx                   # 标签管理
+│   ├── taxonomy/page.tsx               # 分类与标签管理（合并）
 │   ├── comments/page.tsx               # 评论审核
 │   ├── media/page.tsx                  # 媒体管理
-│   └── settings/page.tsx               # 站点设置
-├── login/page.tsx                      # 登录页
+│   ├── settings/page.tsx               # 站点设置
+│   ├── personalization/
+│   │   ├── page.tsx                    # 主题库
+│   │   └── preview/page.tsx            # 主题预览
+│   └── logs/page.tsx                   # 操作日志
+├── login/page.tsx                      # 登录页（注意：登录位于 src/app/login，不在 admin 下）
 └── (已有的 API / robots / sitemap / rss 路由保持不动)
 ```
 
@@ -80,8 +88,18 @@ src/components/
 │   └── comment-item.tsx                # 单条评论
 ├── search/                             # 搜索组件
 │   └── search-dialog.tsx               # 搜索弹窗（Client Component）
+├── common/                            # 通用组件
+│   └── external-link.tsx               # 外部链接（带图标、防抖新窗口打开）
+├── admin/                             # 后台专用组件
+│   ├── analytics-dashboard.tsx         # 后台概览固定仪表盘（统计卡片 + 文章热度 + 最近评论 + 趋势图 + 洞察）
+│   └── analytics-trend-chart.tsx      # 交互式 SVG 趋势图（hover tooltip、网格线、轴标签）
 └── pagination.tsx                      # 通用分页
 ```
+
+### 共享 UI 与工具
+
+- `src/components/ui/`：shadcn/ui 基础组件，扩展有共享原语 Card、Button、Badge、EmptyState、ExportCsvButton、LinkButton。
+- `src/lib/format.ts`：集中式日期/时间格式化函数，供前台与后台共用。
 
 ## 主题系统设计
 
@@ -105,6 +123,7 @@ themes/
 5. **主题资源**：主题 CSS 位于 `assets/theme.css`，只能使用安全 CSS 变量和 `.sb-*` / `.sf-*` / `.article-content` 命名空间；相对资源引用会被重写到主题资产 API。
 6. **主题作用域**：只影响 `(public)` 路由组下的前台页面，后台界面保持固定样式。
 7. **持久化**：Docker 部署时 `themes/` 目录挂载 volume，与 `content/` 同等对待。
+8. **CSS 包拼接**：`src/lib/theme/css-bundle.ts` 将主题 CSS 资产拼装为可注入的 CSS 字符串，前台布局与文章编辑器预览共用同一份拼装逻辑，保证预览与线上渲染一致。
 
 ### 默认主题包要求
 
@@ -163,7 +182,7 @@ themes/
 |---|---|
 | 3.1 | 登录页 |
 | 3.2 | 后台布局（可展开/缩小且固定左侧的侧边栏 + 鉴权守卫；缩小时仅显示图标） |
-| 3.3 | 仪表盘（草稿、全部文章、文章热度、评论、新建文章、站点统计卡片；支持 1×1 / 1×2 / 2×2 规格、拖拽动画排序、显示/隐藏并自动保存） |
+| 3.3 | 仪表盘（固定布局，非拖拽卡片系统）：4 个统计卡片（草稿 / 文章 / 评论 / 访问量，带彩色图标徽标）、文章热度 Top 6（进度条）、最近评论（状态徽标）、AnalyticsTrendChart（交互式 SVG，hover tooltip + 网格线 + 轴标签）、8 个洞察单元格；由 `analytics-dashboard.tsx` 与 `analytics-trend-chart.tsx` 实现 |
 | 3.4 | 文章管理（列表 + 新建 + 编辑） |
 | 3.5 | 分类/标签管理 |
 | 3.6 | 评论审核 |

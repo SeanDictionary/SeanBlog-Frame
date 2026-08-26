@@ -1,8 +1,8 @@
-# Theme Package Development
+# 主题包开发指南
 
-SeanBlog themes are directory-based packages. They are not standalone React or Node.js code, and they are not single CSS files. A theme package is declarative: SeanBlog reads the manifest, templates, parts, settings schema, CSS, and static assets, then renders them through built-in safe components.
+SeanBlog 主题是基于目录结构的声明式包。它不是独立的 React 或 Node.js 代码，也不是单一的 CSS 文件。SeanBlog 读取清单文件（manifest）、模板、部件（parts）、设置项、CSS 和静态资源，然后通过内置的安全组件渲染。
 
-## Package structure
+## 包结构
 
 ```text
 theme-slug/
@@ -21,20 +21,20 @@ theme-slug/
     preview.svg
 ```
 
-## Manifest
+## 清单文件
 
-`theme.json` must be at the package root.
+`theme.json` 必须位于包根目录。
 
-Required fields:
+必填字段：
 
-- `slug`: lowercase letters, numbers, hyphens, or underscores; must match the directory name after install.
-- `name`: display name shown in the admin theme library.
-- `version`: package version.
-- `engine`: must be `seanblog-theme`.
-- `engineVersion`: currently `1`.
-- `templates`: must include `home`, `articleDetail`, `taxonomy`, and `search`.
+- `slug`：小写字母、数字、连字符或下划线；安装后必须与目录名一致。
+- `name`：在后台主题库中显示的名称。
+- `version`：包版本号。
+- `engine`：必须为 `seanblog-theme`。
+- `engineVersion`：当前为 `1`。
+- `templates`：必须包含 `home`、`articleDetail`、`taxonomy` 和 `search`。
 
-Optional fields:
+可选字段：
 
 - `author`
 - `description`
@@ -44,11 +44,11 @@ Optional fields:
 - `settingsSchema`
 - `blocks`
 
-## Templates and parts
+## 模板与部件
 
-Templates and parts are JSON metadata files. The engine reads allowed `slots` and `blocks` arrays and renders only those built-in front-end components, so a theme can reorder or omit supported page regions without executing third-party code. Unknown slots/blocks are ignored; if a template has no valid slots, SeanBlog falls back to the default page structure.
+模板和部件是 JSON 元数据文件。引擎读取允许的 `slots` 和 `blocks` 数组，只渲染这些内置前端组件。主题可以重新排序或省略支持的页面区域，而无需执行第三方代码。未知的 slots/blocks 会被忽略；如果模板没有有效的 slots，SeanBlog 会回退到默认页面结构。
 
-Supported block names for theme declarations:
+主题声明中支持的 block 名称：
 
 - `SiteHeader`
 - `ArticleList`
@@ -60,29 +60,40 @@ Supported block names for theme declarations:
 - `CommentList`
 - `SiteFooter`
 
-Theme packages must not ship executable server code. Uploading arbitrary React, JavaScript, TypeScript, or Node.js modules for execution is intentionally unsupported.
+主题包不得包含可执行的服务端代码。上传任意 React、JavaScript、TypeScript 或 Node.js 模块用于执行是不支持的。
 
-## CSS rules
+## CSS 规则
 
-Theme CSS lives under `assets/theme.css` by convention. It can:
+主题 CSS 按约定放在 `assets/theme.css`。它可以：
 
-- define supported CSS variables on `:root`
-- define styles for safe component selectors: `.sb-*`, `.sf-*`, and `.article-content`
-- use relative `url(...)` references to files inside the same package; these are rewritten to the theme asset API
+- 在 `:root` 上定义支持的 CSS 变量
+- 为安全组件选择器定义样式：`.sb-*`、`.sf-*` 和 `.article-content`
+- 使用相对路径 `url(...)` 引用包内文件；这些路径会被重写为主题资源 API
 
-It cannot:
+不可以：
 
-- use `@import`
-- use `!important`
-- reference absolute, remote, data, or parent-directory URLs
-- include `<style>` or HTML-like content
-- target arbitrary global selectors outside the safe namespaces
+- 使用 `@import`
+- 使用 `!important`
+- 引用绝对路径、远程 URL、data URL 或父目录 URL
+- 包含 `<style>` 或类 HTML 内容
+- 定位安全命名空间之外的任意全局选择器
 
-## Settings schema
+## 主题 CSS 包共享
 
-`settingsSchema` lets a theme expose editable settings in `/admin/personalization`.
+`src/lib/theme/css-bundle.ts` 中的 `buildThemeCssBundle()` 函数将主题 CSS（`assets/theme.css`）和设置项变量（`settingsSchema` 中声明了 `cssVariable` 的项）合并为完整的 CSS 包。
 
-Supported field types:
+该 CSS 包被以下两处共用，确保编辑器预览与前台显示效果一致：
+
+- **前台布局** `src/app/(public)/layout.tsx`：注入为 `<style>` 标签
+- **文章编辑器预览** `/api/admin/articles/preview` API：返回 `themeCss` 字段，编辑器在预览时注入
+
+主题作者无需关心此机制，只需确保 `theme.css` 和 `settingsSchema` 中的 `cssVariable` 声明正确即可。
+
+## 设置项
+
+`settingsSchema` 允许主题在 `/admin/personalization` 中暴露可编辑的设置项。
+
+支持的字段类型：
 
 - `text`
 - `color`
@@ -90,52 +101,52 @@ Supported field types:
 - `boolean`
 - `select`
 
-A setting can optionally declare `cssVariable`; when present, SeanBlog writes the saved value into a `:root` CSS variable override for the active theme.
+一个设置项可以声明 `cssVariable`；如果声明了，SeanBlog 会将保存的值写入 `:root` 上的 CSS 变量覆盖。
 
-Example:
+示例：
 
 ```json
 {
   "key": "accentColor",
-  "label": "Accent color",
+  "label": "强调色",
   "type": "color",
   "default": "#2563eb",
   "cssVariable": "--color-accent"
 }
 ```
 
-## Import and export
+## 导入与导出
 
-Admin theme import accepts a `.zip` package with `theme.json` at the zip root. The server validates:
+后台主题导入接受 `.zip` 格式的包，`theme.json` 位于 zip 根目录。服务器会校验：
 
-- zip structure and file count
-- zip-slip/path traversal attempts
-- manifest schema and theme engine version
-- required templates
-- CSS safety rules
-- package size
+- zip 结构和文件数量
+- zip-slip / 路径穿越攻击
+- 清单文件 schema 和主题引擎版本
+- 必填模板
+- CSS 安全规则
+- 包大小限制
 
-Installed themes can be exported back to `.zip` from the theme library.
+已安装的主题可以从主题库导出回 `.zip`。
 
-## Preview
+## 预览
 
-The admin theme library exposes two preview links for each installed theme:
+后台主题库为每个已安装主题提供两个预览链接：
 
-- `/theme-preview?theme=<slug>&page=home` renders the public home page with the selected theme CSS, settings, slots, Header, and Footer.
-- `/theme-preview?theme=<slug>&page=article` renders a real published article page with the selected theme and the same public article components.
+- `/theme-preview?theme=<slug>&page=home`：使用选中主题的 CSS、设置、slots、Header 和 Footer 渲染公开首页。
+- `/theme-preview?theme=<slug>&page=article`：使用选中主题渲染一篇真实的已发布文章页面，组件与前台一致。
 
-Preview routes require an authenticated admin session and are rendered outside the admin layout so they match the public site chrome. The legacy `/admin/personalization/preview` route redirects to `/theme-preview`.
+预览路由需要管理员登录，且在管理布局之外渲染，以匹配前台外观。旧版 `/admin/personalization/preview` 路由会重定向到 `/theme-preview`。
 
-## Default theme
+## 默认主题
 
-`themes/seanblog-default/` is the built-in default theme package. It follows the same package rules as third-party themes and is not deletable or overwritable from the admin UI.
+`themes/seanblog-default/` 是内置默认主题包。它遵循与第三方主题相同的包规则，不可从后台界面删除或覆盖。
 
-Visual direction:
+视觉方向：
 
-- content-first, minimal, native components
-- Inter typography
-- black/white/gray hierarchy
-- blue accent
-- clear borders and soft radius
-- low-distraction hover/focus states
-- mobile-first responsive layout
+- 内容优先、简约、原生组件
+- Inter 字体
+- 黑/白/灰层次
+- 蓝色强调色
+- 清晰的边框和柔和的圆角
+- 低干扰的 hover/focus 状态
+- 移动优先响应式布局

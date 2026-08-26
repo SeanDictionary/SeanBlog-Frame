@@ -14,7 +14,7 @@ SEO 是个人博客的核心能力之一。本系统在设计上保证：
 ### 2.1 编辑与存储
 
 - 后台文章编辑器使用 Markdown，提供编辑 / 预览 / 分栏三种模式
-- 编辑器为 Client Component，实时预览通过后台预览接口复用正式 Markdown 编译与清洗逻辑
+- 编辑器为 Client Component，实时预览通过后台预览接口复用正式 Markdown 编译与清洗逻辑，并注入当前主题 CSS（`buildThemeCssBundle`），确保预览效果与前台一致
 - 编辑器会将未保存内容自动保存到浏览器本地草稿，并在离开页面时提示确认
 - 保存时 Markdown 原文写入 `content/articles/{articleId}/index.md`
 - PostgreSQL 仅保存文章元数据与相对 `contentPath`，不再将正文作为权威内容源存储

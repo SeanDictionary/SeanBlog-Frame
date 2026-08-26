@@ -2,7 +2,7 @@
 
 ## 1. 架构概览
 
-本系统采用 Next.js 单体全栈架构，前端、后台与 API 共享同一应用进程和类型系统，不引入独立后端服务。
+本系统采用 Next.js 单体全栈架构，前端、后台与 API 共享同一应用进程和类型系统，不引入独立后端服务。后台通过 `AdminIdentityBootstrap` 在页面注入访客指纹/硬件 cookie（由 `src/lib/client/identity.ts` 生成），用于无登录态下的访客识别与访问记录归因；主题样式经 `buildThemeCssBundle()` 统一构建，前台 `(public)/layout.tsx` 与 `/api/admin/articles/preview` 共用同一 CSS 包，确保编辑器预览与线上样式一致。
 
 整体架构逻辑分层如下：
 
@@ -92,6 +92,11 @@
 | `seoService` | sitemap 生成，robots 策略，结构化数据 JSON-LD 生成 |
 | `searchService` | 搜索统一接口（Phase 1：PG tsvector；Phase 2：Meilisearch） |
 | `storageService` | 图片上传/删除/URL 签名，对象存储抽象（Phase 1 本地，Phase 2 S3） |
+| `analytics-service.ts` | 分析统计核心逻辑（趋势、总览、访客、访问记录） |
+| `setting-service.ts` | 站点设置读写 |
+| `comment-moderation-rules.ts` | 评论审核规则 |
+| `comment-settings.ts` | 评论模式设置 |
+| `geoip.ts` | IP 到国家/地区查询（ipinfo.io lite API） |
 
 服务层的存在是为了：
 
@@ -145,7 +150,12 @@
 ```
 src/
   app/          # App Router 路由（前后台共用）
-  components/   # 共享组件（ui / layout / articles / comments / editor 等）
+  components/
+    ui/         # 共享 UI 原语（Card, Button, Badge, EmptyState, ExportCsvButton, LinkButton）
+    admin/admin-identity-bootstrap.tsx  # 后台指纹/硬件 cookie 注入
+    admin/analytics-dashboard.tsx        # 访问记录表格 + 详情对话框
+    admin/analytics-trend-chart.tsx     # 交互式 SVG 趋势图表
+    common/external-link.tsx            # 外部链接确认模态框
   lib/          # 核心基础设施
     prisma.ts   # Prisma 客户端单例
     auth.ts     # Auth.js 配置
@@ -153,9 +163,14 @@ src/
     auth.utils.ts   # 单管理员鉴权工具函数
     env.ts      # 环境变量 Zod 校验
     utils.ts    # 通用工具函数
-    markdown.ts # Markdown 编译 pipeline
+    format.ts   # 集中式日期/时长格式化函数（formatDateTime, formatDate, formatDurationShort 等）
+    geoip.ts    # ipinfo.io lite 地区查询
     validations/ # Zod schema 文件
     services/   # 业务服务层
+    content/    # 内容处理模块（markdown.ts 渲染管线、article-content.ts 文件管理、reading-time.ts 阅读时间计算）
+    theme/      # 主题相关模块目录
+      css-bundle.ts # 主题 CSS 包构建（前台布局与编辑器预览共用）
+    client/identity.ts # 客户端访客 ID/指纹/硬件辅助函数
   hooks/        # 客户端 react hooks
   styles/       # 全局样式与 markdown 渲染样式
 ```

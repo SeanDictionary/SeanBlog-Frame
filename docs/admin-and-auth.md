@@ -186,14 +186,20 @@ export async function isAdminAuthenticated() {
 | 后台页面 | 访问要求 | 说明 |
 |----------|----------|------|
 | `/admin` | 已登录管理员 | 仪表盘 |
-| `/admin/login` | 无需登录 | 登录页 |
+| `/login` | 无需登录 | 登录页（`src/app/login/page.tsx`） |
+| `/admin/overview` | 已登录管理员 | 数据分析总览（趋势、Top 文章、分段访问量、来源地区） |
+| `/admin/visits` | 已登录管理员 | 访问记录（按访问事件分页展示，支持 CSV 导出） |
+| `/admin/visitors` | 已登录管理员 | 访客记录（按访客维度分页展示，支持 CSV 导出） |
+| `/admin/visitors/[visitorId]` | 已登录管理员 | 访客详情页 |
+| `/admin/taxonomy` | 已登录管理员 | 分类与标签管理 |
+| `/admin/personalization` | 已登录管理员 | 主题库与个性化设置 |
 | `/admin/articles` | 已登录管理员 | 文章列表 |
 | `/admin/articles/new` | 已登录管理员 | 新建文章 |
 | `/admin/articles/[id]/edit` | 已登录管理员 | 编辑文章 |
 | `/admin/categories` | 已登录管理员 | 分类管理 |
 | `/admin/tags` | 已登录管理员 | 标签管理 |
 | `/admin/comments` | 已登录管理员 | 评论审核（Phase 2） |
-| `/admin/logs` | 已登录管理员 | 操作日志与 CSV 导出 |
+| `/admin/logs` | 已登录管理员 | 操作日志（含 `browserFingerprint`、`hardware` 字段，支持 CSV 导出） |
 | `/admin/settings` | 已登录管理员 | 站点设置（Phase 2） |
 
 ## 9. 安全考量
@@ -204,5 +210,9 @@ export async function isAdminAuthenticated() {
 - 所有 Server Action 在执行业务逻辑前调用 `requireAdmin()`
 - 生产环境强制 HTTPS，Cookie 设置 `secure: true`
 - 登录和评论接口做速率限制（Phase 3 引入 Redis rate limiting）
-- 游客评论记录 IP 和 User-Agent 用于反垃圾
+- 评论不再直接存储 `ip`/`userAgent` 字段，而是通过 `visitorId` 外键关联 `Visitor` 表；反垃圾数据（浏览器指纹、硬件特征等）记录在 `AnalyticsEvent`/`OperationLog` 上，而非 Comment 行
+- `OperationLog` 包含 `browserFingerprint` 与 `hardware` 字段，由 `AdminIdentityBootstrap`（`src/components/admin/admin-identity-bootstrap.tsx`）在后台加载时写入的 `sb-fp`（浏览器指纹）和 `sb-hw`（硬件摘要）Cookie 补充，用于操作日志富化与审计
+- 地理位置通过 `src/lib/geoip.ts` 使用 ipinfo.io lite API 解析（基于 token，跳过内网 IP，结果缓存 6 小时）
 - 关键前后台写操作写入 `OperationLog`，后台 `/admin/logs` 可按模块/结果/关键词查看并导出 CSV，便于审计与排查
+
+> 路由命名说明：`/admin/visits`（访问事件记录）此前曾命名为 `/admin/visitors`；旧路由 `/admin/visitor-list` 已更名为 `/admin/visitors`（访客维度记录）。
