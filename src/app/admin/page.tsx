@@ -389,10 +389,10 @@ export default async function AdminDashboardPage() {
               <Link
                 key={item.label}
                 href="/admin/overview"
-                className="flex flex-col gap-0.5 rounded-lg border border-neutral-200 px-3 py-2 transition-colors hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-800 dark:hover:border-neutral-700 dark:hover:bg-neutral-900"
+                className="block rounded-lg bg-neutral-50 px-3 py-2 transition-colors hover:bg-neutral-100 dark:bg-neutral-900 dark:hover:bg-neutral-800"
               >
-                <span className="text-xs text-neutral-500">{item.label}</span>
-                <span className="truncate text-sm font-medium text-neutral-800 dark:text-neutral-100">{item.value}</span>
+                <p className="text-xs text-neutral-500">{item.label}</p>
+                <p className="mt-0.5 truncate text-sm font-medium text-neutral-800 dark:text-neutral-100">{item.value}</p>
               </Link>
             ))}
           </div>
