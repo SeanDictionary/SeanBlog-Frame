@@ -3,6 +3,8 @@ import Link from 'next/link'
 import type { Route } from 'next'
 
 import { COMMENT_MODERATION_RULES_SETTING_KEY, normalizeCommentModerationRules } from '@/lib/comment-moderation-rules'
+import { Card, CardHeader } from '@/components/ui/card'
+import { EmptyState } from '@/components/ui/empty-state'
 import { getPrisma } from '@/lib/prisma'
 import { getSiteSettingsMap } from '@/lib/services/setting-service'
 
@@ -170,13 +172,10 @@ function Panel({
   className?: string
 }) {
   return (
-    <section className={`rounded-xl border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-950 ${className}`}>
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="font-semibold">{title}</h2>
-        {action}
-      </div>
+    <Card rounded="xl" shadow className={className}>
+      <CardHeader title={title} action={action} />
       {children}
-    </section>
+    </Card>
   )
 }
 
@@ -342,9 +341,7 @@ export default async function AdminDashboardPage() {
               ))}
             </ul>
           ) : (
-            <p className="rounded-lg border border-dashed border-neutral-200 px-3 py-5 text-center text-sm text-neutral-500 dark:border-neutral-800">
-              暂无文章数据。
-            </p>
+            <EmptyState size="sm">暂无文章数据。</EmptyState>
           )}
         </Panel>
 
@@ -380,9 +377,7 @@ export default async function AdminDashboardPage() {
               })}
             </ul>
           ) : (
-            <p className="rounded-lg border border-dashed border-neutral-200 px-3 py-5 text-center text-sm text-neutral-500 dark:border-neutral-800">
-              暂无评论。
-            </p>
+            <EmptyState size="sm">暂无评论。</EmptyState>
           )}
         </Panel>
       </div>

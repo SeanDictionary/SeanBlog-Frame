@@ -1,15 +1,11 @@
 import Link from 'next/link'
 import type { Route } from 'next'
 
-import { formatDurationFull } from '@/lib/format'
+import { ExternalLink } from '@/components/common/external-link'
+import { Card } from '@/components/ui/card'
+import { formatDateTimeShort, formatDurationFull } from '@/lib/format'
 import { getVisitorDetail } from '@/lib/services/analytics-service'
 import { VisitRecordTable } from '@/components/admin/analytics-dashboard'
-import { ExternalLink } from '@/components/common/external-link'
-
-function formatDateTime(date: Date) {
-  return new Intl.DateTimeFormat('zh-CN', { dateStyle: 'short', timeStyle: 'short' }).format(date)
-}
-
 
 function isExternalUrl(value: string | null | undefined): value is string {
   return typeof value === 'string' && /^https?:\/\//i.test(value)
@@ -26,17 +22,6 @@ function toDetailParts(value: string | null, labels: Record<string, string>): Ar
 
 const FINGERPRINT_LABELS: Record<string, string> = { language: '语言', timezone: '时区', screenWidth: '屏幕宽度', screenHeight: '屏幕高度', devicePixelRatio: '像素比' }
 const HARDWARE_LABELS: Record<string, string> = { cores: 'CPU 核心数', memory: '内存', screenWidth: '屏幕宽度', screenHeight: '屏幕高度' }
-
-type SectionProps = { title: string; children: React.ReactNode }
-
-function Card({ title, children }: SectionProps) {
-  return (
-    <section className="rounded-lg border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-950">
-      <h2 className="mb-4 font-semibold">{title}</h2>
-      {children}
-    </section>
-  )
-}
 
 function StatItem({ label, value }: { label: string; value: string }) {
   return (
@@ -93,35 +78,40 @@ export default async function VisitorDetailPage({
         <StatItem label="访问次数" value={String(data.visitCount)} />
         <StatItem label="事件数" value={String(data.eventCount)} />
         <StatItem label="总时长" value={formatDurationFull(data.totalDurationSeconds)} />
-        <StatItem label="首次访问" value={formatDateTime(data.firstSeenAt)} />
+        <StatItem label="首次访问" value={formatDateTimeShort(data.firstSeenAt)} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card title="文章访问统计">
+        <Card>
+          <h2 className="mb-4 font-semibold">文章访问统计</h2>
           {data.topArticles.length > 0 ? data.topArticles.map((a) => (
             <ListItem key={a.slug} title={a.title} detail={`${a.views} 次 / ${a.visitors} 人`} href={`/articles/${a.slug}` as Route} />
           )) : <p className="text-sm text-neutral-500">暂无文章访问。</p>}
         </Card>
 
-        <Card title="分类访问统计">
+        <Card>
+          <h2 className="mb-4 font-semibold">分类访问统计</h2>
           {data.topCategories.length > 0 ? data.topCategories.map((c) => (
             <ListItem key={c.slug} title={c.title} detail={`${c.views} 次`} href={`/categories/${c.slug}` as Route} />
           )) : <p className="text-sm text-neutral-500">暂无分类访问。</p>}
         </Card>
 
-        <Card title="标签访问统计">
+        <Card>
+          <h2 className="mb-4 font-semibold">标签访问统计</h2>
           {data.topTags.length > 0 ? data.topTags.map((t) => (
             <ListItem key={t.slug} title={t.title} detail={`${t.views} 次`} href={`/tags/${t.slug}` as Route} />
           )) : <p className="text-sm text-neutral-500">暂无标签访问。</p>}
         </Card>
 
-        <Card title="来源 URL 统计">
+        <Card>
+          <h2 className="mb-4 font-semibold">来源 URL 统计</h2>
           {data.topReferrers.length > 0 ? data.topReferrers.map((r) => (
             <ListItem key={r.referrer} title={r.referrer} detail={`${r.count} 次`} />
           )) : <p className="text-sm text-neutral-500">暂无来源 URL。</p>}
         </Card>
 
-        <Card title="浏览器指纹记录">
+        <Card>
+          <h2 className="mb-4 font-semibold">浏览器指纹记录</h2>
           {data.fingerprints.length > 0 ? data.fingerprints.map((fp) => {
             const parts = toDetailParts(fp.browserFingerprint, FINGERPRINT_LABELS)
             return (
@@ -137,7 +127,8 @@ export default async function VisitorDetailPage({
           }) : <p className="text-sm text-neutral-500">暂无指纹数据。</p>}
         </Card>
 
-        <Card title="硬件信息记录">
+        <Card>
+          <h2 className="mb-4 font-semibold">硬件信息记录</h2>
           {data.hardwareInfos.length > 0 ? data.hardwareInfos.map((hw) => {
             const parts = toDetailParts(hw.hardware, HARDWARE_LABELS)
             return (
@@ -153,13 +144,15 @@ export default async function VisitorDetailPage({
           }) : <p className="text-sm text-neutral-500">暂无硬件数据。</p>}
         </Card>
 
-        <Card title="地区统计">
+        <Card>
+          <h2 className="mb-4 font-semibold">地区统计</h2>
           {data.topCountries.length > 0 ? data.topCountries.map((c) => (
             <ListItem key={c.country} title={c.country} detail={`${c.count} 次`} />
           )) : <p className="text-sm text-neutral-500">暂无地区数据。</p>}
         </Card>
 
-        <Card title="浏览器/系统统计">
+        <Card>
+          <h2 className="mb-4 font-semibold">浏览器/系统统计</h2>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="mb-2 text-xs font-medium text-neutral-500">浏览器</p>
@@ -173,10 +166,10 @@ export default async function VisitorDetailPage({
         </Card>
       </div>
 
-      <section className="mt-6 rounded-lg border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-950">
+      <Card className="mt-6">
         <h2 className="mb-4 font-semibold">最近 10 条访问记录</h2>
         <VisitRecordTable visits={data.recentVisits} />
-      </section>
+      </Card>
     </div>
   )
 }

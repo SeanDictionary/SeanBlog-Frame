@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 
 type Setting = {
   id: string
@@ -96,15 +98,13 @@ export function MediaStorageSettings({ initialSettings }: MediaStorageSettingsPr
   }
 
   return (
-    <section className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-950">
+    <Card padding="lg">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="font-semibold">对象存储配置</h2>
           <p className="mt-1 text-sm text-neutral-500">默认不启用；关闭时隐藏连接配置并保留已填写信息。</p>
         </div>
-        <span className={`rounded-full px-2.5 py-1 text-xs ${enabled ? 'bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-300' : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'}`}>
-          {enabled ? '已启用' : '默认关闭'}
-        </span>
+        <Badge tone={enabled ? 'green' : 'neutral'}>{enabled ? '已启用' : '默认关闭'}</Badge>
       </div>
 
       <div className="mt-5 grid gap-4">
@@ -136,6 +136,6 @@ export function MediaStorageSettings({ initialSettings }: MediaStorageSettingsPr
       </div>
 
       {message && <p className="mt-4 text-sm text-neutral-500" role="status">{message}</p>}
-    </section>
+    </Card>
   )
 }

@@ -4,6 +4,7 @@ import type { Route } from 'next'
 import { useRouter } from 'next/navigation'
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 
+import { Card } from '@/components/ui/card'
 import type { AnalyticsTrendPoint } from '@/lib/services/analytics-service'
 
 export type AnalyticsGranularityOption = {
@@ -166,7 +167,7 @@ export function AnalyticsTrendChart({
   }
 
   return (
-    <section className="rounded-lg border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-950">
+    <Card>
       <style>{`
         @keyframes analytics-trend-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
         @keyframes analytics-trend-fade { from { opacity: 0; } to { opacity: 1; } }
@@ -348,6 +349,6 @@ export function AnalyticsTrendChart({
           </div>
         )}
       </div>
-    </section>
+    </Card>
   )
 }

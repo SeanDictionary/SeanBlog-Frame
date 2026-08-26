@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { useAdminToast } from '@/components/admin/admin-toast-provider'
 import type { ArticleCommentsMode } from '@/lib/comment-settings'
 import { createSlugFromTitle } from '@/lib/content/pinyin-slug'
+import { formatMonthDayTime } from '@/lib/format'
 
 type ArticleStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
 type EditorMode = 'edit' | 'preview'
@@ -129,20 +130,6 @@ function toDateTimeLocal(value?: Date | string | null) {
 
 function fromDateTimeLocal(value: string) {
   return value ? new Date(value).toISOString() : null
-}
-
-function formatDateTime(value?: Date | string | null) {
-  if (!value) return '暂无记录'
-
-  const date = value instanceof Date ? value : new Date(value)
-  if (Number.isNaN(date.getTime())) return '暂无记录'
-
-  return date.toLocaleString('zh-CN', {
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
 }
 
 function getInitialState(article?: ArticleFormValues, defaultCategoryId = ''): FormState {
@@ -689,7 +676,7 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
         }))
         setPreviewHtml(data.revision.contentHtml)
         markDirty()
-        showSuccess(`已恢复 ${formatDateTime(data.revision.createdAt)} 的历史版本到编辑器，请保存后生效。`)
+        showSuccess(`已恢复 ${formatMonthDayTime(data.revision.createdAt)} 的历史版本到编辑器，请保存后生效。`)
       } catch (error) {
         showError(error instanceof Error ? error.message : '读取历史版本失败。')
       }
@@ -864,7 +851,7 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
           {pendingDraft && (
             <section className="mb-8 rounded-2xl border border-blue-200 bg-blue-50/80 p-4 text-sm text-blue-800 dark:border-blue-900/70 dark:bg-blue-950/40 dark:text-blue-200">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <p>检测到 {formatDateTime(pendingDraft.updatedAt)} 的本地自动保存草稿。</p>
+                <p>检测到 {formatMonthDayTime(pendingDraft.updatedAt)} 的本地自动保存草稿。</p>
                 <div className="flex gap-2">
                   <button type="button" onClick={restoreDraft} className="rounded-full bg-blue-700 px-3 py-1.5 text-white">恢复草稿</button>
                   <button type="button" onClick={discardDraft} className="rounded-full border border-blue-300 px-3 py-1.5 dark:border-blue-800">忽略</button>
@@ -886,9 +873,9 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
           <div className="mt-5 flex flex-wrap items-center gap-3 text-sm text-neutral-500" role="status">
             <span>{message ?? (dirty ? '有未保存内容。' : '没有未保存内容。')}</span>
             <span className="hidden text-neutral-300 dark:text-neutral-700 sm:inline">/</span>
-            <span>最近数据库保存：{formatDateTime(article?.updatedAt)}</span>
+            <span>最近数据库保存：{formatMonthDayTime(article?.updatedAt)}</span>
             <span className="hidden text-neutral-300 dark:text-neutral-700 sm:inline">/</span>
-            <span>本地草稿保存：{formatDateTime(lastDraftSavedAt)}</span>
+            <span>本地草稿保存：{formatMonthDayTime(lastDraftSavedAt)}</span>
           </div>
 
           <section className="mt-10 grid min-h-[calc(100vh-20rem)]">
@@ -1077,7 +1064,7 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
                 {article.revisions.map((revision) => (
                   <div key={revision.id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
                     <div>
-                      <p className="font-medium">{formatDateTime(revision.createdAt)}</p>
+                      <p className="font-medium">{formatMonthDayTime(revision.createdAt)}</p>
                       {revision.changeNote && <p className="mt-1 text-xs text-neutral-500">{revision.changeNote}</p>}
                     </div>
                     <button type="button" disabled={isRevisionPending} onClick={() => restoreRevision(revision.id)} className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm transition-colors hover:bg-neutral-100 disabled:opacity-60 dark:border-neutral-700 dark:hover:bg-neutral-800">恢复</button>

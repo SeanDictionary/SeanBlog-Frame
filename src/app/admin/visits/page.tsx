@@ -1,5 +1,7 @@
 import { VisitRecordTable } from '@/components/admin/analytics-dashboard'
 import { AutoSubmitForm } from '@/components/common/auto-submit-form'
+import { Card, CardHeader } from '@/components/ui/card'
+import { ExportCsvButton, LinkButton, buildExportHref } from '@/components/ui/empty-state'
 import { getAnalyticsVisitors } from '@/lib/services/analytics-service'
 import { analyticsVisitorQuerySchema } from '@/lib/validations/cms'
 
@@ -17,15 +19,6 @@ function buildPageHref(params: Record<string, string | undefined>, page: number)
   if (page > 1) search.set('page', String(page))
   const query = search.toString()
   return `/admin/visits${query ? `?${query}` : ''}`
-}
-
-function buildExportHref(params: Record<string, string | undefined>) {
-  const search = new URLSearchParams()
-  for (const [key, value] of Object.entries(params)) {
-    if (value && key !== 'page' && key !== 'pageSize') search.set(key, value)
-  }
-  const query = search.toString()
-  return `/api/admin/analytics/visitors/export${query ? `?${query}` : ''}`
 }
 
 function getPageItems(current: number, total: number): Array<number | 'ellipsis'> {
@@ -58,22 +51,22 @@ export default async function AdminAnalyticsVisitorsPage({ searchParams }: Admin
           <h1 className="text-3xl font-semibold tracking-tight">访问记录</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral-500">显示有史以来的访问记录，可按时间范围导出 CSV。</p>
         </div>
-        <div className="flex gap-2 text-sm"><a href="/admin/visitors" className="rounded-md border border-neutral-300 px-4 py-2 dark:border-neutral-700">访客记录</a><a href={buildExportHref(rawSearchParams)} className="rounded-md bg-neutral-950 px-4 py-2 text-white dark:bg-neutral-100 dark:text-neutral-950">导出 CSV</a></div>
+        <div className="flex gap-2 text-sm"><LinkButton href="/admin/visitors">访客记录</LinkButton><ExportCsvButton href={buildExportHref('/api/admin/analytics/visitors/export', rawSearchParams)} /></div>
       </header>
 
-      <section className="rounded-lg border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-950">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="font-semibold">访问记录</h2>
-            <p className="mt-1 text-sm text-neutral-500">共 {result.meta.total} 条记录，第 {page} / {pageCount} 页。</p>
-          </div>
-          <AutoSubmitForm action="/admin/visits" className="flex flex-wrap items-center gap-2 text-sm">
-            <input type="hidden" name="pageSize" value={query.pageSize} />
-            <input name="start" type="date" defaultValue={startValue} className="h-8 rounded-md border border-neutral-300 bg-white px-2 dark:border-neutral-700 dark:bg-neutral-900" />
-            <span className="text-neutral-500">至</span>
-            <input name="end" type="date" defaultValue={endValue} className="h-8 rounded-md border border-neutral-300 bg-white px-2 dark:border-neutral-700 dark:bg-neutral-900" />
-          </AutoSubmitForm>
-        </div>
+      <Card>
+        <CardHeader
+          title="访问记录"
+          description={`共 ${result.meta.total} 条记录，第 ${page} / ${pageCount} 页。`}
+          action={
+            <AutoSubmitForm action="/admin/visits" className="flex flex-wrap items-center gap-2 text-sm">
+              <input type="hidden" name="pageSize" value={query.pageSize} />
+              <input name="start" type="date" defaultValue={startValue} className="h-8 rounded-md border border-neutral-300 bg-white px-2 dark:border-neutral-700 dark:bg-neutral-900" />
+              <span className="text-neutral-500">至</span>
+              <input name="end" type="date" defaultValue={endValue} className="h-8 rounded-md border border-neutral-300 bg-white px-2 dark:border-neutral-700 dark:bg-neutral-900" />
+            </AutoSubmitForm>
+          }
+        />
 
         <VisitRecordTable visits={result.items} />
 
@@ -96,7 +89,7 @@ export default async function AdminAnalyticsVisitorsPage({ searchParams }: Admin
             </select>
           </AutoSubmitForm>
         </div>
-      </section>
+      </Card>
     </div>
   )
 }

@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 
 import { COMMENT_MODERATION_RULES_SETTING_KEY, parseCommentBlacklistText, validateCommentBlacklistRules, type CommentModerationRules } from '@/lib/comment-moderation-rules'
+import { Card } from '@/components/ui/card'
 
 type ApiResponse = {
   error?: { message?: string }
@@ -60,7 +61,7 @@ export function CommentModerationRulesManager({ initialRules }: CommentModeratio
   }
 
   return (
-    <section className="mb-7 rounded-lg border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-950">
+    <Card padding="md" className="mb-7">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <h2 className="font-semibold">黑名单自动审批</h2>
         {message && <p className="text-sm text-neutral-500" role="status">{message}</p>}
@@ -89,6 +90,6 @@ export function CommentModerationRulesManager({ initialRules }: CommentModeratio
           </button>
         </div>
       </form>
-    </section>
+    </Card>
   )
 }

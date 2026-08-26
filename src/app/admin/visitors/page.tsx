@@ -1,10 +1,12 @@
 import Link from 'next/link'
 import type { Route } from 'next'
 
-import { formatDurationShort } from '@/lib/format'
+import { AutoSubmitForm } from '@/components/common/auto-submit-form'
+import { Card, CardHeader } from '@/components/ui/card'
+import { ExportCsvButton, LinkButton, buildExportHref } from '@/components/ui/empty-state'
+import { formatDateTimeShort, formatDurationShort } from '@/lib/format'
 import { getVisitors } from '@/lib/services/analytics-service'
 import { paginationQuerySchema } from '@/lib/validations/cms'
-import { AutoSubmitForm } from '@/components/common/auto-submit-form'
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100]
 
@@ -18,15 +20,6 @@ function buildPageHref(params: Record<string, string | undefined>, page: number)
   return `/admin/visitors${query ? `?${query}` : ''}` as Route
 }
 
-function buildExportHref(params: Record<string, string | undefined>) {
-  const search = new URLSearchParams()
-  for (const [key, value] of Object.entries(params)) {
-    if (value && key !== 'page' && key !== 'pageSize') search.set(key, value)
-  }
-  const query = search.toString()
-  return `/api/admin/analytics/visitors/export${query ? `?${query}` : ''}`
-}
-
 function getPageItems(current: number, total: number): Array<number | 'ellipsis'> {
   if (total <= 7) return Array.from({ length: total }, (_, index) => index + 1)
   const items: Array<number | 'ellipsis'> = [1]
@@ -37,10 +30,6 @@ function getPageItems(current: number, total: number): Array<number | 'ellipsis'
   if (end < total - 1) items.push('ellipsis')
   items.push(total)
   return items
-}
-
-function formatDateTime(date: Date) {
-  return new Intl.DateTimeFormat('zh-CN', { dateStyle: 'short', timeStyle: 'short' }).format(date)
 }
 
 export default async function VisitorListPage({
@@ -65,22 +54,22 @@ export default async function VisitorListPage({
           <h1 className="text-3xl font-semibold tracking-tight">访客记录</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral-500">显示有史以来的访客记录，可按时间范围导出 CSV。</p>
         </div>
-        <div className="flex gap-2 text-sm"><a href="/admin/visits" className="rounded-md border border-neutral-300 px-4 py-2 dark:border-neutral-700">访问记录</a><a href={buildExportHref(rawSearchParams)} className="rounded-md bg-neutral-950 px-4 py-2 text-white dark:bg-neutral-100 dark:text-neutral-950">导出 CSV</a></div>
+        <div className="flex gap-2 text-sm"><LinkButton href="/admin/visits">访问记录</LinkButton><ExportCsvButton href={buildExportHref('/api/admin/analytics/visitors/export', rawSearchParams)} /></div>
       </header>
 
-      <section className="rounded-lg border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-950">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="font-semibold">访客列表</h2>
-            <p className="mt-1 text-sm text-neutral-500">共 {result.meta.total} 位访客，第 {page} / {pageCount} 页。</p>
-          </div>
-          <AutoSubmitForm action="/admin/visitors" className="flex flex-wrap items-center gap-2 text-sm">
-            <input type="hidden" name="pageSize" value={query.pageSize} />
-            <input name="start" type="date" defaultValue={startValue} className="h-8 rounded-md border border-neutral-300 bg-white px-2 dark:border-neutral-700 dark:bg-neutral-900" />
-            <span className="text-neutral-500">至</span>
-            <input name="end" type="date" defaultValue={endValue} className="h-8 rounded-md border border-neutral-300 bg-white px-2 dark:border-neutral-700 dark:bg-neutral-900" />
-          </AutoSubmitForm>
-        </div>
+      <Card>
+        <CardHeader
+          title="访客列表"
+          description={`共 ${result.meta.total} 位访客，第 ${page} / ${pageCount} 页。`}
+          action={
+            <AutoSubmitForm action="/admin/visitors" className="flex flex-wrap items-center gap-2 text-sm">
+              <input type="hidden" name="pageSize" value={query.pageSize} />
+              <input name="start" type="date" defaultValue={startValue} className="h-8 rounded-md border border-neutral-300 bg-white px-2 dark:border-neutral-700 dark:bg-neutral-900" />
+              <span className="text-neutral-500">至</span>
+              <input name="end" type="date" defaultValue={endValue} className="h-8 rounded-md border border-neutral-300 bg-white px-2 dark:border-neutral-700 dark:bg-neutral-900" />
+            </AutoSubmitForm>
+          }
+        />
 
         <div className="overflow-x-auto -mx-5">
           <table className="w-full min-w-2xl text-left text-sm">
@@ -102,8 +91,8 @@ export default async function VisitorListPage({
                       <span className="relative z-10 block font-mono text-xs text-neutral-950 dark:text-neutral-50" title={visitor.visitorId}>{visitor.visitorId}</span>
                     </Link>
                   </td>
-                  <td className="relative z-10 py-3 pr-4 text-neutral-500">{formatDateTime(visitor.firstSeenAt)}</td>
-                  <td className="relative z-10 py-3 pr-4 text-neutral-500">{formatDateTime(visitor.lastSeenAt)}</td>
+                  <td className="relative z-10 py-3 pr-4 text-neutral-500">{formatDateTimeShort(visitor.firstSeenAt)}</td>
+                  <td className="relative z-10 py-3 pr-4 text-neutral-500">{formatDateTimeShort(visitor.lastSeenAt)}</td>
                   <td className="relative z-10 py-3 pr-4 text-right font-medium">{visitor.visitCount}</td>
                   <td className="relative z-10 py-3 pr-4 text-right text-neutral-500">{formatDurationShort(visitor.totalDurationSeconds)}</td>
                   <td className="relative z-10 py-3 pr-5">
@@ -139,7 +128,7 @@ export default async function VisitorListPage({
             </select>
           </AutoSubmitForm>
         </div>
-      </section>
+      </Card>
     </div>
   )
 }

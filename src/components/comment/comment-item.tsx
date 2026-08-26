@@ -4,6 +4,7 @@ import { useState } from 'react'
 
 import { ExternalLink } from '@/components/common/external-link'
 import { CommentForm } from '@/components/comment/comment-form'
+import { formatDate } from '@/lib/format'
 
 type Comment = {
   id: string
@@ -22,16 +23,6 @@ type CommentItemProps = {
   articleId: string
   comment: CommentWithReplies | Comment
   canReply?: boolean
-}
-
-function formatDate(date: Date) {
-  return new Intl.DateTimeFormat('zh-CN', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date)
 }
 
 // Only render a visitor-provided link when it is an http(s) URL. The API

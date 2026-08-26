@@ -4,6 +4,8 @@ import type { Route } from 'next'
 import { AutoSubmitForm } from '@/components/common/auto-submit-form'
 import { AnalyticsTrendChart, type AnalyticsGranularityOption } from '@/components/admin/analytics-trend-chart'
 import { VisitRecordTable } from '@/components/admin/analytics-dashboard'
+import { Card, CardHeader } from '@/components/ui/card'
+import { LinkButton } from '@/components/ui/empty-state'
 import type { AnalyticsGranularity } from '@/lib/services/analytics-service'
 import { getAnalyticsOverview } from '@/lib/services/analytics-service'
 import { analyticsOverviewQuerySchema } from '@/lib/validations/cms'
@@ -58,7 +60,7 @@ export default async function AdminAnalyticsOverviewPage({ searchParams }: Admin
           <h1 className="text-3xl font-semibold tracking-tight">统计总览</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral-500">左侧展示趋势、文章排行和最近访问，右侧展示关键时间段、来源地区和系统统计。单卡片时间范围最大不超过 180 天。</p>
         </div>
-        <div className="flex gap-2 text-sm"><a href="/admin/visits" className="rounded-md border border-neutral-300 px-4 py-2 dark:border-neutral-700">访客统计</a></div>
+        <div className="flex gap-2 text-sm"><LinkButton href="/admin/visits">访客统计</LinkButton></div>
       </header>
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(22rem,0.9fr)]">
@@ -82,32 +84,32 @@ export default async function AdminAnalyticsOverviewPage({ searchParams }: Admin
             )}
           />
 
-          <section className="rounded-lg border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-950">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-semibold">最近访问记录</h2><p className="mt-1 text-sm text-neutral-500">按访问时间倒序。</p></div><RangeSelectForm paramKey="recentRangeDays" currentParams={rawSearchParams} /></div>
+          <Card>
+            <CardHeader title="最近访问记录" description="按访问时间倒序。" action={<RangeSelectForm paramKey="recentRangeDays" currentParams={rawSearchParams} />} />
             <VisitRecordTable visits={data.recentVisits} tiny />
-          </section>
+          </Card>
         </div>
 
         <div className="min-w-0 space-y-6">
-          <section className="rounded-lg border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-950">
+          <Card>
             <h2 className="font-semibold">全站访问量</h2>
             <div className="mt-4 divide-y divide-neutral-100 dark:divide-neutral-900">{data.periodStats.map((stat) => <div key={stat.label} className="grid grid-cols-3 gap-3 py-3 text-sm"><span className="font-medium">{stat.label}</span><span className="text-right">{stat.views} 访问</span><span className="text-right text-neutral-500">{stat.visitors} 人</span></div>)}</div>
-          </section>
+          </Card>
 
-          <section className="rounded-lg border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-950">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-semibold">文章统计 Top 10</h2><p className="mt-1 text-sm text-neutral-500">按访问量从高到低排序。</p></div><RangeSelectForm paramKey="articlesRangeDays" currentParams={rawSearchParams} /></div>
+          <Card>
+            <CardHeader title="文章统计 Top 10" description="按访问量从高到低排序。" action={<RangeSelectForm paramKey="articlesRangeDays" currentParams={rawSearchParams} />} />
             <div className="overflow-x-auto -mx-5"><table className="w-full text-left text-sm"><thead className="text-xs text-neutral-500"><tr><th className="py-2 pl-5 pr-4">文章</th><th className="py-2 pr-4 text-right">访问量</th><th className="py-2 pr-5 text-right">访问人数</th></tr></thead><tbody className="divide-y divide-neutral-100 dark:divide-neutral-900">{data.topArticles.map((article) => <tr key={article.slug}><td className="py-3 pl-5 pr-4"><Link href={`/articles/${article.slug}` as Route} className="block max-w-52 truncate font-medium">{article.label}</Link><p className="mt-0.5 flex items-center gap-2 font-mono text-xs text-neutral-500"><span className="max-w-48 truncate">{article.slug}</span><a href={`/articles/${article.slug}`} target="_blank" rel="noreferrer" className="shrink-0 text-neutral-400 transition-colors hover:text-neutral-950 dark:hover:text-neutral-50" aria-label="在新窗口打开文章"><i className="fa-solid fa-arrow-up-right-from-square" aria-hidden="true" /></a></p></td><td className="py-3 pr-4 text-right">{article.views}</td><td className="py-3 pr-5 text-right">{article.visitors}</td></tr>)}{data.topArticles.length === 0 && <tr><td colSpan={3} className="py-8 text-center text-neutral-500">暂无文章访问数据。</td></tr>}</tbody></table></div>
-          </section>
+          </Card>
 
-          <section className="rounded-lg border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-950">
-            <div className="mb-4 flex items-center justify-between gap-3"><div><h2 className="font-semibold">访问来源地区</h2><p className="mt-1 text-sm text-neutral-500">按国家分类 Top 5。</p></div><RangeSelectForm paramKey="sourcesRangeDays" currentParams={rawSearchParams} /></div>
+          <Card>
+            <CardHeader title="访问来源地区" description="按国家分类 Top 5。" action={<RangeSelectForm paramKey="sourcesRangeDays" currentParams={rawSearchParams} />} />
             <div className="space-y-3">{data.topCountries.map((item) => <div key={item.label} className="flex justify-between gap-4 text-sm"><span>{item.label}</span><span className="text-neutral-500">{item.count}</span></div>)}{data.topCountries.length === 0 && <p className="text-sm text-neutral-500">暂无来源地区数据。</p>}</div>
-          </section>
+          </Card>
 
-          <section className="rounded-lg border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-950">
-            <div className="mb-4 flex items-center justify-between gap-3"><div><h2 className="font-semibold">访问系统</h2><p className="mt-1 text-sm text-neutral-500">操作系统 Top 5。</p></div><RangeSelectForm paramKey="systemsRangeDays" currentParams={rawSearchParams} /></div>
+          <Card>
+            <CardHeader title="访问系统" description="操作系统 Top 5。" action={<RangeSelectForm paramKey="systemsRangeDays" currentParams={rawSearchParams} />} />
             <div className="space-y-3">{data.topSystems.map((item) => <div key={item.label} className="flex justify-between gap-4 text-sm"><span>{item.label}</span><span className="text-neutral-500">{item.count}</span></div>)}{data.topSystems.length === 0 && <p className="text-sm text-neutral-500">暂无系统数据。</p>}</div>
-          </section>
+          </Card>
         </div>
       </div>
     </div>

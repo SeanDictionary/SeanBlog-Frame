@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 
 import { ARTICLE_META_ITEM_IDS, type ArticleMetaItemId } from '@/components/article/article-meta'
+import { Card } from '@/components/ui/card'
 
 type Setting = {
   id: string
@@ -337,7 +338,7 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
 
   return (
     <div className="space-y-7">
-      <section className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-950">
+      <Card padding="lg">
         <h2 className="font-semibold">站点信息</h2>
         <p className="mt-1 text-sm text-neutral-500">主题包、Header、页脚和组件外观请到“个性化”页面管理。</p>
         <div className="mt-5 grid gap-5">
@@ -364,9 +365,9 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
             </div>
           </form>
         </div>
-      </section>
+      </Card>
 
-      <section className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-950">
+      <Card padding="lg">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h2 className="font-semibold">文章详情</h2>
@@ -378,9 +379,9 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
           {renderMetadataZone(true)}
           {renderMetadataZone(false)}
         </div>
-      </section>
+      </Card>
 
-      <section className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-950">
+      <Card padding="lg">
         <form action={(formData) => {
           const next = Object.fromEntries(ANALYTICS_CONFIGS.map((item) => [item.key, formData.get(item.key) === 'on'])) as Record<string, boolean>
           const nextOperationLogRetentionDays = Math.min(MAX_OPERATION_LOG_RETENTION_DAYS, Math.max(1, Number(formData.get(OPERATION_LOG_RETENTION_SETTING_KEY) ?? DEFAULT_OPERATION_LOG_RETENTION_DAYS)))
@@ -423,12 +424,12 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
             ))}
           </div>
         </form>
-      </section>
+      </Card>
 
-      <section className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-950">
+      <Card padding="lg">
         <h2 className="font-semibold">其他设置</h2>
         <div className="mt-5 space-y-4">{settings.filter((setting) => !EXCLUDED_SETTING_KEYS.has(setting.key) && !setting.key.startsWith('themeSetting:') && !setting.key.startsWith('publicHeader') && !setting.key.startsWith('publicFooter') && !setting.key.startsWith('adminSidebar')).map((setting) => <form key={setting.id} action={(formData) => save(setting.key, String(formData.get('value') ?? ''))} className="grid gap-2 sm:grid-cols-[12rem_1fr_auto]"><label className="font-mono text-sm sm:pt-2.5">{setting.key}</label><textarea name="value" defaultValue={stringifyValue(setting.value)} rows={2} className="rounded-md border border-neutral-300 bg-white p-3 font-mono text-xs outline-none dark:border-neutral-700 dark:bg-neutral-900" /><button disabled={isPending} className="text-sm text-blue-600">保存</button></form>)}</div>
-      </section>
+      </Card>
 
       {message && <p className="text-sm text-neutral-500" role="status">{message}</p>}
     </div>

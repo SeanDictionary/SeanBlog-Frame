@@ -2,6 +2,7 @@
 
 import { useState, useTransition, type FormEvent } from 'react'
 
+import { Button } from '@/components/ui/button'
 import { getVisitorId } from '@/lib/client/identity'
 
 type CommentFormProps = {
@@ -127,9 +128,9 @@ export function CommentForm({ articleId, parentId, onCancel }: CommentFormProps)
       </label>
 
       <div className="flex items-center gap-3">
-        <button type="submit" disabled={isPending} className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60">
+        <Button type="submit" disabled={isPending} variant="primary" size="md" className="rounded-sm disabled:cursor-not-allowed disabled:opacity-60">
           {isPending ? '正在提交…' : '提交评论'}
-        </button>
+        </Button>
         {onCancel && <button type="button" onClick={onCancel} className="text-sm text-text-secondary transition-colors hover:text-text">取消</button>}
       </div>
 

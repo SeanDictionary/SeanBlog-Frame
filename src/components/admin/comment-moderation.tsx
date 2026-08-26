@@ -6,6 +6,9 @@ import type { Route } from 'next'
 
 import { useAdminToast } from '@/components/admin/admin-toast-provider'
 import { ExternalLink } from '@/components/common/external-link'
+import { Card } from '@/components/ui/card'
+import { Badge, type BadgeTone } from '@/components/ui/badge'
+import { EmptyState } from '@/components/ui/empty-state'
 
 type Comment = {
   id: string
@@ -137,7 +140,7 @@ export function CommentModeration({ initialComments, emptyMessage = '当前没�
   return (
     <div className="space-y-4">
       {comments.length > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-white p-4 text-sm dark:border-neutral-800 dark:bg-neutral-950">
+        <Card padding="sm" className="flex flex-wrap items-center justify-between gap-3 text-sm">
           <label className="inline-flex items-center gap-2 font-medium">
             <input type="checkbox" checked={allSelected} onChange={(event) => toggleAll(event.target.checked)} />
             已选 {selectedIds.length} / {comments.length} 条
@@ -155,7 +158,7 @@ export function CommentModeration({ initialComments, emptyMessage = '当前没�
               </button>
             ))}
           </div>
-        </div>
+        </Card>
       )}
 
       {comments.length > 0 ? (
@@ -229,7 +232,7 @@ export function CommentModeration({ initialComments, emptyMessage = '当前没�
             </table>
           </div>
         </div>
-      ) : <div className="rounded-lg border border-dashed border-neutral-300 px-5 py-16 text-center text-sm text-neutral-500 dark:border-neutral-700">{emptyMessage}</div>}
+      ) : <EmptyState>{emptyMessage}</EmptyState>}
     </div>
   )
 }
@@ -287,14 +290,15 @@ function ActionButton({ action, pending, disabled, onClick, className }: { actio
   )
 }
 
+const statusTone: Record<Comment['status'], BadgeTone> = {
+  PENDING: 'amber',
+  APPROVED: 'green',
+  SPAM: 'orange',
+  TRASHED: 'neutral',
+}
+
 function StatusBadge({ status }: { status: Comment['status'] }) {
   const copy = { PENDING: '待审核', APPROVED: '已通过', SPAM: '垃圾', TRASHED: '回收站' }[status]
-  const styles = {
-    PENDING: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/70 dark:bg-amber-950/40 dark:text-amber-300',
-    APPROVED: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/40 dark:text-emerald-300',
-    SPAM: 'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-900/70 dark:bg-orange-950/40 dark:text-orange-300',
-    TRASHED: 'border-neutral-300 bg-neutral-100 text-neutral-600 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400',
-  } satisfies Record<Comment['status'], string>
   const icons = {
     PENDING: 'fa-regular fa-clock',
     APPROVED: 'fa-solid fa-check',
@@ -302,5 +306,5 @@ function StatusBadge({ status }: { status: Comment['status'] }) {
     TRASHED: 'fa-regular fa-trash-can',
   } satisfies Record<Comment['status'], string>
 
-  return <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${styles[status]}`}><i className={`${icons[status]} text-[0.65rem]`} aria-hidden="true" />{copy}</span>
+  return <Badge tone={statusTone[status]} className="inline-flex items-center gap-1.5"><i className={`${icons[status]} text-[0.65rem]`} aria-hidden="true" />{copy}</Badge>
 }

@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { Card } from '@/components/ui/card'
 
 type Setting = {
   id: string
@@ -218,7 +219,7 @@ export function PersonalizationManager({ initialSettings, availableThemes }: Per
 
   return (
     <div className="space-y-7">
-      <section className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-950">
+      <Card padding="lg">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div><h2 className="font-semibold">主题包库</h2><p className="mt-1 text-sm text-neutral-500">导入、预览、启用、导出和卸载第三方主题包。主题必须包含 theme.json、模板、部件和资源目录。</p></div>
           <form action={importTheme} className="flex flex-wrap items-end gap-3">
@@ -244,10 +245,10 @@ export function PersonalizationManager({ initialSettings, availableThemes }: Per
             </article>
           ))}
         </div>
-      </section>
+      </Card>
 
       <form action={saveForm} className="grid gap-7 xl:grid-cols-2">
-        <section className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-950">
+        <Card padding="lg">
           <h2 className="font-semibold">Header / Dock</h2>
           <div className="mt-5 grid gap-4">
             <label className="grid gap-1.5 text-sm">站点标题<input name="publicHeaderTitle" defaultValue={settingValue(settings, 'publicHeaderTitle')} placeholder="默认使用 siteName" className="h-10 rounded-md border border-neutral-300 bg-white px-3 dark:border-neutral-700 dark:bg-neutral-900" /></label>
@@ -256,16 +257,16 @@ export function PersonalizationManager({ initialSettings, availableThemes }: Per
             <Toggle name="publicHeaderShowTags" label="显示标签入口" checked={settingEnabled(settings, 'publicHeaderShowTags')} />
             <Toggle name="publicHeaderShowSearch" label="显示搜索按钮" checked={settingEnabled(settings, 'publicHeaderShowSearch')} />
           </div>
-        </section>
+        </Card>
 
-        <section className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-950">
+        <Card padding="lg">
           <h2 className="font-semibold">页脚</h2>
           <p className="mt-1 text-sm text-neutral-500">后台侧边栏固定使用站点名称 + Admin 品牌样式，不再提供单独自定义项。</p>
           <div className="mt-5 grid gap-4">
             <label className="grid gap-1.5 text-sm">页脚文案<input name="publicFooterText" defaultValue={settingValue(settings, 'publicFooterText')} placeholder="默认版权文案" className="h-10 rounded-md border border-neutral-300 bg-white px-3 dark:border-neutral-700 dark:bg-neutral-900" /></label>
             <Toggle name="publicFooterShowRss" label="显示 RSS 入口" checked={settingEnabled(settings, 'publicFooterShowRss')} />
           </div>
-        </section>
+        </Card>
         <div className="xl:col-span-2">
           <button disabled={isPending} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950">保存 Header / Footer 设置</button>
         </div>

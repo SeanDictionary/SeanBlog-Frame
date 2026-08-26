@@ -6,6 +6,9 @@ import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 import { useAdminToast, type AdminToastLevel } from '@/components/admin/admin-toast-provider'
+import { Card } from '@/components/ui/card'
+import { Badge, type BadgeTone } from '@/components/ui/badge'
+import { formatDateCompact } from '@/lib/format'
 
 type ArticleStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
 type BulkAction = 'publish' | 'draft' | 'archive' | 'delete'
@@ -45,11 +48,11 @@ const statusLabels: Record<ArticleStatus, string> = {
   ARCHIVED: '已归档',
 }
 
-const statusStyles = {
-  DRAFT: 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300',
-  PUBLISHED: 'bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-300',
-  ARCHIVED: 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400',
-} satisfies Record<ArticleStatus, string>
+const statusTone: Record<ArticleStatus, BadgeTone> = {
+  DRAFT: 'amber',
+  PUBLISHED: 'green',
+  ARCHIVED: 'neutral',
+}
 
 const defaultSortOrder: Record<SortField, 'asc' | 'desc'> = {
   title: 'asc',
@@ -60,24 +63,19 @@ const defaultSortOrder: Record<SortField, 'asc' | 'desc'> = {
   visitorCount: 'desc',
 }
 
-function formatDate(value: string | null) {
-  if (!value) return '未设置'
-  return new Date(value).toLocaleDateString('zh-CN')
-}
-
 function statusBadges(article: ArticleRow) {
   const now = Date.now()
-  const badges: Array<{ label: string; className: string }> = [
-    { label: statusLabels[article.status], className: statusStyles[article.status] },
+  const badges: Array<{ label: string; tone: BadgeTone }> = [
+    { label: statusLabels[article.status], tone: statusTone[article.status] },
   ]
   const publishedAt = article.publishedAt ? new Date(article.publishedAt).getTime() : null
 
   if (article.isPinned) {
-    badges.push({ label: '置顶', className: 'bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300' })
+    badges.push({ label: '置顶', tone: 'blue' })
   }
 
   if (article.status === 'PUBLISHED' && publishedAt && publishedAt > now) {
-    badges.push({ label: '待发布', className: 'bg-purple-50 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300' })
+    badges.push({ label: '待发布', tone: 'purple' })
   }
 
   return badges
@@ -334,7 +332,7 @@ export function ArticleManagementTable({ articles, total, filters, initialNotice
 
   return (
     <div className="space-y-5">
-      <section className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
+      <Card padding="sm" rounded="2xl" shadow>
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-wrap items-center gap-3">
             <label className="relative block md:w-96">
@@ -378,7 +376,7 @@ export function ArticleManagementTable({ articles, total, filters, initialNotice
             </label>
           </div>
         </div>
-      </section>
+      </Card>
 
       <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950">
         {articles.length > 0 ? (
@@ -420,7 +418,7 @@ export function ArticleManagementTable({ articles, total, filters, initialNotice
                         </a>
                       </p>
                     </td>
-                    <td className="px-4 py-4 align-top"><div className="flex flex-wrap gap-1.5">{statusBadges(article).map((badge) => <span key={badge.label} className={`rounded-full px-2 py-1 text-xs ${badge.className}`}>{badge.label}</span>)}</div></td>
+                    <td className="px-4 py-4 align-top"><div className="flex flex-wrap gap-1.5">{statusBadges(article).map((badge) => <Badge key={badge.label} tone={badge.tone}>{badge.label}</Badge>)}</div></td>
                     <td className="px-4 py-4 align-top" onClick={(event) => event.stopPropagation()}>
                       <div className="max-w-56 space-y-1 text-neutral-500">
                         <p>
@@ -441,8 +439,8 @@ export function ArticleManagementTable({ articles, total, filters, initialNotice
                     </td>
                     <td className="px-4 py-4 align-top text-neutral-500">{article.viewCount}</td>
                     <td className="px-4 py-4 align-top text-neutral-500">{article.visitorCount}</td>
-                    <td className="px-4 py-4 align-top text-neutral-500">{formatDate(article.publishedAt)}</td>
-                    <td className="px-4 py-4 align-top text-neutral-500">{formatDate(article.updatedAt)}</td>
+                    <td className="px-4 py-4 align-top text-neutral-500">{formatDateCompact(article.publishedAt)}</td>
+                    <td className="px-4 py-4 align-top text-neutral-500">{formatDateCompact(article.updatedAt)}</td>
                   </tr>
                 ))}
               </tbody>

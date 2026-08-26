@@ -7,7 +7,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { ExternalLink } from '@/components/common/external-link'
 import type { AnalyticsVisitRecord } from '@/lib/services/analytics-service'
 
-import { formatDurationShort, formatDurationFull } from '@/lib/format'
+import { formatDateTime, formatDurationShort, formatDurationFull } from '@/lib/format'
 
 function isExternalUrl(value: string | null | undefined): value is string {
   return typeof value === 'string' && /^https?:\/\//i.test(value)
@@ -98,7 +98,7 @@ function VisitDetailDialog({ visit, onClose }: { visit: AnalyticsVisitRecord; on
           <button ref={closeRef} type="button" onClick={onClose} className="rounded-md bg-neutral-950 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:opacity-90 dark:bg-neutral-100 dark:text-neutral-950">关闭</button>
         </div>
         <dl className="divide-y divide-neutral-100 dark:divide-neutral-900">
-          <div className={fieldClass}><dt className={labelClass}>访问时间</dt><dd className={valueClass}>{visit.createdAt.toLocaleString('zh-CN')}</dd></div>
+          <div className={fieldClass}><dt className={labelClass}>访问时间</dt><dd className={valueClass}>{formatDateTime(visit.createdAt)}</dd></div>
           <div className={fieldClass}><dt className={labelClass}>访问时长</dt><dd className={valueClass}>{formatDurationFull(visit.durationSeconds)}</dd></div>
           <div className={fieldClass}><dt className={labelClass}>内容类型</dt><dd className={valueClass}>{visit.contentType}</dd></div>
           <div className={fieldClass}><dt className={labelClass}>访问内容</dt><dd className={valueClass}><Link href={contentHref(visit)} className="font-medium">{visit.contentLabel}</Link><p className="mt-1 flex items-center gap-2 font-mono text-xs text-neutral-500"><span className="break-all">{visit.path}</span><a href={contentHref(visit) as string} target="_blank" rel="noreferrer" className="shrink-0 text-neutral-400 transition-colors hover:text-neutral-950 dark:hover:text-neutral-50" aria-label="在新窗口打开"><i className="fa-solid fa-arrow-up-right-from-square" aria-hidden="true" /></a></p></dd></div>
@@ -153,7 +153,7 @@ export function VisitRecordTable({ visits, tiny = false }: { visits: AnalyticsVi
                 onClick={() => setActiveId(visit.id)}
                 className={`cursor-pointer transition-colors ${activeId === visit.id ? 'bg-blue-50/70 dark:bg-blue-950/20' : 'hover:bg-neutral-50 dark:hover:bg-neutral-900/60'}`}
               >
-                <td className="py-3 pl-5 pr-4 font-mono text-xs">{visit.createdAt.toLocaleString('zh-CN')}</td>
+                <td className="py-3 pl-5 pr-4 font-mono text-xs">{formatDateTime(visit.createdAt)}</td>
                 <td className="py-3 pr-4">{formatDurationShort(visit.durationSeconds)}</td>
                 <td className="py-3 pr-4" onClick={(event) => event.stopPropagation()}><Link href={contentHref(visit)} className="block max-w-52 truncate font-medium">{visit.contentLabel}</Link><p className="mt-0.5 flex items-center gap-2 font-mono text-xs text-neutral-500"><span className="max-w-48 truncate">{visit.contentSlug ?? visit.path}</span><a href={contentHref(visit) as string} target="_blank" rel="noreferrer" className="shrink-0 text-neutral-400 transition-colors hover:text-neutral-950 dark:hover:text-neutral-50" aria-label="在新窗口打开"><i className="fa-solid fa-arrow-up-right-from-square" aria-hidden="true" /></a></p></td>
                 {tiny ? null : (
