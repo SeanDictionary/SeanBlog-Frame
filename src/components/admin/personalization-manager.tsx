@@ -266,23 +266,17 @@ export function PersonalizationManager({ initialSettings, availableThemes, callo
             </form>
           )}
           {activeThemePackage.settingsSchema.length > 0 && <hr className="my-6 border-neutral-200 dark:border-neutral-800" />}
-          <div>
-            <h3 className="text-sm font-semibold">Callout CSS</h3>
-            <p className="mt-1 text-sm text-neutral-500">当前主题的提示框样式。</p>
-            <div className="mt-4">
-              <CalloutCssEditor
-                initialValue={(() => {
-                  const key = `calloutCustomCss:${activeThemeSlug}`
-                  const v = settings.find((s) => s.key === key)?.value
-                  const s = typeof v === 'string' ? v : ''
-                  return s.trim() ? s : (calloutPreset || DEFAULT_CALLOUT_CSS)
-                })()}
-                presetValue={calloutPreset || DEFAULT_CALLOUT_CSS}
-                onSave={(css) => saveSetting(`calloutCustomCss:${activeThemeSlug}`, css)}
-                onReset={() => saveSetting(`calloutCustomCss:${activeThemeSlug}`, calloutPreset || DEFAULT_CALLOUT_CSS)}
-              />
-            </div>
-          </div>
+          <CalloutCssEditor
+            initialValue={(() => {
+              const key = `calloutCustomCss:${activeThemeSlug}`
+              const v = settings.find((s) => s.key === key)?.value
+              const s = typeof v === 'string' ? v : ''
+              return s.trim() ? s : (calloutPreset || DEFAULT_CALLOUT_CSS)
+            })()}
+            presetValue={calloutPreset || DEFAULT_CALLOUT_CSS}
+            onSave={(css) => saveSetting(`calloutCustomCss:${activeThemeSlug}`, css)}
+            onReset={() => saveSetting(`calloutCustomCss:${activeThemeSlug}`, calloutPreset || DEFAULT_CALLOUT_CSS)}
+          />
         </Card>
       )}
 

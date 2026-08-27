@@ -44,44 +44,53 @@ export function CalloutCssEditor({ initialValue, onSave, onReset, presetValue }:
   }, [code, initialValue])
 
   const changed = code !== initialValue
-  const canSave = changed && validation?.valid === true && !validation?.checking
+  const checking = validation?.checking === true
+  const canSave = changed && validation?.valid === true && !checking
 
   return (
-    <div className="space-y-3">
-      <div className={`overflow-hidden rounded-md border ${validation?.valid === false ? 'border-red-400' : 'border-neutral-300 dark:border-neutral-700'}`}>
-        <Editor
-          value={code}
-          onValueChange={setCode}
-          highlight={(css) => Prism.highlight(css, Prism.languages.css, 'css')}
-          padding={12}
-          textareaClassName="font-mono text-xs outline-none"
-          style={{
-            fontFamily: 'var(--font-mono, ui-monospace, monospace)',
-            fontSize: '0.75rem',
-            minHeight: '18rem',
-            backgroundColor: 'transparent',
-          }}
-        />
+    <div>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h3 className="text-sm font-semibold">Callout CSS</h3>
+          <p className="mt-1 text-sm text-neutral-500">当前主题的提示框样式。</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => canSave && onSave(code)}
+            disabled={!canSave}
+            className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-40 dark:bg-neutral-100 dark:text-neutral-950"
+          >
+            {checking ? '检查语法...' : '保存CSS样式'}
+          </button>
+          <button
+            type="button"
+            onClick={() => { setCode(presetValue); onReset() }}
+            className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
+          >
+            重置为预设
+          </button>
+        </div>
       </div>
-      {validation?.valid === false && validation.error && (
-        <p className="rounded-md bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-950/30 dark:text-red-400">⚠ {validation.error}</p>
-      )}
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => canSave && onSave(code)}
-          disabled={!canSave}
-          className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-40 dark:bg-neutral-100 dark:text-neutral-950"
-        >
-          保存
-        </button>
-        <button
-          type="button"
-          onClick={() => { setCode(presetValue); onReset() }}
-          className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
-        >
-          重置为主题预设
-        </button>
+      <div className="mt-4 space-y-3">
+        <div className={`overflow-hidden rounded-md border ${validation?.valid === false ? 'border-red-400' : 'border-neutral-300 dark:border-neutral-700'}`}>
+          <Editor
+            value={code}
+            onValueChange={setCode}
+            highlight={(css) => Prism.highlight(css, Prism.languages.css, 'css')}
+            padding={12}
+            textareaClassName="font-mono text-xs outline-none"
+            style={{
+              fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+              fontSize: '0.75rem',
+              minHeight: '18rem',
+              backgroundColor: 'transparent',
+            }}
+          />
+        </div>
+        {validation?.valid === false && validation.error && (
+          <p className="rounded-md bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-950/30 dark:text-red-400">⚠ {validation.error}</p>
+        )}
       </div>
     </div>
   )
