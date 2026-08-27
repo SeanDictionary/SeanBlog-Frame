@@ -1,0 +1,44 @@
+/**
+ * 默认 Callout CSS 代码 — 用于管理后台自定义 Callout CSS 设置项的默认值和重置功能。
+ * 包含内置 5 种类型 + 基础样式，管理员可直接编辑此代码修改所有 callout 样式。
+ */
+
+export const DEFAULT_CALLOUT_CSS = `/* Callout / Admonition 样式 */
+/* 修改此代码可调整所有提示框的外观，包括内置 5 种类型和自定义类型 */
+
+:root {
+  --color-callout-note: var(--color-accent);
+  --color-callout-tip: var(--color-success);
+  --color-callout-important: #8b5cf6;
+  --color-callout-warning: var(--color-warning);
+  --color-callout-caution: var(--color-error);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-callout-important: #a78bfa;
+  }
+}
+
+.article-content .callout {
+  border-left: 4px solid var(--callout-color, var(--color-border));
+  border-radius: var(--radius);
+  padding: 0.875rem 1.25rem;
+  margin: 1.25em 0;
+  background: color-mix(in srgb, var(--callout-color, var(--color-border)) 8%, transparent);
+}
+
+.article-content .callout > :first-child {
+  margin-top: 0;
+}
+
+.article-content .callout > :last-child {
+  margin-bottom: 0;
+}
+
+.article-content .callout--note      { --callout-color: var(--color-callout-note); }
+.article-content .callout--tip       { --callout-color: var(--color-callout-tip); }
+.article-content .callout--important  { --callout-color: var(--color-callout-important); }
+.article-content .callout--warning   { --callout-color: var(--color-callout-warning); }
+.article-content .callout--caution    { --callout-color: var(--color-callout-caution); }
+`

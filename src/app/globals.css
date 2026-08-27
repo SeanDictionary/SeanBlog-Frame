@@ -287,38 +287,3 @@ body {
     margin: 2em 0;
   }
 }
-
-/* Callout / Admonition styles */
-:root {
-  --color-callout-note: var(--color-accent);
-  --color-callout-tip: var(--color-success);
-  --color-callout-important: #8b5cf6;
-  --color-callout-warning: var(--color-warning);
-  --color-callout-caution: var(--color-error);
-}
-
-[data-theme="dark"] {
-  --color-callout-important: #a78bfa;
-}
-
-.article-content .callout {
-  border-left: 4px solid var(--callout-color, var(--color-border));
-  border-radius: var(--radius);
-  padding: 0.875rem 1.25rem;
-  margin: 1.25em 0;
-  background: color-mix(in srgb, var(--callout-color, var(--color-border)) 8%, transparent);
-}
-
-.article-content .callout > :first-child {
-  margin-top: 0;
-}
-
-.article-content .callout > :last-child {
-  margin-bottom: 0;
-}
-
-.article-content .callout--note      { --callout-color: var(--color-callout-note); }
-.article-content .callout--tip       { --callout-color: var(--color-callout-tip); }
-.article-content .callout--important  { --callout-color: var(--color-callout-important); }
-.article-content .callout--warning   { --callout-color: var(--color-callout-warning); }
-.article-content .callout--caution    { --callout-color: var(--color-callout-caution); }

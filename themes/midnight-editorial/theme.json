@@ -6,7 +6,6 @@
   "description": "暗色杂志风主题，暖色调深色背景、衬线标题、厚边框、窄圆角，适合长文阅读和编辑风格博客。",
   "engine": "seanblog-theme",
   "engineVersion": 1,
-  "previewImage": "assets/preview.svg",
   "assets": {
     "css": "assets/theme.css"
   },
@@ -47,8 +46,35 @@
       "key": "headerHeight",
       "label": "Header 高度",
       "type": "text",
-      "default": "3.5rem",
+      "default": "5rem",
       "cssVariable": "--header-height"
+    },
+    {
+      "key": "sidebarTitle",
+      "label": "侧栏标题",
+      "type": "text",
+      "default": "Recent"
+    },
+    {
+      "key": "cardStyle",
+      "label": "卡片风格",
+      "type": "select",
+      "default": "bordered",
+      "options": [
+        { "label": "厚边框", "value": "bordered" },
+        { "label": "阴影浮起", "value": "shadow" },
+        { "label": "极简", "value": "minimal" }
+      ]
+    },
+    {
+      "key": "dockLinks",
+      "label": "Dock 链接",
+      "type": "list",
+      "itemFields": [
+        { "key": "label", "label": "标签", "type": "text" },
+        { "key": "href", "label": "链接", "type": "text" },
+        { "key": "icon", "label": "图标", "type": "text" }
+      ]
     }
   ],
   "blocks": [

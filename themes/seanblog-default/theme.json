@@ -6,7 +6,6 @@
   "description": "Default theme package with native components, clean typography, soft borders, and low-distraction interactions.",
   "engine": "seanblog-theme",
   "engineVersion": 1,
-  "previewImage": "assets/preview.svg",
   "assets": {
     "css": "assets/theme.css"
   },

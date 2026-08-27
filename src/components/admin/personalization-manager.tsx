@@ -118,10 +118,6 @@ export function PersonalizationManager({ initialSettings, availableThemes }: Per
   function saveForm(formData: FormData) {
     const entries = [
       ['publicHeaderTitle', String(formData.get('publicHeaderTitle') ?? '')],
-      ['publicHeaderShowHome', formData.get('publicHeaderShowHome') === 'on'],
-      ['publicHeaderShowCategories', formData.get('publicHeaderShowCategories') === 'on'],
-      ['publicHeaderShowTags', formData.get('publicHeaderShowTags') === 'on'],
-      ['publicHeaderShowSearch', formData.get('publicHeaderShowSearch') === 'on'],
       ['publicFooterText', String(formData.get('publicFooterText') ?? '')],
       ['publicFooterShowRss', formData.get('publicFooterShowRss') === 'on'],
     ] as const
@@ -216,7 +212,7 @@ export function PersonalizationManager({ initialSettings, availableThemes }: Per
         <div className="mt-6 grid gap-4 md:grid-cols-3">
           {themes.map((theme) => (
             <article key={theme.slug} className={`rounded-lg border p-4 ${theme.slug === activeTheme ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30' : 'border-neutral-200 dark:border-neutral-800'}`}>
-              {theme.previewImage ? <img src={`/api/admin/themes/${encodeURIComponent(theme.slug)}/asset?path=${encodeURIComponent(theme.previewImage)}`} alt={`${theme.name} 预览图`} className="h-32 w-full rounded-md border border-neutral-200 object-cover dark:border-neutral-800" /> : <div className="h-32 rounded-md border border-neutral-200 bg-gradient-to-br from-bg via-bg-secondary to-accent-subtle dark:border-neutral-800" />}
+              <div className="h-2 rounded-t bg-gradient-to-r from-accent via-accent-hover to-accent-subtle" />
               <div className="mt-4 flex items-start justify-between gap-3">
                 <div><h3 className="text-sm font-semibold">{theme.name}</h3><p className="mt-1 text-xs text-neutral-500">{theme.author ?? '未知作者'} · v{theme.version}</p>{theme.slug === activeTheme && <p className="mt-1 text-xs text-blue-600">当前主题包</p>}</div>
                 <div className="flex flex-wrap justify-end gap-2 text-xs">
@@ -233,28 +229,17 @@ export function PersonalizationManager({ initialSettings, availableThemes }: Per
         </div>
       </Card>
 
-      <form action={saveForm} className="grid gap-7 xl:grid-cols-2">
-        <Card padding="lg">
-          <h2 className="font-semibold">Header / Dock</h2>
-          <div className="mt-5 grid gap-4">
-            <label className="grid gap-1.5 text-sm">站点标题<input name="publicHeaderTitle" defaultValue={settingValue(settings, 'publicHeaderTitle')} placeholder="默认使用 siteName" className="h-10 rounded-md border border-neutral-300 bg-white px-3 dark:border-neutral-700 dark:bg-neutral-900" /></label>
-            <Toggle name="publicHeaderShowHome" label="显示首页入口" checked={settingEnabled(settings, 'publicHeaderShowHome')} />
-            <Toggle name="publicHeaderShowCategories" label="显示分类入口" checked={settingEnabled(settings, 'publicHeaderShowCategories')} />
-            <Toggle name="publicHeaderShowTags" label="显示标签入口" checked={settingEnabled(settings, 'publicHeaderShowTags')} />
-            <Toggle name="publicHeaderShowSearch" label="显示搜索按钮" checked={settingEnabled(settings, 'publicHeaderShowSearch')} />
-          </div>
-        </Card>
-
+      <form action={saveForm} className="grid gap-7">
         <Card padding="lg">
           <h2 className="font-semibold">页脚</h2>
-          <p className="mt-1 text-sm text-neutral-500">后台侧边栏固定使用站点名称 + Admin 品牌样式，不再提供单独自定义项。</p>
+          <p className="mt-1 text-sm text-neutral-500">Dock 栏和 Header 样式由主题包控制，请到主题设置中配置。此处仅保留页脚文案和 RSS 开关。</p>
           <div className="mt-5 grid gap-4">
             <label className="grid gap-1.5 text-sm">页脚文案<input name="publicFooterText" defaultValue={settingValue(settings, 'publicFooterText')} placeholder="默认版权文案" className="h-10 rounded-md border border-neutral-300 bg-white px-3 dark:border-neutral-700 dark:bg-neutral-900" /></label>
             <Toggle name="publicFooterShowRss" label="显示 RSS 入口" checked={settingEnabled(settings, 'publicFooterShowRss')} />
           </div>
         </Card>
-        <div className="xl:col-span-2">
-          <button disabled={isPending} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950">保存 Header / Footer 设置</button>
+        <div>
+          <button disabled={isPending} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950">保存页脚设置</button>
         </div>
       </form>
 

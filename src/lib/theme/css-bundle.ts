@@ -1,5 +1,6 @@
 import { readThemeCss, readThemeManifest, type ThemeSettingSchemaItem } from '@/lib/theme'
 import { getSiteSettingsMapSafe } from '@/lib/services/setting-service'
+import { DEFAULT_CALLOUT_CSS } from '@/lib/content/callout-css'
 
 function normalizeActiveTheme(value: unknown) {
   return typeof value === 'string' && value !== 'default' ? value : 'seanblog-default'
@@ -37,7 +38,9 @@ export async function buildThemeCssBundle(): Promise<{ css: string; calloutCss: 
     ?? await buildThemeOptionsCss('seanblog-default', settings)
 
   const css = [customThemeCss, themeOptionsCss].filter(Boolean).join('\n')
-  const calloutCss = typeof settings.calloutCustomCss === 'string' ? settings.calloutCustomCss : ''
+  const calloutCss = typeof settings.calloutCustomCss === 'string' && settings.calloutCustomCss.trim()
+    ? settings.calloutCustomCss
+    : DEFAULT_CALLOUT_CSS
 
   if (!css && !calloutCss) return null
   return { css, calloutCss }

@@ -5,6 +5,7 @@ import { useState, useTransition } from 'react'
 
 import { ARTICLE_META_ITEM_IDS, type ArticleMetaItemId } from '@/components/article/article-meta'
 import { Card } from '@/components/ui/card'
+import { DEFAULT_CALLOUT_CSS } from '@/lib/content/callout-css'
 
 type Setting = {
   id: string
@@ -427,12 +428,13 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
       </Card>
 
       <Card padding="lg">
-        <h2 className="font-semibold">自定义 Callout CSS</h2>
-        <p className="mt-1 text-sm text-neutral-500">在此粘贴 CSS 代码，为文章中 <code>:::callout{`{type=xxx}`}</code> 或 <code>:::xxx</code> 语法定义自定义样式。内置类型（note/tip/important/warning/caution）跟随主题，无需在此定义。</p>
+        <h2 className="font-semibold">Callout CSS</h2>
+        <p className="mt-1 text-sm text-neutral-500">编辑此 CSS 代码可调整所有提示框（内置 5 种 + 自定义类型）的样式。保存后前台文章页和编辑器预览均生效。</p>
         <form action={(formData) => save('calloutCustomCss', String(formData.get('css') ?? ''))} className="mt-5 space-y-3">
-          <textarea name="css" defaultValue={stringifyValue(settings.find((s) => s.key === 'calloutCustomCss')?.value) ?? ''} rows={8} placeholder=".callout--success { --callout-color: #16a34a; }" className="w-full rounded-md border border-neutral-300 bg-white p-3 font-mono text-xs outline-none focus:border-blue-600 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-blue-400" />
+          <textarea name="css" defaultValue={(() => { const v = settings.find((s) => s.key === 'calloutCustomCss')?.value; const s = stringifyValue(v); return s && s.trim() ? s : DEFAULT_CALLOUT_CSS })()} rows={16} className="w-full rounded-md border border-neutral-300 bg-white p-3 font-mono text-xs outline-none focus:border-blue-600 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-blue-400" />
           <div className="flex items-center gap-3">
             <button disabled={isPending} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950">保存</button>
+            <button type="button" onClick={() => save('calloutCustomCss', DEFAULT_CALLOUT_CSS)} disabled={isPending} className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 disabled:opacity-60 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800">重置为默认</button>
             {isPending && <span className="text-sm text-neutral-500">正在保存…</span>}
           </div>
         </form>

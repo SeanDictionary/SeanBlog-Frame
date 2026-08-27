@@ -116,7 +116,7 @@ function validateSettingsSchema(value: unknown): ThemeSettingSchemaItem[] {
     const record = assertRecord(item, 'settingsSchema item')
     const type = record.type
 
-    if (!['text', 'color', 'number', 'boolean', 'select'].includes(String(type))) {
+    if (!['text', 'color', 'number', 'boolean', 'select', 'list', 'multiselect'].includes(String(type))) {
       throw badRequest('Theme settings schema contains an unsupported field type.', 'INVALID_THEME_MANIFEST')
     }
 
@@ -132,6 +132,18 @@ function validateSettingsSchema(value: unknown): ThemeSettingSchemaItem[] {
             return {
               label: assertString(optionRecord.label, 'settingsSchema.options.label'),
               value: assertString(optionRecord.value, 'settingsSchema.options.value'),
+            }
+          })
+        : undefined,
+      itemFields: Array.isArray(record.itemFields)
+        ? record.itemFields.map((field) => {
+            const fieldRecord = assertRecord(field, 'settingsSchema itemField')
+            return {
+              key: assertString(fieldRecord.key, 'settingsSchema.itemField.key'),
+              label: assertString(fieldRecord.label, 'settingsSchema.itemField.label'),
+              type: ['text', 'color', 'number', 'boolean', 'select'].includes(String(fieldRecord.type))
+                ? fieldRecord.type as 'text' | 'color' | 'number' | 'boolean' | 'select'
+                : 'text',
             }
           })
         : undefined,
