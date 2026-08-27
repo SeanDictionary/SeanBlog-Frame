@@ -36,9 +36,9 @@ const RADIUS_MAP: Record<string, Record<string, string>> = {
 }
 
 const WIDTH_MAP: Record<string, string> = {
-  narrow: '30rem',
-  medium: '42rem',
-  wide: '64rem',
+  narrow: '36rem',
+  medium: '48rem',
+  wide: '60rem',
 }
 
 /** 生成动态 CSS 变量字符串（用于 <style> 标签） */

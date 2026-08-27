@@ -117,15 +117,15 @@
         "options": [
           {
             "value": "narrow",
-            "label": "窄 (30rem)"
+            "label": "窄 (36rem)"
           },
           {
             "value": "medium",
-            "label": "中 (42rem)"
+            "label": "中 (48rem)"
           },
           {
             "value": "wide",
-            "label": "宽 (64rem)"
+            "label": "宽 (60rem)"
           }
         ],
         "default": "medium",
