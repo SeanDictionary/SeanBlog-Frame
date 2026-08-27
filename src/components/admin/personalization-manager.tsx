@@ -248,32 +248,28 @@ export function PersonalizationManager({ initialSettings, availableThemes, callo
       </form>
 
       {activeThemePackage && (
-        <div className={activeThemePackage.settingsSchema.length > 0 ? "grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)]" : "space-y-6"}>
-          {activeThemePackage.settingsSchema.length > 0 && (
-            <Card padding="lg">
-              <form action={saveThemeSettings}>
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div>
-                    <h2 className="font-semibold">{activeThemePackage.name} 设置</h2>
-                    <p className="mt-1 text-sm text-neutral-500">配色、宽度、圆角等主题变量。</p>
-                  </div>
-                  <button type="submit" disabled={isPending} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950">保存</button>
-                </div>
-                <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                  {activeThemePackage.settingsSchema.map((item) => <ThemeSettingField key={item.key} item={item} value={themeSettingValue(settings, activeThemePackage.slug, item)} />)}
-                </div>
-              </form>
-            </Card>
-          )}
-
-          <Card padding="lg">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <h2 className="font-semibold">Callout CSS</h2>
-                <p className="mt-1 text-sm text-neutral-500">当前主题的提示框样式，随主题切换。</p>
-              </div>
+        <Card padding="lg">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="font-semibold">{activeThemePackage.name} 设置</h2>
+              <p className="mt-1 text-sm text-neutral-500">主题变量和提示框样式，随主题切换。</p>
             </div>
-            <div className="mt-5">
+          </div>
+          {activeThemePackage.settingsSchema.length > 0 && (
+            <form action={saveThemeSettings} className="mt-5">
+              <div className="grid gap-4 sm:grid-cols-2">
+                {activeThemePackage.settingsSchema.map((item) => <ThemeSettingField key={item.key} item={item} value={themeSettingValue(settings, activeThemePackage.slug, item)} />)}
+              </div>
+              <div className="mt-4">
+                <button type="submit" disabled={isPending} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950">保存主题变量</button>
+              </div>
+            </form>
+          )}
+          {activeThemePackage.settingsSchema.length > 0 && <hr className="my-6 border-neutral-200 dark:border-neutral-800" />}
+          <div>
+            <h3 className="text-sm font-semibold">Callout CSS</h3>
+            <p className="mt-1 text-sm text-neutral-500">当前主题的提示框样式。</p>
+            <div className="mt-4">
               <CalloutCssEditor
                 initialValue={(() => {
                   const key = `calloutCustomCss:${activeThemeSlug}`
@@ -286,8 +282,8 @@ export function PersonalizationManager({ initialSettings, availableThemes, callo
                 onReset={() => saveSetting(`calloutCustomCss:${activeThemeSlug}`, calloutPreset || DEFAULT_CALLOUT_CSS)}
               />
             </div>
-          </Card>
-        </div>
+          </div>
+        </Card>
       )}
 
       {message && <p className="text-sm text-neutral-500" role="status">{message}</p>}
