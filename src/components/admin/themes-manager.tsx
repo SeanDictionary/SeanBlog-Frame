@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card } from '@/components/ui/card'
 import { CalloutCssEditor } from '@/components/admin/callout-css-editor'
+import { useAdminToast } from '@/components/admin/admin-toast-provider'
 import { DEFAULT_CALLOUT_CSS } from '@/lib/content/callout-css'
 import type { ThemeSettingSchemaItem, ThemePackageSummary } from '@/lib/theme'
 
@@ -45,11 +46,11 @@ function themeSettingValue(settings: Record<string, unknown>, item: ThemeSetting
 
 export function ThemesManager({ initialSettings, availableThemes, calloutPreset, activeThemeSlug, themeSettings }: ThemesManagerProps) {
   const router = useRouter()
+  const toast = useAdminToast()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [settings, setSettings] = useState(initialSettings)
   const [themes, setThemes] = useState(availableThemes)
   const [themeSettingsState, setThemeSettingsState] = useState<Record<string, unknown>>(themeSettings)
-  const [message, setMessage] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const activeTheme = getActiveThemeSlug(settings)
   const activeThemePackage = themes.find((theme) => theme.slug === activeTheme) ?? themes[0]
@@ -62,7 +63,7 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
 
   function saveSetting(key: string, value: unknown) {
     startTransition(async () => {
-      setMessage(null)
+      
 
       try {
         const response = await fetch(`/api/admin/settings/${encodeURIComponent(key)}`, {
@@ -77,10 +78,10 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
         }
 
         applySetting(data.setting)
-        setMessage(null)
+        
         router.refresh()
       } catch (error) {
-        setMessage(error instanceof Error ? error.message : '保存失败。')
+        toast.error(error instanceof Error ? error.message : '保存失败。')
       }
     })
   }
@@ -89,7 +90,7 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
   function saveCalloutCss(css: string) {
     if (!activeThemePackage) return
     startTransition(async () => {
-      setMessage(null)
+      
       try {
         const response = await fetch(`/api/admin/themes/${activeThemePackage.slug}/settings`, {
           method: 'PUT',
@@ -99,10 +100,10 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
         const data = await response.json()
         if (!response.ok) throw new Error(data.error?.message ?? 'Callout CSS 保存失败。')
         setThemeSettingsState((prev) => ({ ...prev, calloutCustomCss: css }))
-        setMessage(null)
+        
         router.refresh()
       } catch (error) {
-        setMessage(error instanceof Error ? error.message : 'Callout CSS 保存失败。')
+        toast.error(error instanceof Error ? error.message : 'Callout CSS 保存失败。')
       }
     })
   }
@@ -112,7 +113,7 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
     if (!activeThemePackage) return
 
     startTransition(async () => {
-      setMessage(null)
+      
       try {
         const newSettings: Record<string, unknown> = {}
         for (const item of Object.values(activeThemePackage.settingsSchema).flat()) {
@@ -146,19 +147,21 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
         if (!response.ok) throw new Error(data.error?.message ?? '主题设置保存失败。')
 
         setThemeSettingsState(newSettings)
-        setMessage(null)
+        
         router.refresh()
       } catch (error) {
-        setMessage(error instanceof Error ? error.message : '主题设置保存失败。')
+        toast.error(error instanceof Error ? error.message : '主题设置保存失败。')
       }
     })
   }
 
-  function importTheme(formData: FormData) {
+  function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
     startTransition(async () => {
-      setMessage(null)
-
       try {
+        const formData = new FormData()
+        formData.append('file', file)
         const response = await fetch('/api/admin/themes', { method: 'POST', body: formData })
         const data = (await response.json()) as ApiResponse
 
@@ -169,11 +172,11 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
         const refreshed = await fetch('/api/admin/themes')
         const refreshedData = (await refreshed.json()) as { themes?: ThemePackageSummary[] }
         if (refreshedData.themes) setThemes(refreshedData.themes)
-        setMessage(`已导入主题包 ${data.theme}。`)
-        fileInputRef.current?.form?.reset()
+        toast.success(`已导入主题包 ${data.theme}。`)
+        if (fileInputRef.current) fileInputRef.current.value = ''
         router.refresh()
       } catch (error) {
-        setMessage(error instanceof Error ? error.message : '主题包导入失败。')
+        toast.error(error instanceof Error ? error.message : '主题包导入失败。')
       }
     })
   }
@@ -182,16 +185,16 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
     if (!window.confirm(`确认删除主题包 ${theme.name} 吗？`)) return
 
     startTransition(async () => {
-      setMessage(null)
+      
       try {
         const response = await fetch(`/api/admin/themes/${encodeURIComponent(theme.slug)}`, { method: 'DELETE' })
         const data = response.status === 204 ? null : (await response.json()) as ApiResponse
         if (!response.ok) throw new Error(data?.error?.message ?? '主题包删除失败。')
         setThemes((previous) => previous.filter((item) => item.slug !== theme.slug))
-        setMessage(`已删除主题包 ${theme.name}。`)
+        toast.success(`已删除主题包 ${theme.name}。`)
         router.refresh()
       } catch (error) {
-        setMessage(error instanceof Error ? error.message : '主题包删除失败。')
+        toast.error(error instanceof Error ? error.message : '主题包删除失败。')
       }
     })
   }
@@ -201,10 +204,8 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
       <Card padding="lg">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div><h2 className="font-semibold">主题包库</h2><p className="mt-1 text-sm text-neutral-500">导入、预览、启用、导出和卸载第三方主题包。主题必须包含 theme.json、模板、部件和资源目录。</p></div>
-          <form action={importTheme} className="flex flex-wrap items-end gap-3">
-            <label className="grid gap-1.5 text-sm">主题包 ZIP<input ref={fileInputRef} name="file" type="file" required accept=".zip,application/zip" className="max-w-64 text-sm" /></label>
-            <button disabled={isPending} className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium disabled:opacity-60 dark:border-neutral-700">导入主题包</button>
-          </form>
+          <button type="button" disabled={isPending} onClick={() => fileInputRef.current?.click()} className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium disabled:opacity-60 dark:border-neutral-700"><i className="fa-solid fa-upload mr-2 text-xs" />导入主题包</button>
+          <input ref={fileInputRef} type="file" accept=".zip,application/zip" className="hidden" onChange={handleImportFile} />
         </div>
         <div className="mt-6 grid gap-4 md:grid-cols-3">
           {themes.map((theme) => (
@@ -248,7 +249,7 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
             <form id="theme-settings-form" action={saveThemeSettings} className="mt-5">
               {Object.entries(activeThemePackage.settingsSchema).map(([groupName, items]) => (
                 <div key={groupName} className="mb-8">
-                  <h3 className="mb-4 border-b border-neutral-200 pb-2 text-sm font-semibold text-neutral-900 dark:border-neutral-800 dark:text-neutral-100">{groupName}</h3>
+                  <h3 className="mb-4 border-b border-neutral-200 pb-2 text-base font-semibold text-neutral-900 dark:border-neutral-800 dark:text-neutral-100">{groupName}</h3>
                   <div className="divide-y divide-neutral-200 dark:divide-neutral-800">
                     {items.map((item) => <SettingRow key={item.key} item={item} value={themeSettingValue(themeSettingsState, item)} />)}
                   </div>

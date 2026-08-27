@@ -25,6 +25,13 @@
   "settingsSchema": {
     "布局结构": [
       {
+        "key": "showTopBar",
+        "label": "显示顶部栏",
+        "type": "boolean",
+        "default": true,
+        "description": "是否显示顶部导航栏。关闭后品牌和导航移入侧边栏"
+      },
+      {
         "key": "sidebarPosition",
         "label": "侧边栏位置",
         "type": "select",
@@ -48,65 +55,6 @@
         ],
         "default": "right",
         "description": "控制侧边栏出现位置，none=无侧边栏，left/right=单侧，both=双侧"
-      },
-      {
-        "key": "showTopBar",
-        "label": "显示顶部栏",
-        "type": "boolean",
-        "default": true,
-        "description": "是否显示顶部导航栏。关闭后品牌和导航移入侧边栏"
-      },
-      {
-        "key": "articleListStyle",
-        "label": "文章列表样式",
-        "type": "select",
-        "options": [
-          {
-            "value": "list",
-            "label": "文字列表"
-          },
-          {
-            "value": "cards",
-            "label": "卡片网格"
-          }
-        ],
-        "default": "list",
-        "description": "文章列表的排列方式：文字列表或卡片网格"
-      },
-      {
-        "key": "showHeroSection",
-        "label": "首页 Hero 区",
-        "type": "boolean",
-        "default": true,
-        "description": "首页顶部是否显示站点名称和介绍区域"
-      },
-      {
-        "key": "showFeaturedSection",
-        "label": "精选文章区",
-        "type": "boolean",
-        "default": false,
-        "description": "首页是否拆分精选置顶文章和最新文章两个区块"
-      },
-      {
-        "key": "contentWidth",
-        "label": "内容宽度",
-        "type": "select",
-        "options": [
-          {
-            "value": "narrow",
-            "label": "窄 (30rem)"
-          },
-          {
-            "value": "medium",
-            "label": "中 (42rem)"
-          },
-          {
-            "value": "wide",
-            "label": "宽 (64rem)"
-          }
-        ],
-        "default": "medium",
-        "description": "正文内容区域的最大宽度：窄30rem、中42rem、宽64rem"
       },
       {
         "key": "sidebarSticky",
@@ -161,9 +109,110 @@
           "tags"
         ],
         "description": "选择侧边栏显示的内容区块，顺序即渲染顺序"
+      },
+      {
+        "key": "contentWidth",
+        "label": "内容宽度",
+        "type": "select",
+        "options": [
+          {
+            "value": "narrow",
+            "label": "窄 (30rem)"
+          },
+          {
+            "value": "medium",
+            "label": "中 (42rem)"
+          },
+          {
+            "value": "wide",
+            "label": "宽 (64rem)"
+          }
+        ],
+        "default": "medium",
+        "description": "正文内容区域的最大宽度：窄30rem、中42rem、宽64rem"
+      },
+      {
+        "key": "articleListStyle",
+        "label": "文章列表样式",
+        "type": "select",
+        "options": [
+          {
+            "value": "list",
+            "label": "文字列表"
+          },
+          {
+            "value": "cards",
+            "label": "卡片网格"
+          }
+        ],
+        "default": "list",
+        "description": "文章列表的排列方式：文字列表或卡片网格"
+      },
+      {
+        "key": "listSeparator",
+        "label": "列表分隔方式",
+        "type": "select",
+        "options": [
+          {
+            "value": "border",
+            "label": "底线分隔"
+          },
+          {
+            "value": "gap",
+            "label": "间距分隔"
+          },
+          {
+            "value": "card",
+            "label": "卡片包裹"
+          }
+        ],
+        "default": "border",
+        "description": "文章列表项之间的分隔方式：底线、间距或卡片包裹"
+      },
+      {
+        "key": "showHeroSection",
+        "label": "首页 Hero 区",
+        "type": "boolean",
+        "default": true,
+        "description": "首页顶部是否显示站点名称和介绍区域"
+      },
+      {
+        "key": "showFeaturedSection",
+        "label": "精选文章区",
+        "type": "boolean",
+        "default": false,
+        "description": "首页是否拆分精选置顶文章和最新文章两个区块"
       }
     ],
     "视觉风格": [
+      {
+        "key": "colorMode",
+        "label": "色彩模式",
+        "type": "select",
+        "options": [
+          {
+            "value": "dark",
+            "label": "深色"
+          },
+          {
+            "value": "light",
+            "label": "浅色"
+          },
+          {
+            "value": "auto",
+            "label": "跟随系统"
+          }
+        ],
+        "default": "dark",
+        "description": "默认色彩模式。用户可通过切换按钮覆盖此设置"
+      },
+      {
+        "key": "showThemeToggle",
+        "label": "前台色彩切换按钮",
+        "type": "boolean",
+        "default": true,
+        "description": "是否在前台显示深浅色切换按钮。关闭后仅按后台设置显示"
+      },
       {
         "key": "fontFamily",
         "label": "正文字体",
@@ -219,34 +268,6 @@
         "description": "链接、悬停、强调色。与暗色/浅色模式搭配使用"
       },
       {
-        "key": "colorMode",
-        "label": "色彩模式",
-        "type": "select",
-        "options": [
-          {
-            "value": "dark",
-            "label": "深色"
-          },
-          {
-            "value": "light",
-            "label": "浅色"
-          },
-          {
-            "value": "auto",
-            "label": "跟随系统"
-          }
-        ],
-        "default": "dark",
-        "description": "默认色彩模式。用户可通过切换按钮覆盖此设置"
-      },
-      {
-        "key": "showThemeToggle",
-        "label": "前台色彩切换按钮",
-        "type": "boolean",
-        "default": true,
-        "description": "是否在前台显示深浅色切换按钮。关闭后仅按后台设置显示"
-      },
-      {
         "key": "borderRadius",
         "label": "圆角大小",
         "type": "select",
@@ -277,27 +298,6 @@
         "type": "boolean",
         "default": false,
         "description": "卡片和面板是否使用阴影效果"
-      },
-      {
-        "key": "listSeparator",
-        "label": "列表分隔方式",
-        "type": "select",
-        "options": [
-          {
-            "value": "border",
-            "label": "底线分隔"
-          },
-          {
-            "value": "gap",
-            "label": "间距分隔"
-          },
-          {
-            "value": "card",
-            "label": "卡片包裹"
-          }
-        ],
-        "default": "border",
-        "description": "文章列表项之间的分隔方式：底线、间距或卡片包裹"
       }
     ]
   }
