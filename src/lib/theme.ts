@@ -17,6 +17,8 @@ const maxThemeFileCount = 200
 export type ThemeSettingSchemaItem = {
   key: string
   label: string
+  description?: string
+  group?: string
   type: 'text' | 'color' | 'number' | 'boolean' | 'select' | 'list' | 'multiselect'
   default?: string | number | boolean | string[] | Array<Record<string, string>>
   cssVariable?: string
@@ -123,6 +125,8 @@ function validateSettingsSchema(value: unknown): ThemeSettingSchemaItem[] {
     return {
       key: assertString(record.key, 'settingsSchema.key'),
       label: assertString(record.label, 'settingsSchema.label'),
+      description: typeof record.description === 'string' ? record.description : undefined,
+      group: typeof record.group === 'string' ? record.group : undefined,
       type: type as ThemeSettingSchemaItem['type'],
       default: typeof record.default === 'string' || typeof record.default === 'number' || typeof record.default === 'boolean'
         ? record.default

@@ -43,13 +43,17 @@
           "label": "双侧"
         }
       ],
-      "default": "right"
+      "default": "right",
+      "group": "布局结构",
+      "description": "控制侧边栏出现位置，none=无侧边栏，left/right=单侧，both=双侧"
     },
     {
       "key": "showTopBar",
       "label": "显示顶部栏",
       "type": "boolean",
-      "default": true
+      "default": true,
+      "group": "布局结构",
+      "description": "是否显示顶部导航栏。关闭后品牌和导航移入侧边栏"
     },
     {
       "key": "articleListStyle",
@@ -65,19 +69,25 @@
           "label": "卡片网格"
         }
       ],
-      "default": "list"
+      "default": "list",
+      "group": "布局结构",
+      "description": "文章列表的排列方式：文字列表或卡片网格"
     },
     {
       "key": "showHeroSection",
       "label": "首页 Hero 区",
       "type": "boolean",
-      "default": true
+      "default": true,
+      "group": "布局结构",
+      "description": "首页顶部是否显示站点名称和介绍区域"
     },
     {
       "key": "showFeaturedSection",
       "label": "精选文章区",
       "type": "boolean",
-      "default": false
+      "default": false,
+      "group": "布局结构",
+      "description": "首页是否拆分精选置顶文章和最新文章两个区块"
     },
     {
       "key": "contentWidth",
@@ -97,7 +107,9 @@
           "label": "宽 (64rem)"
         }
       ],
-      "default": "medium"
+      "default": "medium",
+      "group": "布局结构",
+      "description": "正文内容区域的最大宽度：窄30rem、中42rem、宽64rem"
     },
     {
       "key": "sidebarSticky",
@@ -117,7 +129,9 @@
           "label": "全屏固定"
         }
       ],
-      "default": "sticky"
+      "default": "sticky",
+      "group": "布局结构",
+      "description": "侧边栏跟随方式：不固定、滚动吸顶、全屏固定（Lazzaro风格）"
     },
     {
       "key": "sidebarContent",
@@ -149,7 +163,9 @@
         "profile",
         "recent",
         "tags"
-      ]
+      ],
+      "group": "布局结构",
+      "description": "选择侧边栏显示的内容区块，顺序即渲染顺序"
     },
     {
       "key": "fontFamily",
@@ -169,7 +185,9 @@
           "label": "衬线 (Serif)"
         }
       ],
-      "default": "monospace"
+      "default": "monospace",
+      "group": "视觉风格",
+      "description": "全局正文字体族"
     },
     {
       "key": "headingFontFamily",
@@ -193,14 +211,18 @@
           "label": "衬线"
         }
       ],
-      "default": "same"
+      "default": "same",
+      "group": "视觉风格",
+      "description": "标题字体族，跟随正文则与正文字体一致"
     },
     {
       "key": "accentColor",
       "label": "强调色",
       "type": "color",
       "default": "#cf829e",
-      "cssVariable": "--color-accent"
+      "cssVariable": "--color-accent",
+      "group": "视觉风格",
+      "description": "链接、悬停、强调色。与暗色/浅色模式搭配使用"
     },
     {
       "key": "colorMode",
@@ -220,13 +242,17 @@
           "label": "跟随系统"
         }
       ],
-      "default": "dark"
+      "default": "dark",
+      "group": "视觉风格",
+      "description": "默认色彩模式。用户可通过切换按钮覆盖此设置"
     },
     {
       "key": "showThemeToggle",
       "label": "前台色彩切换按钮",
       "type": "boolean",
-      "default": true
+      "default": true,
+      "group": "视觉风格",
+      "description": "是否在前台显示深浅色切换按钮。关闭后仅按后台设置显示"
     },
     {
       "key": "borderRadius",
@@ -250,13 +276,17 @@
           "label": "大"
         }
       ],
-      "default": "small"
+      "default": "small",
+      "group": "视觉风格",
+      "description": "卡片和面板的圆角大小"
     },
     {
       "key": "showShadow",
       "label": "阴影效果",
       "type": "boolean",
-      "default": false
+      "default": false,
+      "group": "视觉风格",
+      "description": "卡片和面板是否使用阴影效果"
     },
     {
       "key": "listSeparator",
@@ -276,7 +306,9 @@
           "label": "卡片包裹"
         }
       ],
-      "default": "border"
+      "default": "border",
+      "group": "视觉风格",
+      "description": "文章列表项之间的分隔方式：底线、间距或卡片包裹"
     }
   ],
   "blocks": [
