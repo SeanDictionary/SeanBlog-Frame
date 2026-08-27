@@ -188,7 +188,7 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
     return data.settings
   }
 
-  function save(key: string, rawValue: string) {
+  function save(key: string, rawValue: string, label?: string) {
     startTransition(async () => {
       setMessage(null)
       let value: unknown = rawValue
@@ -202,7 +202,7 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
       try {
         const setting = await persistSetting(key, value)
         setSettings((previous) => mergeSettings(previous, [setting]))
-        setMessage(`已保存 ${key}。`)
+        setMessage(`已保存${label ? ` ${label}` : ` ${key}`}。`)
         router.refresh()
       } catch (error) {
         reportError(error, '保存失败。')
@@ -436,7 +436,7 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
       <Card padding="lg">
         <CalloutCssEditor
           initialValue={(() => { const v = settings.find((s) => s.key === 'calloutCustomCss')?.value; const s = stringifyValue(v); return s && s.trim() ? s : DEFAULT_CALLOUT_CSS })()}
-          onSave={(css) => save('calloutCustomCss', css)}
+          onSave={(css) => save('calloutCustomCss', css, 'Callout CSS')}
           onReset={() => save('calloutCustomCss', DEFAULT_CALLOUT_CSS)}
         />
       </Card>
