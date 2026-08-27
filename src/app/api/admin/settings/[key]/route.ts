@@ -61,10 +61,6 @@ export async function PUT(request: Request, { params }: { params: Promise<{ key:
       revalidatePath('/admin', 'layout')
     }
 
-    if (key.startsWith('articleMeta')) {
-      revalidatePath('/articles/[slug]', 'page')
-    }
-
     if (key === 'adminDashboardCards') {
       revalidatePath('/admin')
     }

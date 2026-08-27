@@ -3,7 +3,7 @@ import type { Route } from 'next'
 import type { ReactNode } from 'react'
 
 import { ArticleContent } from '@/components/article/article-content'
-import { ArticleMeta, ARTICLE_META_ITEM_IDS, type ArticleMetaItemId } from '@/components/article/article-meta'
+import { ArticleMeta } from '@/components/article/article-meta'
 import { ArticleNavigation } from '@/components/article/article-navigation'
 import { ArticleToc } from '@/components/article/article-toc'
 import { ArticleCard } from '@/components/article/article-card'
@@ -61,15 +61,6 @@ function getHeadings(html: string) {
   })
 
   return { contentHtml, headings }
-}
-
-function normalizeArticleMetaOrder(value: unknown) {
-  const ordered = Array.isArray(value)
-    ? value.filter((item, index, items): item is ArticleMetaItemId => typeof item === 'string' && ARTICLE_META_ITEM_IDS.includes(item as ArticleMetaItemId) && items.indexOf(item) === index)
-    : []
-  const orderedSet = new Set(ordered)
-
-  return [...ordered, ...ARTICLE_META_ITEM_IDS.filter((item) => !orderedSet.has(item))]
 }
 
 function sortHref(themeSlug: string, sort: PublicArticleSort): Route {
@@ -181,15 +172,6 @@ async function renderPreviewArticle(themeSlug: string, settings: Record<string, 
             viewCount={article.viewCount}
             readingMinutes={readingMinutes}
             wordCount={wordCount}
-            visibility={{
-              showPublishedAt: settings.articleMetaShowPublishedAt !== false,
-              showViewCount: settings.articleMetaShowViewCount !== false,
-              showReadingTime: settings.articleMetaShowReadingTime !== false,
-              showWordCount: settings.articleMetaShowWordCount !== false,
-              showCategory: settings.articleMetaShowCategory !== false,
-              showTags: settings.articleMetaShowTags !== false,
-              order: normalizeArticleMetaOrder(settings.articleMetaOrder),
-            }}
           />
         </div>
         {article.coverImage && <img src={article.coverImage} alt="" className="mt-8 aspect-video w-full rounded-(--radius) border border-border object-cover" />}

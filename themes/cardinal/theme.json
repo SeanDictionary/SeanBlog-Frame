@@ -299,6 +299,45 @@
         "default": false,
         "description": "卡片和面板是否使用阴影效果"
       }
+    ],
+    "文章详情": [
+      {
+        "key": "articleMetaItems",
+        "label": "文章元信息",
+        "type": "multiselect",
+        "options": [
+          {
+            "value": "publishedAt",
+            "label": "发布时间"
+          },
+          {
+            "value": "viewCount",
+            "label": "浏览量"
+          },
+          {
+            "value": "category",
+            "label": "分类"
+          },
+          {
+            "value": "tags",
+            "label": "标签"
+          }
+        ],
+        "default": [
+          "publishedAt",
+          "viewCount",
+          "category",
+          "tags"
+        ],
+        "description": "选择文章详情页显示的元信息项，顺序即显示顺序"
+      },
+      {
+        "key": "showReadingTime",
+        "label": "显示阅读时间",
+        "type": "boolean",
+        "default": true,
+        "description": "文章详情页是否显示字数和预计阅读时间"
+      }
     ]
   }
 }

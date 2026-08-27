@@ -10,13 +10,23 @@ import type { ArticleDetailPageData } from '@/lib/theme/page-types'
 import { buildDynamicCss, getSettingString, isSettingTrue, getSidebarItems } from '../lib/settings-helpers'
 
 export default function CardinalArticleDetailPage({ data }: { data: ArticleDetailPageData }) {
-  const { article, contentHtml, toc, readingMinutes, wordCount, navigation, comments, metaVisibility, settings } = data
+  const { article, contentHtml, toc, readingMinutes, wordCount, navigation, comments, settings } = data
   const commentsMode = data.commentsMode
 
   const sidebarPos = getSettingString(settings, 'sidebarPosition', 'right')
   const hasSidebar = sidebarPos !== 'none'
   const sidebarItems = getSidebarItems(settings)
   const showToc = sidebarItems.includes('toc') && toc.length > 0
+
+  // 从主题设置构建文章元信息显示配置
+  const metaItems = Array.isArray(settings.articleMetaItems)
+    ? settings.articleMetaItems.filter((v): v is string => typeof v === 'string')
+    : ['publishedAt', 'viewCount', 'category', 'tags']
+  const showReading = isSettingTrue(settings, 'showReadingTime')
+
+  const metaOrder = [...metaItems]
+  if (showReading && !metaOrder.includes('readingTime' as any)) metaOrder.push('readingTime' as any)
+  if (showReading && !metaOrder.includes('wordCount' as any)) metaOrder.push('wordCount' as any)
 
   const sidebarEl = showToc ? (
     <ArticleToc headings={toc} />
@@ -53,13 +63,13 @@ export default function CardinalArticleDetailPage({ data }: { data: ArticleDetai
                 readingMinutes={readingMinutes}
                 wordCount={wordCount}
                 visibility={{
-                  showPublishedAt: metaVisibility.showPublishedAt,
-                  showViewCount: metaVisibility.showViewCount,
-                  showReadingTime: metaVisibility.showReadingTime,
-                  showWordCount: metaVisibility.showWordCount,
-                  showCategory: metaVisibility.showCategory,
-                  showTags: metaVisibility.showTags,
-                  order: metaVisibility.order as any,
+                  showPublishedAt: metaItems.includes('publishedAt'),
+                  showViewCount: metaItems.includes('viewCount'),
+                  showCategory: metaItems.includes('category'),
+                  showTags: metaItems.includes('tags'),
+                  showReadingTime: showReading,
+                  showWordCount: showReading,
+                  order: metaOrder as any,
                 }}
               />
             </div>

@@ -47,13 +47,6 @@ function getHeadings(html: string): { contentHtml: string; headings: TocItem[] }
   return { contentHtml, headings }
 }
 
-function normalizeMetaOrder(value: unknown): string[] {
-  if (Array.isArray(value)) {
-    return value.filter((item): item is string => typeof item === 'string')
-  }
-  return ['publishedAt', 'viewCount', 'readingTime', 'wordCount', 'category', 'tags']
-}
-
 function pageHrefBuilder(basePath: string, params: Record<string, string | undefined>, page: number): Route {
   const search = new URLSearchParams()
   for (const [key, value] of Object.entries(params)) {
@@ -111,16 +104,6 @@ export async function loadArticleDetailData(
   const wordCount = countContentWordsFromHtml(contentHtml)
   const commentsMode = fromPrismaArticleCommentsMode(article.commentsMode)
 
-  const metaVisibility: ArticleDetailPageData['metaVisibility'] = {
-    showPublishedAt: settings.articleMetaShowPublishedAt !== false,
-    showViewCount: settings.articleMetaShowViewCount !== false,
-    showReadingTime: settings.articleMetaShowReadingTime !== false,
-    showWordCount: settings.articleMetaShowWordCount !== false,
-    showCategory: settings.articleMetaShowCategory !== false,
-    showTags: settings.articleMetaShowTags !== false,
-    order: normalizeMetaOrder(settings.articleMetaOrder),
-  }
-
   return {
     article: {
       id: article.id,
@@ -145,7 +128,6 @@ export async function loadArticleDetailData(
     commentsMode,
     navigation,
     comments: (article.comments ?? []) as unknown as ArticleDetailPageData['comments'],
-    metaVisibility,
     settings,
     components,
   }

@@ -108,15 +108,6 @@ export type ArticleDetailPageData = {
     visitor: { visitorId: string } | null
     replies: unknown[]
   }>
-  metaVisibility: {
-    showPublishedAt: boolean
-    showViewCount: boolean
-    showReadingTime: boolean
-    showWordCount: boolean
-    showCategory: boolean
-    showTags: boolean
-    order: string[]
-  }
   settings: SiteSettings
   components: ThemeComponents
 }

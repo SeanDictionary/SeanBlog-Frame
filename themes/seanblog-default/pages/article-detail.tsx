@@ -1,24 +1,13 @@
 import type { ReactNode } from 'react'
 
 import { ArticleContent } from '@/components/article/article-content'
-import { ArticleMeta, ARTICLE_META_ITEM_IDS, type ArticleMetaItemId } from '@/components/article/article-meta'
+import { ArticleMeta } from '@/components/article/article-meta'
 import { ArticleNavigation } from '@/components/article/article-navigation'
 import { ArticleToc } from '@/components/article/article-toc'
 import { CommentList } from '@/components/comment/comment-list'
 
-// Replicated from the public article route: ensures the meta order is a
-// complete, de-duplicated list of known ArticleMetaItemId values.
-function normalizeArticleMetaOrder(value: unknown) {
-  const ordered = Array.isArray(value)
-    ? value.filter((item, index, items): item is ArticleMetaItemId => typeof item === 'string' && ARTICLE_META_ITEM_IDS.includes(item as ArticleMetaItemId) && items.indexOf(item) === index)
-    : []
-  const orderedSet = new Set(ordered)
-
-  return [...ordered, ...ARTICLE_META_ITEM_IDS.filter((item) => !orderedSet.has(item))]
-}
-
 export default function DefaultArticleDetailPage({ data }: { data: any }) {
-  const { article, contentHtml, toc, readingMinutes, wordCount, commentsMode, navigation, comments, metaVisibility } = data
+  const { article, contentHtml, toc, readingMinutes, wordCount, commentsMode, navigation, comments } = data
 
   const slotContent: Record<string, ReactNode> = {
     'article-header': (
@@ -33,15 +22,6 @@ export default function DefaultArticleDetailPage({ data }: { data: any }) {
             viewCount={article.viewCount}
             readingMinutes={readingMinutes}
             wordCount={wordCount}
-            visibility={{
-              showPublishedAt: metaVisibility.showPublishedAt,
-              showViewCount: metaVisibility.showViewCount,
-              showReadingTime: metaVisibility.showReadingTime,
-              showWordCount: metaVisibility.showWordCount,
-              showCategory: metaVisibility.showCategory,
-              showTags: metaVisibility.showTags,
-              order: normalizeArticleMetaOrder(metaVisibility.order) as any,
-            }}
           />
         </div>
         {article.coverImage && (

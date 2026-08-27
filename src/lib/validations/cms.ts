@@ -215,27 +215,6 @@ const analyticsSettingKeys = new Set([
   operationLogRetentionSettingKey,
   ...analyticsStringSettingKeys,
 ])
-const articleMetaBooleanSettingKeys = new Set([
-  'articleMetaShowPublishedAt',
-  'articleMetaShowViewCount',
-  'articleMetaShowReadingTime',
-  'articleMetaShowWordCount',
-  'articleMetaShowCategory',
-  'articleMetaShowTags',
-])
-const articleMetaOrderSettingKey = 'articleMetaOrder'
-const articleMetaItemIds = new Set([
-  'publishedAt',
-  'viewCount',
-  'readingTime',
-  'wordCount',
-  'category',
-  'tags',
-])
-const articleMetaSettingKeys = new Set([
-  ...articleMetaBooleanSettingKeys,
-  articleMetaOrderSettingKey,
-])
 const publicLayoutBooleanSettingKeys = new Set([
   'publicHeaderShowHome',
   'publicHeaderShowCategories',
@@ -271,7 +250,7 @@ const siteInfoSettingKeys = new Set([
 
 export const settingBulkUpdateSchema = z
   .object({
-    scope: z.enum(['analytics', 'article-meta', 'public-layout', 'object-storage', 'site-info']),
+    scope: z.enum(['analytics', 'public-layout', 'object-storage', 'site-info']),
     themeSlug: z.string().trim().min(1).max(64).optional(),
     updates: z.array(z.object({
       key: z.string().trim().min(1).max(120),
@@ -297,22 +276,6 @@ export const settingBulkUpdateSchema = z
           context.addIssue({ code: 'custom', path: ['updates', index, 'value'], message: 'Retention days must be an integer between 1 and 3650.' })
         } else if (analyticsStringSettingKeys.has(update.key) && typeof update.value !== 'string') {
           context.addIssue({ code: 'custom', path: ['updates', index, 'value'], message: 'Analytics text settings must be strings.' })
-        }
-      }
-
-      if (input.scope === 'article-meta') {
-        if (!articleMetaSettingKeys.has(update.key)) {
-          context.addIssue({ code: 'custom', path: ['updates', index, 'key'], message: 'Setting key is not allowed for article metadata scope.' })
-        } else if (articleMetaBooleanSettingKeys.has(update.key) && typeof update.value !== 'boolean') {
-          context.addIssue({ code: 'custom', path: ['updates', index, 'value'], message: 'Article metadata visibility settings must be boolean.' })
-        } else if (update.key === articleMetaOrderSettingKey) {
-          const order = update.value
-          const hasInvalidItem = !Array.isArray(order) || order.some((item) => typeof item !== 'string' || !articleMetaItemIds.has(item))
-          const hasDuplicateItem = Array.isArray(order) && new Set(order).size !== order.length
-
-          if (hasInvalidItem || hasDuplicateItem) {
-            context.addIssue({ code: 'custom', path: ['updates', index, 'value'], message: 'Article metadata order is invalid.' })
-          }
         }
       }
 

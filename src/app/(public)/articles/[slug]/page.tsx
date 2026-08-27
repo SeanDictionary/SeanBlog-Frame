@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import type { ReactNode } from 'react'
 
 import { ArticleContent } from '@/components/article/article-content'
-import { ArticleMeta, ARTICLE_META_ITEM_IDS, type ArticleMetaItemId } from '@/components/article/article-meta'
+import { ArticleMeta } from '@/components/article/article-meta'
 import { ArticleNavigation } from '@/components/article/article-navigation'
 import { ArticleToc } from '@/components/article/article-toc'
 import { CommentList } from '@/components/comment/comment-list'
@@ -52,15 +52,6 @@ function getHeadings(html: string) {
   return { contentHtml, headings }
 }
 
-function normalizeArticleMetaOrder(value: unknown) {
-  const ordered = Array.isArray(value)
-    ? value.filter((item, index, items): item is ArticleMetaItemId => typeof item === 'string' && ARTICLE_META_ITEM_IDS.includes(item as ArticleMetaItemId) && items.indexOf(item) === index)
-    : []
-  const orderedSet = new Set(ordered)
-
-  return [...ordered, ...ARTICLE_META_ITEM_IDS.filter((item) => !orderedSet.has(item))]
-}
-
 export async function generateMetadata({ params }: ArticlePageProps): Promise<Metadata> {
   const { slug } = await params
 
@@ -99,12 +90,6 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     ])
     const template = await readThemeTemplate(normalizeThemeName(settings.activeTheme), 'articleDetail')
     const { contentHtml, headings } = getHeadings(article.contentHtml)
-    const showPublishedAt = settings.articleMetaShowPublishedAt !== false
-    const showViewCount = settings.articleMetaShowViewCount !== false
-    const showReadingTime = settings.articleMetaShowReadingTime !== false
-    const showWordCount = settings.articleMetaShowWordCount !== false
-    const showCategory = settings.articleMetaShowCategory !== false
-    const showTags = settings.articleMetaShowTags !== false
     const commentsMode = fromPrismaArticleCommentsMode(article.commentsMode)
     const readingMinutes = estimateReadingMinutesFromHtml(contentHtml)
     const wordCount = countContentWordsFromHtml(contentHtml)
@@ -121,7 +106,6 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
               viewCount={article.viewCount}
               readingMinutes={readingMinutes}
               wordCount={wordCount}
-              visibility={{ showPublishedAt, showViewCount, showReadingTime, showWordCount, showCategory, showTags, order: normalizeArticleMetaOrder(settings.articleMetaOrder) }}
             />
           </div>
           {article.coverImage && (
@@ -147,15 +131,6 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         commentsMode,
         navigation,
         comments: article.comments,
-        metaVisibility: {
-          showPublishedAt,
-          showViewCount,
-          showReadingTime,
-          showWordCount,
-          showCategory,
-          showTags,
-          order: normalizeArticleMetaOrder(settings.articleMetaOrder),
-        },
         settings,
         components: {},
       } as any

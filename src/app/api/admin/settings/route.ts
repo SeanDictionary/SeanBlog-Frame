@@ -9,7 +9,6 @@ import { settingBulkUpdateSchema } from '@/lib/validations/cms'
 
 const settingScopeLabels = {
   analytics: '访问统计设置',
-  'article-meta': '文章元数据设置',
   'public-layout': 'Header / Footer 设置',
   'object-storage': '对象存储设置',
   'site-info': '站点信息',
@@ -19,10 +18,6 @@ function revalidateSettings(keys: string[]) {
   if (keys.some((key) => key.startsWith('analytics'))) {
     revalidatePath('/admin/overview')
     revalidatePath('/admin/visitors')
-  }
-
-  if (keys.some((key) => key.startsWith('articleMeta'))) {
-    revalidatePath('/articles/[slug]', 'page')
   }
 
   if (keys.some((key) => key.startsWith('publicHeader') || key.startsWith('publicFooter') || keys.includes('siteName') || keys.includes('siteDescription') || keys.includes('siteUrl'))) {

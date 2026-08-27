@@ -3,7 +3,6 @@
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 
-import { ARTICLE_META_ITEM_IDS, type ArticleMetaItemId } from '@/components/article/article-meta'
 import { Card } from '@/components/ui/card'
 
 type Setting = {
@@ -27,33 +26,12 @@ type SettingUpdate = {
   value: unknown
 }
 
-type MetadataLayoutItem = {
-  id: ArticleMetaItemId
-  visible: boolean
-}
-
-type ArticleMetaConfig = {
-  id: ArticleMetaItemId
-  settingKey: string
-  label: string
-  detail: string
-}
-
 type AnalyticsConfig = {
   key: string
   label: string
   detail: string
   defaultValue: boolean
 }
-
-const ARTICLE_META_CONFIGS: ArticleMetaConfig[] = [
-  { id: 'publishedAt', settingKey: 'articleMetaShowPublishedAt', label: '发布时间', detail: '文章发布时间。' },
-  { id: 'viewCount', settingKey: 'articleMetaShowViewCount', label: '阅读次数', detail: '文章累计浏览量。' },
-  { id: 'readingTime', settingKey: 'articleMetaShowReadingTime', label: '预估阅读时间', detail: '根据正文自动估算阅读分钟数。' },
-  { id: 'wordCount', settingKey: 'articleMetaShowWordCount', label: '文章字数', detail: '根据正文自动统计字数。' },
-  { id: 'category', settingKey: 'articleMetaShowCategory', label: '分类', detail: '文章所属分类链接。' },
-  { id: 'tags', settingKey: 'articleMetaShowTags', label: '标签', detail: '文章关联标签链接。' },
-]
 
 const ANALYTICS_CONFIGS: AnalyticsConfig[] = [
   { key: 'analyticsEnabled', label: '启用访问统计', detail: '记录匿名访问事件和匿名访客标识。', defaultValue: true },
@@ -75,8 +53,6 @@ const EXCLUDED_SETTING_KEYS = new Set([
   'siteUrl',
   'articleCommentsMode',
   'commentModerationRules',
-  'articleMetaOrder',
-  ...ARTICLE_META_CONFIGS.map((item) => item.settingKey),
   OPERATION_LOG_RETENTION_SETTING_KEY,
   ...ANALYTICS_CONFIGS.map((item) => item.key),
 ])
@@ -102,26 +78,6 @@ function mergeSettings(previous: Setting[], nextSettings: Setting[]) {
   return [...merged, ...nextSettings.filter((setting) => !existingKeys.has(setting.key))]
 }
 
-function normalizeArticleMetaOrder(value: unknown) {
-  const orderedIds = Array.isArray(value)
-    ? value.filter((item): item is ArticleMetaItemId => typeof item === 'string' && ARTICLE_META_ITEM_IDS.includes(item as ArticleMetaItemId))
-    : []
-  const orderedSet = new Set(orderedIds)
-
-  return [...orderedIds, ...ARTICLE_META_ITEM_IDS.filter((item) => !orderedSet.has(item))]
-}
-
-function buildMetadataLayout(settings: Setting[]): MetadataLayoutItem[] {
-  return normalizeArticleMetaOrder(getSettingValue(settings, 'articleMetaOrder')).map((id) => {
-    const config = ARTICLE_META_CONFIGS.find((item) => item.id === id)
-
-    return {
-      id,
-      visible: config ? getBooleanSetting(settings, config.settingKey, true) : true,
-    }
-  })
-}
-
 function buildAnalyticsSettings(settings: Setting[]) {
   return Object.fromEntries(ANALYTICS_CONFIGS.map((item) => [item.key, getBooleanSetting(settings, item.key, item.defaultValue)])) as Record<string, boolean>
 }
@@ -141,8 +97,6 @@ function buildIpinfoToken(settings: Setting[]) {
 export function SettingsManager({ initialSettings }: SettingsManagerProps) {
   const router = useRouter()
   const [settings, setSettings] = useState(initialSettings)
-  const [metadataLayout, setMetadataLayout] = useState(() => buildMetadataLayout(initialSettings))
-  const [draggedMetaId, setDraggedMetaId] = useState<ArticleMetaItemId | null>(null)
   const [analyticsSettings, setAnalyticsSettings] = useState(() => buildAnalyticsSettings(initialSettings))
   const [operationLogRetentionDays, setOperationLogRetentionDays] = useState(() => buildOperationLogRetentionDays(initialSettings))
   const [ipinfoToken, setIpinfoToken] = useState(() => buildIpinfoToken(initialSettings))
@@ -168,7 +122,7 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
     return data.setting
   }
 
-  async function persistSettings(scope: 'analytics' | 'article-meta' | 'public-layout' | 'theme-settings' | 'object-storage' | 'site-info', updates: SettingUpdate[]) {
+  async function persistSettings(scope: 'analytics' | 'public-layout' | 'theme-settings' | 'object-storage' | 'site-info', updates: SettingUpdate[]) {
     const response = await fetch('/api/admin/settings', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -250,92 +204,6 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
     })
   }
 
-  function moveMetadataItem(id: ArticleMetaItemId, targetVisible: boolean, targetId?: ArticleMetaItemId, placement: 'before' | 'after' = 'after') {
-    const visibleIds = metadataLayout.filter((item) => item.visible && item.id !== id).map((item) => item.id)
-    const hiddenIds = metadataLayout.filter((item) => !item.visible && item.id !== id).map((item) => item.id)
-    const targetIds = targetVisible ? visibleIds : hiddenIds
-    const targetIndex = targetId ? targetIds.indexOf(targetId) : -1
-    const insertIndex = targetIndex === -1 ? targetIds.length : targetIndex + (placement === 'after' ? 1 : 0)
-
-    targetIds.splice(insertIndex, 0, id)
-
-    setMetadataLayout([
-      ...visibleIds.map((itemId) => ({ id: itemId, visible: true })),
-      ...hiddenIds.map((itemId) => ({ id: itemId, visible: false })),
-    ])
-  }
-
-  function saveMetadataLayout() {
-    const visibleIds = metadataLayout.filter((item) => item.visible).map((item) => item.id)
-    const updates = ARTICLE_META_CONFIGS.map((config) => ({
-      key: config.settingKey,
-      value: visibleIds.includes(config.id),
-    }))
-
-    startTransition(async () => {
-      setMessage(null)
-
-      try {
-        const savedSettings = await persistSettings('article-meta', [...updates, { key: 'articleMetaOrder', value: visibleIds }])
-        setSettings((previous) => mergeSettings(previous, savedSettings))
-        setMessage(null)
-        router.refresh()
-      } catch (error) {
-        reportError(error, '文章元数据设置保存失败。')
-      }
-    })
-  }
-
-  function renderMetadataZone(visible: boolean) {
-    const items = metadataLayout.filter((item) => item.visible === visible)
-
-    return (
-      <div
-        className="flex items-center gap-3 overflow-hidden rounded-lg border border-dashed border-neutral-300 bg-neutral-50/60 p-4 dark:border-neutral-700 dark:bg-neutral-900/40"
-        onDragOver={(event) => event.preventDefault()}
-        onDrop={(event) => {
-          event.preventDefault()
-          if (draggedMetaId) moveMetadataItem(draggedMetaId, visible)
-          setDraggedMetaId(null)
-        }}
-      >
-        <div className="flex h-9.5 shrink-0 items-center gap-2">
-          <h3 className="text-sm font-semibold">{visible ? '显示' : '隐藏'}</h3>
-          <span className="text-xs text-neutral-500">{items.length} 项</span>
-        </div>
-        <div className="flex min-w-0 flex-1 flex-nowrap gap-2 overflow-x-auto pb-1">
-          {items.length > 0 ? items.map((item) => {
-            const config = ARTICLE_META_CONFIGS.find((meta) => meta.id === item.id)!
-
-            return (
-              <div
-                key={item.id}
-                draggable
-                onDragStart={() => setDraggedMetaId(item.id)}
-                onDragEnd={() => setDraggedMetaId(null)}
-                onDragOver={(event) => event.preventDefault()}
-                onDrop={(event) => {
-                  event.preventDefault()
-                  event.stopPropagation()
-                  if (!draggedMetaId) return
-
-                  const rect = event.currentTarget.getBoundingClientRect()
-                  const placement = event.clientX < rect.left + rect.width / 2 ? 'before' : 'after'
-                  moveMetadataItem(draggedMetaId, visible, item.id, placement)
-                  setDraggedMetaId(null)
-                }}
-                className={`inline-flex shrink-0 cursor-grab items-center gap-2 rounded-full border border-neutral-200 bg-white px-3 py-2 text-sm font-medium active:cursor-grabbing dark:border-neutral-800 dark:bg-neutral-950 ${draggedMetaId === item.id ? 'opacity-50' : ''}`}
-              >
-                <span>{config.label}</span>
-                <i className="fa-solid fa-grip-vertical text-xs text-neutral-400" aria-hidden="true" />
-              </div>
-            )
-          }) : <p className="min-w-36 rounded-full border border-dashed border-neutral-200 px-3 py-2 text-center text-sm text-neutral-500 dark:border-neutral-800">拖到这里</p>}
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-7">
       <Card padding="lg">
@@ -367,20 +235,6 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
             })}
           </div>
         </form>
-      </Card>
-
-      <Card padding="lg">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h2 className="font-semibold">文章详情</h2>
-            <p className="mt-1 text-sm text-neutral-500">拖动元数据到“显示”或“不显示”，并调整显示区顺序。</p>
-          </div>
-          <button type="button" disabled={isPending} onClick={saveMetadataLayout} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-950">保存元数据设置</button>
-        </div>
-        <div className="mt-5 grid gap-4">
-          {renderMetadataZone(true)}
-          {renderMetadataZone(false)}
-        </div>
       </Card>
 
       <Card padding="lg">
@@ -454,4 +308,3 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
     </div>
   )
 }
-
