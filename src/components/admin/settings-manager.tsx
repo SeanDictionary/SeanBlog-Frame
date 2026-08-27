@@ -477,7 +477,7 @@ function CalloutCssEditor({ initialValue, onSave, onReset }: {
   }, [code, initialValue])
 
   const changed = code !== initialValue
-  const canSave = changed && validation?.valid === true
+  const canSave = changed && validation?.valid === true && !validation?.checking
 
   return (
     <>
@@ -520,7 +520,6 @@ function CalloutCssEditor({ initialValue, onSave, onReset }: {
             }}
           />
         </div>
-        {validation?.checking && <p className="text-xs text-neutral-400">正在校验语法…</p>}
         {validation?.valid === false && validation.error && (
           <p className="rounded-md bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-950/30 dark:text-red-400">⚠ {validation.error}</p>
         )}
