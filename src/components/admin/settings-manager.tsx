@@ -344,14 +344,19 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
   return (
     <div className="space-y-7">
       <Card padding="lg">
-        <h2 className="font-semibold">站点信息</h2>
-        <p className="mt-1 text-sm text-neutral-500">主题包、Header、页脚和组件外观请到“个性化”页面管理。</p>
-        <div className="mt-5 grid gap-5">
-          <form action={(formData) => {
-            saveSiteInfo(
-              ['siteName', 'siteDescription', 'siteUrl'].map((key) => ({ key, value: String(formData.get(key) ?? '') }))
-            )
-          }} className="grid gap-5">
+        <form id="site-info-form" action={(formData) => {
+          saveSiteInfo(
+            ['siteName', 'siteDescription', 'siteUrl'].map((key) => ({ key, value: String(formData.get(key) ?? '') }))
+          )
+        }} className="grid gap-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="font-semibold">站点信息</h2>
+              <p className="mt-1 text-sm text-neutral-500">主题包、Header、页脚和组件外观请到“个性化”页面管理。</p>
+            </div>
+            <button type="submit" disabled={isPending} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-950">保存</button>
+          </div>
+          <div className="grid gap-5">
             {['siteName', 'siteDescription', 'siteUrl'].map((key) => {
               const setting = settings.find((item) => item.key === key)
               const isMultiline = key === 'siteDescription'
@@ -365,11 +370,8 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
                 </div>
               )
             })}
-            <div className="flex justify-end">
-              <button disabled={isPending} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-950">保存站点信息</button>
-            </div>
-          </form>
-        </div>
+          </div>
+        </form>
       </Card>
 
       <Card padding="lg">
@@ -432,8 +434,6 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
       </Card>
 
       <Card padding="lg">
-        <h2 className="font-semibold">Callout CSS</h2>
-        <p className="mt-1 text-sm text-neutral-500">编辑此 CSS 代码可调整所有提示框（内置 5 种 + 自定义类型）的样式。保存后前台文章页和编辑器预览均生效。</p>
         <CalloutCssEditor
           initialValue={(() => { const v = settings.find((s) => s.key === 'calloutCustomCss')?.value; const s = stringifyValue(v); return s && s.trim() ? s : DEFAULT_CALLOUT_CSS })()}
           onSave={(css) => save('calloutCustomCss', css)}
@@ -442,8 +442,19 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
       </Card>
 
       <Card padding="lg">
-        <h2 className="font-semibold">其他设置</h2>
-        <div className="mt-5 space-y-4">{settings.filter((setting) => !EXCLUDED_SETTING_KEYS.has(setting.key) && !setting.key.startsWith('themeSetting:') && !setting.key.startsWith('publicHeader') && !setting.key.startsWith('publicFooter') && !setting.key.startsWith('adminSidebar')).map((setting) => <form key={setting.id} action={(formData) => save(setting.key, String(formData.get('value') ?? ''))} className="grid gap-2 sm:grid-cols-[12rem_1fr_auto]"><label className="font-mono text-sm sm:pt-2.5">{setting.key}</label><textarea name="value" defaultValue={stringifyValue(setting.value)} rows={2} className="rounded-md border border-neutral-300 bg-white p-3 font-mono text-xs outline-none dark:border-neutral-700 dark:bg-neutral-900" /><button disabled={isPending} className="text-sm text-blue-600">保存</button></form>)}</div>
+        <form action={(formData) => {
+          const updates = settings.filter((s) => !EXCLUDED_SETTING_KEYS.has(s.key) && !s.key.startsWith('themeSetting:') && !s.key.startsWith('publicHeader') && !s.key.startsWith('publicFooter') && !s.key.startsWith('adminSidebar')).map((s) => ({ key: s.key, value: String(formData.get(s.key) ?? '') }))
+          saveMany(updates, '已保存所有设置。')
+        }}>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="font-semibold">其他设置</h2>
+              <p className="mt-1 text-sm text-neutral-500">未归入上述分类的站点设置项。</p>
+            </div>
+            <button type="submit" disabled={isPending} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-950">保存</button>
+          </div>
+          <div className="mt-5 space-y-4">{settings.filter((setting) => !EXCLUDED_SETTING_KEYS.has(setting.key) && !setting.key.startsWith('themeSetting:') && !setting.key.startsWith('publicHeader') && !setting.key.startsWith('publicFooter') && !setting.key.startsWith('adminSidebar')).map((setting) => <div key={setting.id} className="grid gap-2 sm:grid-cols-[12rem_1fr]"><label className="font-mono text-sm sm:pt-2.5">{setting.key}</label><textarea name={setting.key} defaultValue={stringifyValue(setting.value)} rows={2} className="rounded-md border border-neutral-300 bg-white p-3 font-mono text-xs outline-none dark:border-neutral-700 dark:bg-neutral-900" /></div>)}</div>
+        </form>
       </Card>
 
       {message && <p className="text-sm text-neutral-500" role="status">{message}</p>}
@@ -485,43 +496,51 @@ function CalloutCssEditor({ initialValue, onSave, onReset }: {
   const canSave = changed && validation?.valid === true
 
   return (
-    <div className="mt-5 space-y-3">
-      <div className={`overflow-hidden rounded-md border ${validation?.valid === false ? 'border-red-400' : 'border-neutral-300 dark:border-neutral-700'}`}>
-        <Editor
-          value={code}
-          onValueChange={setCode}
-          highlight={(css) => Prism.highlight(css, Prism.languages.css, 'css')}
-          padding={12}
-          textareaClassName="font-mono text-xs outline-none"
-          style={{
-            fontFamily: 'var(--font-mono, ui-monospace, monospace)',
-            fontSize: '0.75rem',
-            minHeight: '20rem',
-            backgroundColor: 'transparent',
-          }}
-        />
+    <>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 className="font-semibold">Callout CSS</h2>
+          <p className="mt-1 text-sm text-neutral-500">编辑此 CSS 代码可调整所有提示框的样式。保存后前台文章页和编辑器预览均生效。</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => canSave && onSave(code)}
+            disabled={!canSave}
+            className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-40 dark:bg-neutral-100 dark:text-neutral-950"
+          >
+            保存
+          </button>
+          <button
+            type="button"
+            onClick={() => { setCode(DEFAULT_CALLOUT_CSS); onReset() }}
+            className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
+          >
+            重置为默认
+          </button>
+        </div>
       </div>
-      {validation?.checking && <p className="text-xs text-neutral-400">正在校验语法…</p>}
-      {validation?.valid === false && validation.error && (
-        <p className="rounded-md bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-950/30 dark:text-red-400">⚠ {validation.error}</p>
-      )}
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => canSave && onSave(code)}
-          disabled={!canSave}
-          className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-40 dark:bg-neutral-100 dark:text-neutral-950"
-        >
-          保存
-        </button>
-        <button
-          type="button"
-          onClick={() => { setCode(DEFAULT_CALLOUT_CSS); onReset() }}
-          className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
-        >
-          重置为默认
-        </button>
+      <div className="mt-5 space-y-3">
+        <div className={`overflow-hidden rounded-md border ${validation?.valid === false ? 'border-red-400' : 'border-neutral-300 dark:border-neutral-700'}`}>
+          <Editor
+            value={code}
+            onValueChange={setCode}
+            highlight={(css) => Prism.highlight(css, Prism.languages.css, 'css')}
+            padding={12}
+            textareaClassName="font-mono text-xs outline-none"
+            style={{
+              fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+              fontSize: '0.75rem',
+              minHeight: '20rem',
+              backgroundColor: 'transparent',
+            }}
+          />
+        </div>
+        {validation?.checking && <p className="text-xs text-neutral-400">正在校验语法…</p>}
+        {validation?.valid === false && validation.error && (
+          <p className="rounded-md bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-950/30 dark:text-red-400">⚠ {validation.error}</p>
+        )}
       </div>
-    </div>
+    </>
   )
 }
