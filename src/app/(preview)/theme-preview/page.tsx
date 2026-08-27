@@ -15,7 +15,7 @@ import { fromPrismaArticleCommentsMode } from '@/lib/comment-settings'
 import { countContentWordsFromHtml, estimateReadingMinutesFromHtml } from '@/lib/content/reading-time'
 import { getAdminSession } from '@/lib/auth.utils'
 import { listPublicArticles, getPublicArticleBySlug, getPublicArticleNavigation } from '@/lib/services/article-service'
-import { getSiteSettingsMap } from '@/lib/services/setting-service'
+import { getMergedSettings } from '@/lib/services/theme-settings-service'
 import { normalizeThemeName, readThemeCss, readThemeManifest, readThemePart, readThemeTemplate } from '@/lib/theme'
 import { orderThemeSlots } from '@/lib/theme-slots'
 import { publicArticleSortSchema, type PublicArticleSort } from '@/lib/validations/cms'
@@ -90,7 +90,7 @@ async function buildThemeOptionsCss(themeSlug: string, settings: Record<string, 
   const variables = manifest.settingsSchema
     .map((item) => {
       if (!item.cssVariable) return null
-      const value = settings[`themeSetting:${manifest.slug}:${item.key}`] ?? item.default
+      const value = settings[item.key] ?? item.default
       if (typeof value !== 'string' && typeof value !== 'number') return null
       return `${item.cssVariable}: ${value}`
     })
@@ -212,7 +212,7 @@ async function renderPreviewArticle(themeSlug: string, settings: Record<string, 
 }
 
 export default async function ThemePreviewPage({ searchParams }: ThemePreviewPageProps) {
-  const [session, params, settings] = await Promise.all([getAdminSession(), searchParams, getSiteSettingsMap()])
+  const [session, params, settings] = await Promise.all([getAdminSession(), searchParams, getMergedSettings()])
 
   if (!session) {
     redirect('/login')

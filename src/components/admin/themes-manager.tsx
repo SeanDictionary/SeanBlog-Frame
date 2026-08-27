@@ -22,6 +22,7 @@ type ThemesManagerProps = {
   availableThemes: ThemePackageSummary[]
   calloutPreset: string
   activeThemeSlug: string
+  themeSettings: Record<string, unknown>
 }
 
 type ApiResponse = {
@@ -36,30 +37,22 @@ function settingValue(settings: Setting[], key: string, fallback = '') {
   return typeof value === 'string' ? value : fallback
 }
 
-function settingEnabled(settings: Setting[], key: string, fallback = true) {
-  const value = settings.find((setting) => setting.key === key)?.value
-  return typeof value === 'boolean' ? value : fallback
-}
-
 function getActiveThemeSlug(settings: Setting[]) {
   const value = settingValue(settings, 'activeTheme', 'seanblog-default')
   return value === 'default' ? 'seanblog-default' : value
 }
 
-function themeSettingKey(themeSlug: string, key: string) {
-  return `themeSetting:${themeSlug}:${key}`
+function themeSettingValue(settings: Record<string, unknown>, item: ThemeSettingSchemaItem) {
+  const value = settings[item.key]
+  return value ?? item.default ?? ''
 }
 
-function themeSettingValue(settings: Setting[], themeSlug: string, item: ThemeSettingSchemaItem) {
-  const setting = settings.find((entry) => entry.key === themeSettingKey(themeSlug, item.key))?.value
-  return setting ?? item.default ?? ''
-}
-
-export function ThemesManager({ initialSettings, availableThemes, calloutPreset, activeThemeSlug }: ThemesManagerProps) {
+export function ThemesManager({ initialSettings, availableThemes, calloutPreset, activeThemeSlug, themeSettings }: ThemesManagerProps) {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [settings, setSettings] = useState(initialSettings)
   const [themes, setThemes] = useState(availableThemes)
+  const [themeSettingsState, setThemeSettingsState] = useState<Record<string, unknown>>(themeSettings)
   const [message, setMessage] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const activeTheme = getActiveThemeSlug(settings)
@@ -69,29 +62,6 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
     setSettings((previous) => previous.some((item) => item.key === setting.key)
       ? previous.map((item) => item.key === setting.key ? setting : item)
       : [...previous, setting])
-  }
-
-  function applySettings(nextSettings: Setting[]) {
-    const nextByKey = new Map(nextSettings.map((setting) => [setting.key, setting]))
-    setSettings((previous) => [
-      ...previous.map((item) => nextByKey.get(item.key) ?? item),
-      ...nextSettings.filter((setting) => !previous.some((item) => item.key === setting.key)),
-    ])
-  }
-
-  async function persistSettings(scope: 'public-layout' | 'theme-settings', updates: Array<{ key: string; value: unknown }>, themeSlug?: string) {
-    const response = await fetch('/api/admin/settings', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scope, ...(themeSlug ? { themeSlug } : {}), updates }),
-    })
-    const data = (await response.json()) as ApiResponse
-
-    if (!response.ok || !data.settings) {
-      throw new Error(data.error?.message ?? '保存失败。')
-    }
-
-    return data.settings
   }
 
   function saveSetting(key: string, value: unknown) {
@@ -120,20 +90,66 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
   }
 
 
+  function saveCalloutCss(css: string) {
+    if (!activeThemePackage) return
+    startTransition(async () => {
+      setMessage(null)
+      try {
+        const response = await fetch(`/api/admin/themes/${activeThemePackage.slug}/settings`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ settings: { calloutCustomCss: css } }),
+        })
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error?.message ?? 'Callout CSS 保存失败。')
+        setThemeSettingsState((prev) => ({ ...prev, calloutCustomCss: css }))
+        setMessage(null)
+        router.refresh()
+      } catch (error) {
+        setMessage(error instanceof Error ? error.message : 'Callout CSS 保存失败。')
+      }
+    })
+  }
+
+
   function saveThemeSettings(formData: FormData) {
     if (!activeThemePackage) return
 
     startTransition(async () => {
       setMessage(null)
       try {
-        const updates = activeThemePackage.settingsSchema.map((item) => ({
-          key: themeSettingKey(activeThemePackage.slug, item.key),
-          value: item.type === 'boolean'
-            ? formData.get(item.key) === 'on'
-            : String(formData.get(item.key) ?? item.default ?? ''),
-        }))
-        const savedSettings = await persistSettings('theme-settings', updates, activeThemePackage.slug)
-        applySettings(savedSettings)
+        const newSettings: Record<string, unknown> = {}
+        for (const item of activeThemePackage.settingsSchema) {
+          if (item.type === 'boolean') {
+            newSettings[item.key] = formData.get(item.key) === 'on'
+          } else if (item.type === 'multiselect') {
+            // 从 formData 收集选中的 multiselect 选项
+            const selected: string[] = []
+            for (const option of item.options ?? []) {
+              if (formData.get(`${item.key}__${option.value}`) === 'on') {
+                selected.push(option.value)
+              }
+            }
+            newSettings[item.key] = selected
+          } else {
+            newSettings[item.key] = String(formData.get(item.key) ?? item.default ?? '')
+          }
+        }
+        // calloutCustomCss 也一起保存
+        const calloutVal = themeSettingsState.calloutCustomCss
+        if (typeof calloutVal === 'string' && calloutVal.trim()) {
+          newSettings.calloutCustomCss = calloutVal
+        }
+
+        const response = await fetch(`/api/admin/themes/${activeThemePackage.slug}/settings`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ settings: newSettings }),
+        })
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error?.message ?? '主题设置保存失败。')
+
+        setThemeSettingsState(newSettings)
         setMessage(null)
         router.refresh()
       } catch (error) {
@@ -225,7 +241,7 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
           {activeThemePackage.settingsSchema.length > 0 && (
             <form action={saveThemeSettings} className="mt-5">
               <div className="grid gap-4 sm:grid-cols-2">
-                {activeThemePackage.settingsSchema.map((item) => <ThemeSettingField key={item.key} item={item} value={themeSettingValue(settings, activeThemePackage.slug, item)} />)}
+                {activeThemePackage.settingsSchema.map((item) => <ThemeSettingField key={item.key} item={item} value={themeSettingValue(themeSettingsState, item)} />)}
               </div>
               <div className="mt-4">
                 <button type="submit" disabled={isPending} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950">保存主题变量</button>
@@ -235,14 +251,13 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
           {activeThemePackage.settingsSchema.length > 0 && <hr className="my-6 border-neutral-200 dark:border-neutral-800" />}
           <CalloutCssEditor
             initialValue={(() => {
-              const key = `calloutCustomCss:${activeThemeSlug}`
-              const v = settings.find((s) => s.key === key)?.value
+              const v = themeSettingsState.calloutCustomCss
               const s = typeof v === 'string' ? v : ''
               return s.trim() ? s : (calloutPreset || DEFAULT_CALLOUT_CSS)
             })()}
             presetValue={calloutPreset || DEFAULT_CALLOUT_CSS}
-            onSave={(css) => saveSetting(`calloutCustomCss:${activeThemeSlug}`, css)}
-            onReset={() => saveSetting(`calloutCustomCss:${activeThemeSlug}`, calloutPreset || DEFAULT_CALLOUT_CSS)}
+            onSave={saveCalloutCss}
+            onReset={() => saveCalloutCss(calloutPreset || DEFAULT_CALLOUT_CSS)}
           />
         </Card>
       )}

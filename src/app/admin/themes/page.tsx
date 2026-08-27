@@ -3,7 +3,8 @@ import path from 'node:path'
 
 import { ThemesManager } from '@/components/admin/themes-manager'
 import { listSettings } from '@/lib/services/setting-service'
-import { listThemes, readThemeManifest } from '@/lib/theme'
+import { getPrisma } from '@/lib/prisma'
+import { listThemes, readThemeManifest, type ThemeSettingSchemaItem } from '@/lib/theme'
 
 function normalizeActiveTheme(value: unknown) {
   return typeof value === 'string' && value !== 'default' ? value : 'seanblog-default'
@@ -19,10 +20,27 @@ async function readCalloutPreset(themeSlug: string): Promise<string | null> {
   }
 }
 
-export default async function AdminPersonalizationPage() {
+export default async function AdminThemesPage() {
   const [settings, themes] = await Promise.all([listSettings(), listThemes()])
   const activeTheme = normalizeActiveTheme(settings.find((s) => s.key === 'activeTheme')?.value)
-  const calloutPreset = await readCalloutPreset(activeTheme)
+  const [calloutPreset, manifest, dbRow] = await Promise.all([
+    readCalloutPreset(activeTheme),
+    readThemeManifest(activeTheme).catch(() => null),
+    getPrisma().themeCustomization.findUnique({ where: { themeSlug: activeTheme } }),
+  ])
+
+  // 合并默认值 + 数据库自定义
+  const themeSettings: Record<string, unknown> = {}
+  const dbSettings = dbRow?.settings && typeof dbRow.settings === 'object' && !Array.isArray(dbRow.settings)
+    ? dbRow.settings as Record<string, unknown>
+    : {}
+  for (const item of (manifest?.settingsSchema ?? []) as ThemeSettingSchemaItem[]) {
+    themeSettings[item.key] = dbSettings[item.key] ?? item.default
+  }
+  // calloutCustomCss
+  if (typeof dbSettings.calloutCustomCss === 'string') {
+    themeSettings.calloutCustomCss = dbSettings.calloutCustomCss
+  }
 
   return (
     <div className="mx-auto max-w-7xl">
@@ -36,6 +54,7 @@ export default async function AdminPersonalizationPage() {
         availableThemes={themes}
         calloutPreset={calloutPreset ?? ''}
         activeThemeSlug={activeTheme}
+        themeSettings={themeSettings}
       />
     </div>
   )

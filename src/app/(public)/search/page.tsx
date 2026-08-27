@@ -6,7 +6,7 @@ import { ArticleCard } from '@/components/article/article-card'
 import { Pagination } from '@/components/pagination'
 import { HighlightedText } from '@/components/search/highlighted-text'
 import { searchArticles } from '@/lib/services/article-service'
-import { getSiteSettingsMap } from '@/lib/services/setting-service'
+import { getMergedSettings } from '@/lib/services/theme-settings-service'
 import { normalizeThemeName, readThemeTemplate } from '@/lib/theme'
 import { resolveThemePage } from '@/lib/theme/resolver'
 import { orderThemeSlots } from '@/lib/theme-slots'
@@ -28,7 +28,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const { q: queryParam, page: pageParam } = await searchParams
   const query = queryParam?.trim() ?? ''
   const page = parsePage(pageParam)
-  const settings = await getSiteSettingsMap()
+  const settings = await getMergedSettings()
   const template = await readThemeTemplate(normalizeThemeName(settings.activeTheme), 'search')
 
   if (!query) {

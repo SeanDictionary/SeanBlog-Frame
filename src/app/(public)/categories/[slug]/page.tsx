@@ -7,7 +7,7 @@ import { Pagination } from '@/components/pagination'
 import { isDatabaseError } from '@/lib/database-errors'
 import { getPublicCategoryBySlug } from '@/lib/services/category-service'
 import { listPublicArticles } from '@/lib/services/article-service'
-import { getSiteSettingsMap } from '@/lib/services/setting-service'
+import { getMergedSettings } from '@/lib/services/theme-settings-service'
 import { normalizeThemeName, readThemeTemplate } from '@/lib/theme'
 import { resolveThemePage } from '@/lib/theme/resolver'
 import { orderThemeSlots } from '@/lib/theme-slots'
@@ -30,7 +30,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
     const [category, result, settings] = await Promise.all([
       getPublicCategoryBySlug(slug),
       listPublicArticles({ page, pageSize: 12, category: slug }),
-      getSiteSettingsMap(),
+      getMergedSettings(),
     ])
     const template = await readThemeTemplate(normalizeThemeName(settings.activeTheme), 'taxonomy')
     const pageHref = (nextPage: number): Route => (nextPage === 1 ? `/categories/${slug}` : `/categories/${slug}?page=${nextPage}`) as Route

@@ -31,7 +31,7 @@ type RootLayoutProps = {
 
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
-    <html lang="zh-CN" suppressHydrationWarning>
+    <html lang="zh-CN" data-theme="dark" suppressHydrationWarning>
       <head>
         <link
           rel="stylesheet"

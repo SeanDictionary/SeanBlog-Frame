@@ -41,6 +41,12 @@ export type ArticleNavigation = {
 
 // --- 首页 ---
 
+export type SidebarData = {
+  recentArticles: Array<{ id: string; title: string; slug: string; publishedAt: Date | null }>
+  tags: Array<{ id: string; name: string; slug: string }>
+  categories: Array<{ id: string; name: string; slug: string; _count: { articles: number } }>
+}
+
 export type HomePageData = {
   articles: Array<{
     id: string
@@ -62,6 +68,8 @@ export type HomePageData = {
   sort: string
   sortOptions: SortOption[]
   settings: SiteSettings
+  /** 侧边栏数据（路由层预加载） */
+  sidebarData?: SidebarData
   /** 预建组件，主题可直接使用 */
   components: ThemeComponents
 }

@@ -11,7 +11,7 @@ import { fromPrismaArticleCommentsMode } from '@/lib/comment-settings'
 import { countContentWordsFromHtml, estimateReadingMinutesFromHtml } from '@/lib/content/reading-time'
 import { isDatabaseError } from '@/lib/database-errors'
 import { getPublicArticleBySlug, getPublicArticleNavigation } from '@/lib/services/article-service'
-import { getSiteSettingsMap } from '@/lib/services/setting-service'
+import { getMergedSettings } from '@/lib/services/theme-settings-service'
 import { normalizeThemeName, readThemeTemplate } from '@/lib/theme'
 import { resolveThemePage } from '@/lib/theme/resolver'
 import { orderThemeSlots } from '@/lib/theme-slots'
@@ -94,7 +94,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   try {
     const [article, settings, navigation] = await Promise.all([
       getPublicArticleBySlug(slug),
-      getSiteSettingsMap(),
+      getMergedSettings(),
       getPublicArticleNavigation(slug),
     ])
     const template = await readThemeTemplate(normalizeThemeName(settings.activeTheme), 'articleDetail')

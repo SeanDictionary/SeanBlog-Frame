@@ -6,7 +6,7 @@ import { ArticleCard } from '@/components/article/article-card'
 import { Pagination } from '@/components/pagination'
 import { isDatabaseError } from '@/lib/database-errors'
 import { listPublicArticles } from '@/lib/services/article-service'
-import { getSiteSettingsMap } from '@/lib/services/setting-service'
+import { getMergedSettings } from '@/lib/services/theme-settings-service'
 import { getPublicTagBySlug } from '@/lib/services/tag-service'
 import { normalizeThemeName, readThemeTemplate } from '@/lib/theme'
 import { resolveThemePage } from '@/lib/theme/resolver'
@@ -30,7 +30,7 @@ export default async function TagPage({ params, searchParams }: TagPageProps) {
     const [tag, result, settings] = await Promise.all([
       getPublicTagBySlug(slug),
       listPublicArticles({ page, pageSize: 12, tag: slug }),
-      getSiteSettingsMap(),
+      getMergedSettings(),
     ])
     const template = await readThemeTemplate(normalizeThemeName(settings.activeTheme), 'taxonomy')
     const pageHref = (nextPage: number): Route => (nextPage === 1 ? `/tags/${slug}` : `/tags/${slug}?page=${nextPage}`) as Route

@@ -2,12 +2,8 @@ import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 
 import { readThemeCss, readThemeManifest, type ThemeSettingSchemaItem } from '@/lib/theme'
-import { getSiteSettingsMapSafe } from '@/lib/services/setting-service'
+import { getActiveThemeSettings } from '@/lib/services/theme-settings-service'
 import { DEFAULT_CALLOUT_CSS } from '@/lib/content/callout-css'
-
-function normalizeActiveTheme(value: unknown) {
-  return typeof value === 'string' && value !== 'default' ? value : 'seanblog-default'
-}
 
 async function buildThemeOptionsCss(themeSlug: string, settings: Record<string, unknown>): Promise<string | null> {
   const manifest = await readThemeManifest(themeSlug).catch(() => null)
@@ -16,7 +12,7 @@ async function buildThemeOptionsCss(themeSlug: string, settings: Record<string, 
   const variables = manifest.settingsSchema
     .map((item: ThemeSettingSchemaItem) => {
       if (!item.cssVariable) return null
-      const value = settings[`themeSetting:${manifest.slug}:${item.key}`] ?? item.default
+      const value = settings[item.key] ?? item.default
       if (typeof value !== 'string' && typeof value !== 'number') return null
       return `${item.cssVariable}: ${value}`
     })
@@ -41,20 +37,18 @@ async function readThemeCalloutPreset(themeSlug: string): Promise<string | null>
  * Callout CSS resolution: per-theme custom setting → theme preset → default built-in.
  */
 export async function buildThemeCssBundle(): Promise<{ css: string; calloutCss: string } | null> {
-  const settings = await getSiteSettingsMapSafe()
-  const activeTheme = normalizeActiveTheme(settings.activeTheme)
+  const { themeSlug, settings } = await getActiveThemeSettings()
 
-  const customThemeCss = await readThemeCss(activeTheme).catch(() => null)
+  const customThemeCss = await readThemeCss(themeSlug).catch(() => null)
     ?? await readThemeCss('seanblog-default').catch(() => null)
-  const themeOptionsCss = await buildThemeOptionsCss(activeTheme, settings)
+  const themeOptionsCss = await buildThemeOptionsCss(themeSlug, settings)
     ?? await buildThemeOptionsCss('seanblog-default', settings)
 
   // Callout CSS: per-theme custom → theme preset → default
-  const calloutSettingKey = `calloutCustomCss:${activeTheme}`
-  const calloutCustom = typeof settings[calloutSettingKey] === 'string' && (settings[calloutSettingKey] as string).trim()
-    ? settings[calloutSettingKey] as string
+  const calloutCustom = typeof settings.calloutCustomCss === 'string' && (settings.calloutCustomCss as string).trim()
+    ? settings.calloutCustomCss as string
     : null
-  const calloutPreset = await readThemeCalloutPreset(activeTheme)
+  const calloutPreset = await readThemeCalloutPreset(themeSlug)
   const calloutCss = calloutCustom ?? calloutPreset ?? DEFAULT_CALLOUT_CSS
 
   const css = [customThemeCss, themeOptionsCss].filter(Boolean).join('\n')

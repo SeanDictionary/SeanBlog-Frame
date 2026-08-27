@@ -165,6 +165,14 @@ model SiteSetting {
   value String
 }
 
+model ThemeCustomization {
+  themeSlug String   @unique
+  settings  Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model AnalyticsEvent {
   id                 String   @id @default(cuid())
   path               String

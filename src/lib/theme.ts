@@ -124,7 +124,9 @@ function validateSettingsSchema(value: unknown): ThemeSettingSchemaItem[] {
       key: assertString(record.key, 'settingsSchema.key'),
       label: assertString(record.label, 'settingsSchema.label'),
       type: type as ThemeSettingSchemaItem['type'],
-      default: typeof record.default === 'string' || typeof record.default === 'number' || typeof record.default === 'boolean' ? record.default : undefined,
+      default: typeof record.default === 'string' || typeof record.default === 'number' || typeof record.default === 'boolean'
+        ? record.default
+        : Array.isArray(record.default) ? record.default.filter((v: unknown) => typeof v === 'string') : undefined,
       cssVariable: typeof record.cssVariable === 'string' ? record.cssVariable : undefined,
       options: Array.isArray(record.options)
         ? record.options.map((option) => {
@@ -529,6 +531,10 @@ export async function installThemePackageFromManifest(manifest: ThemePackageMani
     throw error
   }
 
+  // 清除 resolver 内存缓存
+  const { clearThemeCache } = await import('@/lib/theme/resolver')
+  clearThemeCache(slug)
+
   return slug
 }
 
@@ -550,6 +556,10 @@ export async function deleteTheme(themeName: string) {
   }
 
   await rm(getThemeDirectory(name), { recursive: true, force: true })
+
+  // 清除 resolver 内存缓存
+  const { clearThemeCache } = await import('@/lib/theme/resolver')
+  clearThemeCache(name)
 }
 
 export async function ensureDefaultTheme() {

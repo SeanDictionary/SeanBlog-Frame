@@ -88,7 +88,7 @@ export function CalloutCssEditor({ initialValue, onSave, onReset, presetValue }:
           onChange={(e) => setCode(e.target.value)}
           onScroll={handleScroll}
           spellCheck={false}
-          className="relative m-0 block w-full resize-y border-0 bg-transparent p-3 font-mono text-xs leading-5 text-transparent caret-current outline-none"
+          className="relative m-0 block w-full resize-y border-0 bg-transparent p-3 font-mono text-xs leading-5 text-transparent caret-neutral-900 dark:caret-neutral-100 outline-none"
           style={{ minHeight: '16rem', height: '16rem' }}
         />
       </div>

@@ -6,7 +6,9 @@ import type { ReactNode } from 'react'
 import { ArticleCard } from '@/components/article/article-card'
 import { Pagination } from '@/components/pagination'
 import { listPublicArticles } from '@/lib/services/article-service'
-import { getSiteSettingsMap } from '@/lib/services/setting-service'
+import { listPublicCategories } from '@/lib/services/category-service'
+import { getMergedSettings } from '@/lib/services/theme-settings-service'
+import { listPublicTags } from '@/lib/services/tag-service'
 import { normalizeThemeName, readThemeTemplate } from '@/lib/theme'
 import { resolveThemePage } from '@/lib/theme/resolver'
 import { orderThemeSlots } from '@/lib/theme-slots'
@@ -17,11 +19,11 @@ type HomePageProps = {
 }
 
 const sortOptions = [
-  { value: 'publishedAt', label: '发布时间' },
-  { value: 'updatedAt', label: '更新时间' },
-  { value: 'viewCount', label: '浏览量' },
-  { value: 'commentCount', label: '评论数' },
-] satisfies Array<{ value: PublicArticleSort; label: string }>
+  { value: 'publishedAt', label: '发布时间', href: ('/' as Route) },
+  { value: 'updatedAt', label: '更新时间', href: ('/?sort=updatedAt' as Route) },
+  { value: 'viewCount', label: '浏览量', href: ('/?sort=viewCount' as Route) },
+  { value: 'commentCount', label: '评论数', href: ('/?sort=commentCount' as Route) },
+] satisfies Array<{ value: PublicArticleSort; label: string; href: Route }>
 
 export const metadata: Metadata = {
   title: '首页',
@@ -61,7 +63,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const page = parsePage(pageParam)
   const sort = parseSort(sortParam)
   const [settings, result] = await Promise.all([
-    getSiteSettingsMap(),
+    getMergedSettings(),
     listPublicArticles({ page, pageSize: 12, sort }),
   ])
   const template = await readThemeTemplate(normalizeThemeName(settings.activeTheme), 'home')
@@ -130,6 +132,22 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   // 主题页面解析器：如果活跃主题提供了 JSX 页面，使用它；否则走 slot 系统
   const themePage = await resolveThemePage(normalizeThemeName(settings.activeTheme), 'home')
   if (themePage) {
+    // 加载侧边栏数据（如果主题使用了侧边栏）
+    let sidebarData: { recentArticles: any[]; tags: any[]; categories: any[] } | undefined
+    if (settings.sidebarPosition && settings.sidebarPosition !== 'none') {
+      try {
+        const [recentResult, tagsResult, catsResult] = await Promise.all([
+          listPublicArticles({ page: 1, pageSize: 5, sort: 'publishedAt' }),
+          listPublicTags({ page: 1, pageSize: 20 }),
+          listPublicCategories({ page: 1, pageSize: 20 }),
+        ])
+        sidebarData = {
+          recentArticles: recentResult.items.map((a) => ({ id: a.id, title: a.title, slug: a.slug, publishedAt: a.publishedAt })),
+          tags: tagsResult.items.map((t) => ({ id: t.id, name: t.name, slug: t.slug })),
+          categories: catsResult.items.map((c) => ({ id: c.id, name: c.name, slug: c.slug, _count: { articles: (c as any)._count?.articles ?? 0 } })),
+        }
+      } catch {}
+    }
     const themePageData = {
       articles: latest,
       pinned,
@@ -137,6 +155,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       sort,
       sortOptions,
       settings,
+      sidebarData,
       components: {},
     } as any
     const ThemePageComponent = themePage

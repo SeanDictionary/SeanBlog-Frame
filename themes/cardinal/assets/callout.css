@@ -13,13 +13,11 @@
 }
 
 .article-content .callout {
-  border-left: 4px solid var(--callout-color, var(--color-border));
+  border-left: 3px solid var(--callout-color, var(--color-border));
   border-radius: var(--radius);
-  padding: 1rem 1.5rem;
-  margin: 1.5em 0;
-  background: color-mix(in srgb, var(--callout-color, var(--color-border)) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--callout-color, var(--color-border)) 20%, transparent);
-  border-left-width: 4px;
+  padding: 0.75rem 1.25rem;
+  margin: 1.25em 0;
+  background: color-mix(in srgb, var(--callout-color, var(--color-border)) 10%, transparent);
 }
 
 .article-content .callout > :first-child {

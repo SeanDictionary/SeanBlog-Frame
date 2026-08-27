@@ -3,7 +3,7 @@ import type { Route } from 'next'
 import Link from 'next/link'
 
 import { Pagination } from '@/components/pagination'
-import { getSiteSettingsMap } from '@/lib/services/setting-service'
+import { getMergedSettings } from '@/lib/services/theme-settings-service'
 import { listPublicCategories } from '@/lib/services/category-service'
 import { normalizeThemeName } from '@/lib/theme'
 import { resolveThemePage } from '@/lib/theme/resolver'
@@ -30,7 +30,7 @@ export default async function CategoriesPage({ searchParams }: CategoriesPagePro
   const page = parsePage(pageParam)
   const [result, settings] = await Promise.all([
     listPublicCategories({ page, pageSize: 30 }),
-    getSiteSettingsMap(),
+    getMergedSettings(),
   ])
 
   const themePage = await resolveThemePage(normalizeThemeName(settings.activeTheme), 'categories-index')

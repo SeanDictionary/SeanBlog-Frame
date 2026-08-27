@@ -11,7 +11,7 @@ import { countContentWordsFromHtml, estimateReadingMinutesFromHtml } from '@/lib
 import type { Route } from 'next'
 import { listPublicArticles, getPublicArticleBySlug, getPublicArticleNavigation, searchArticles } from '@/lib/services/article-service'
 import { getPublicCategoryBySlug, listPublicCategories } from '@/lib/services/category-service'
-import { getSiteSettingsMap } from '@/lib/services/setting-service'
+import { getMergedSettings } from '@/lib/services/theme-settings-service'
 import { listPublicTags } from '@/lib/services/tag-service'
 import type {
   ArticleDetailPageData,
@@ -70,7 +70,7 @@ export async function loadHomePageData(
   searchParams: { page?: string; sort?: string },
   components: ThemeComponents,
 ): Promise<HomePageData> {
-  const settings = await getSiteSettingsMap()
+  const settings = await getMergedSettings()
   const page = parsePage(searchParams.page)
   const sort = (searchParams.sort ?? 'publishedAt') as PublicArticleSort
 
@@ -102,7 +102,7 @@ export async function loadArticleDetailData(
 ): Promise<ArticleDetailPageData> {
   const [article, settings, navigation] = await Promise.all([
     getPublicArticleBySlug(slug),
-    getSiteSettingsMap(),
+    getMergedSettings(),
     getPublicArticleNavigation(slug),
   ])
 
@@ -157,7 +157,7 @@ export async function loadTaxonomyData(
   searchParams: { page?: string },
   components: ThemeComponents,
 ): Promise<TaxonomyPageData> {
-  const settings = await getSiteSettingsMap()
+  const settings = await getMergedSettings()
   const page = parsePage(searchParams.page)
 
   const taxonomyInfo = type === 'category'
@@ -184,7 +184,7 @@ export async function loadCategoriesIndexData(
   searchParams: { page?: string },
   components: ThemeComponents,
 ): Promise<CategoriesIndexPageData> {
-  const settings = await getSiteSettingsMap()
+  const settings = await getMergedSettings()
   const page = parsePage(searchParams.page)
   const result = await listPublicCategories({ page, pageSize: 30 })
 
@@ -200,7 +200,7 @@ export async function loadTagsIndexData(
   searchParams: { page?: string },
   components: ThemeComponents,
 ): Promise<TagsIndexPageData> {
-  const settings = await getSiteSettingsMap()
+  const settings = await getMergedSettings()
   const page = parsePage(searchParams.page)
   const result = await listPublicTags({ page, pageSize: 50 })
 
@@ -217,7 +217,7 @@ export async function loadSearchData(
   searchParams: { page?: string },
   components: ThemeComponents,
 ): Promise<SearchPageData> {
-  const settings = await getSiteSettingsMap()
+  const settings = await getMergedSettings()
   const page = parsePage(searchParams.page)
   const result = await searchArticles({ q: query, page, pageSize: 12 })
 

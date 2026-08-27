@@ -1,5 +1,0 @@
-{
-  "template": "taxonomy",
-  "layout": "archive-list",
-  "slots": ["taxonomy-header", "article-list", "pagination"]
-}
