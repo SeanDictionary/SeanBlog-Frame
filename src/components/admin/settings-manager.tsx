@@ -3,6 +3,7 @@
 import Editor from 'react-simple-code-editor'
 import Prism from 'prismjs'
 import 'prismjs/components/prism-css'
+import 'prismjs/themes/prism.min.css'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
 
@@ -437,7 +438,6 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
           initialValue={(() => { const v = settings.find((s) => s.key === 'calloutCustomCss')?.value; const s = stringifyValue(v); return s && s.trim() ? s : DEFAULT_CALLOUT_CSS })()}
           onSave={(css) => save('calloutCustomCss', css)}
           onReset={() => save('calloutCustomCss', DEFAULT_CALLOUT_CSS)}
-          isPending={isPending}
         />
       </Card>
 
@@ -451,19 +451,16 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
   )
 }
 
-function CalloutCssEditor({ initialValue, onSave, onReset, isPending }: {
+function CalloutCssEditor({ initialValue, onSave, onReset }: {
   initialValue: string
   onSave: (css: string) => void
   onReset: () => void
-  isPending: boolean
 }) {
   const [code, setCode] = useState(initialValue)
   const [validation, setValidation] = useState<{ valid: boolean; error?: string; checking?: boolean } | null>(null)
-  const [saveEnabled, setSaveEnabled] = useState(false)
 
   useEffect(() => {
     if (code === initialValue) {
-      setSaveEnabled(false)
       setValidation(null)
       return
     }
@@ -477,14 +474,15 @@ function CalloutCssEditor({ initialValue, onSave, onReset, isPending }: {
         })
         const data = await res.json()
         setValidation({ valid: data.valid, error: data.error })
-        setSaveEnabled(data.valid)
       } catch {
         setValidation({ valid: false, error: '校验请求失败' })
-        setSaveEnabled(false)
       }
     }, 500)
     return () => clearTimeout(timer)
   }, [code, initialValue])
+
+  const changed = code !== initialValue
+  const canSave = changed && validation?.valid === true
 
   return (
     <div className="mt-5 space-y-3">
@@ -494,27 +492,24 @@ function CalloutCssEditor({ initialValue, onSave, onReset, isPending }: {
           onValueChange={setCode}
           highlight={(css) => Prism.highlight(css, Prism.languages.css, 'css')}
           padding={12}
-          textareaClassName="font-mono text-xs"
+          textareaClassName="font-mono text-xs outline-none"
           style={{
             fontFamily: 'var(--font-mono, ui-monospace, monospace)',
             fontSize: '0.75rem',
             minHeight: '20rem',
-            backgroundColor: 'var(--color-bg-secondary, #f5f5f5)',
+            backgroundColor: 'transparent',
           }}
         />
       </div>
-      {validation?.checking && <p className="text-xs text-neutral-400">正在校验…</p>}
+      {validation?.checking && <p className="text-xs text-neutral-400">正在校验语法…</p>}
       {validation?.valid === false && validation.error && (
         <p className="rounded-md bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-950/30 dark:text-red-400">⚠ {validation.error}</p>
-      )}
-      {validation?.valid === true && code !== initialValue && (
-        <p className="text-xs text-green-600 dark:text-green-400">✓ 校验通过</p>
       )}
       <div className="flex items-center gap-3">
         <button
           type="button"
-          onClick={() => onSave(code)}
-          disabled={!saveEnabled || isPending}
+          onClick={() => canSave && onSave(code)}
+          disabled={!canSave}
           className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-40 dark:bg-neutral-100 dark:text-neutral-950"
         >
           保存
@@ -522,12 +517,10 @@ function CalloutCssEditor({ initialValue, onSave, onReset, isPending }: {
         <button
           type="button"
           onClick={() => { setCode(DEFAULT_CALLOUT_CSS); onReset() }}
-          disabled={isPending}
-          className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 disabled:opacity-60 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
+          className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
         >
           重置为默认
         </button>
-        {isPending && <span className="text-sm text-neutral-500">正在保存…</span>}
       </div>
     </div>
   )
