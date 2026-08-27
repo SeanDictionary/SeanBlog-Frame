@@ -3,7 +3,10 @@ import type { Route } from 'next'
 import Link from 'next/link'
 
 import { Pagination } from '@/components/pagination'
+import { getSiteSettingsMap } from '@/lib/services/setting-service'
 import { listPublicTags } from '@/lib/services/tag-service'
+import { normalizeThemeName } from '@/lib/theme'
+import { resolveThemePage } from '@/lib/theme/resolver'
 
 type TagsPageProps = {
   searchParams: Promise<{ page?: string }>
@@ -25,7 +28,22 @@ function pageHref(page: number): Route {
 export default async function TagsPage({ searchParams }: TagsPageProps) {
   const { page: pageParam } = await searchParams
   const page = parsePage(pageParam)
-  const result = await listPublicTags({ page, pageSize: 50 })
+  const [result, settings] = await Promise.all([
+    listPublicTags({ page, pageSize: 50 }),
+    getSiteSettingsMap(),
+  ])
+
+  const themePage = await resolveThemePage(normalizeThemeName(settings.activeTheme), 'tags-index')
+  if (themePage) {
+    const themePageData = {
+      tags: result.items,
+      pagination: result.meta,
+      settings,
+      components: {},
+    } as any
+    const ThemePageComponent = themePage
+    return <ThemePageComponent data={themePageData} />
+  }
 
   return (
     <div className="mx-auto max-w-(--content-max-width) px-(--content-padding) py-12 sm:py-18">

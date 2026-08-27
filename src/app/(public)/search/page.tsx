@@ -8,6 +8,7 @@ import { HighlightedText } from '@/components/search/highlighted-text'
 import { searchArticles } from '@/lib/services/article-service'
 import { getSiteSettingsMap } from '@/lib/services/setting-service'
 import { normalizeThemeName, readThemeTemplate } from '@/lib/theme'
+import { resolveThemePage } from '@/lib/theme/resolver'
 import { orderThemeSlots } from '@/lib/theme-slots'
 
 type SearchPageProps = {
@@ -74,6 +75,19 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     pagination: <Pagination currentPage={result.meta.page} pageCount={result.meta.pageCount} hrefForPage={pageHref} />,
   }
   const slots = orderThemeSlots(['search-box', 'search-results', 'pagination'], template?.slots)
+
+  const themePage = await resolveThemePage(normalizeThemeName(settings.activeTheme), 'search')
+  if (themePage) {
+    const themePageData = {
+      query,
+      articles: result.items,
+      pagination: result.meta,
+      settings,
+      components: {},
+    } as any
+    const ThemePageComponent = themePage
+    return <ThemePageComponent data={themePageData} />
+  }
 
   return (
     <div className="mx-auto max-w-(--content-max-width) px-(--content-padding) py-12 sm:py-18">

@@ -9,6 +9,7 @@ import { getPublicCategoryBySlug } from '@/lib/services/category-service'
 import { listPublicArticles } from '@/lib/services/article-service'
 import { getSiteSettingsMap } from '@/lib/services/setting-service'
 import { normalizeThemeName, readThemeTemplate } from '@/lib/theme'
+import { resolveThemePage } from '@/lib/theme/resolver'
 import { orderThemeSlots } from '@/lib/theme-slots'
 
 type CategoryPageProps = {
@@ -49,6 +50,24 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
       pagination: <Pagination currentPage={result.meta.page} pageCount={result.meta.pageCount} hrefForPage={pageHref} />,
     }
     const slots = orderThemeSlots(['taxonomy-header', 'article-list', 'pagination'], template?.slots)
+
+    const themePage = await resolveThemePage(normalizeThemeName(settings.activeTheme), 'taxonomy')
+    if (themePage) {
+      const themePageData = {
+        taxonomy: {
+          name: category.name,
+          slug: category.slug,
+          description: category.description,
+          type: 'category',
+        },
+        articles: result.items,
+        pagination: result.meta,
+        settings,
+        components: {},
+      } as any
+      const ThemePageComponent = themePage
+      return <ThemePageComponent data={themePageData} />
+    }
 
     return (
       <div className="mx-auto max-w-(--content-max-width) px-(--content-padding) py-12 sm:py-18">

@@ -17,10 +17,11 @@ const maxThemeFileCount = 200
 export type ThemeSettingSchemaItem = {
   key: string
   label: string
-  type: 'text' | 'color' | 'number' | 'boolean' | 'select'
-  default?: string | number | boolean
+  type: 'text' | 'color' | 'number' | 'boolean' | 'select' | 'list' | 'multiselect'
+  default?: string | number | boolean | string[] | Array<Record<string, string>>
   cssVariable?: string
   options?: Array<{ label: string; value: string }>
+  itemFields?: Array<{ key: string; label: string; type: 'text' | 'color' | 'number' | 'boolean' | 'select' }>
 }
 
 export type ThemePackageManifest = {
@@ -39,6 +40,7 @@ export type ThemePackageManifest = {
   parts?: Record<string, string>
   settingsSchema?: ThemeSettingSchemaItem[]
   blocks?: string[]
+  base?: string
 }
 
 export type ThemeTemplate = {

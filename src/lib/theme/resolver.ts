@@ -51,45 +51,47 @@ export async function resolveThemePage(
   const cached = moduleCache.get(cacheKey)
   if (cached) return cached
 
-  // 检查引擎版本
+  // 检查引擎版本 + 获取 base 声明
   const manifest = await readThemeManifest(themeSlug).catch(() => null)
   if (manifest && manifest.engineVersion !== CURRENT_ENGINE_VERSION) {
     console.warn(`[theme] 主题 "${themeSlug}" engineVersion=${manifest.engineVersion} 不兼容当前版本 ${CURRENT_ENGINE_VERSION}，降级到 slot 系统`)
     return null
   }
 
-  // Dev 模式：Next.js 原生 import
-  if (process.env.NODE_ENV === 'development') {
-    const component = await tryDevImport(themeSlug, pageKey)
-    if (component) {
-      moduleCache.set(cacheKey, component)
-      return component
-    }
-    // 尝试默认主题
-    if (themeSlug !== DEFAULT_THEME) {
-      const fallback = await tryDevImport(DEFAULT_THEME, pageKey)
-      if (fallback) {
-        moduleCache.set(cacheKey, fallback)
-        return fallback
-      }
-    }
-    return null
-  }
-
-  // Production 模式：esbuild 编译 + Module._compile
-  const component = await tryProdLoad(themeSlug, pageKey)
+  // 尝试活跃主题
+  const component = await tryLoad(themeSlug, pageKey)
   if (component) {
     moduleCache.set(cacheKey, component)
     return component
   }
-  if (themeSlug !== DEFAULT_THEME) {
-    const fallback = await tryProdLoad(DEFAULT_THEME, pageKey)
+
+  // 尝试 base 主题（如果声明了 base）
+  if (manifest?.base && manifest.base !== themeSlug) {
+    const baseComponent = await tryLoad(manifest.base, pageKey)
+    if (baseComponent) {
+      moduleCache.set(cacheKey, baseComponent)
+      return baseComponent
+    }
+  }
+
+  // 尝试默认主题
+  if (themeSlug !== DEFAULT_THEME && (!manifest?.base || manifest.base !== DEFAULT_THEME)) {
+    const fallback = await tryLoad(DEFAULT_THEME, pageKey)
     if (fallback) {
       moduleCache.set(cacheKey, fallback)
       return fallback
     }
   }
   return null
+}
+
+// --- 统一加载函数 ---
+
+async function tryLoad(slug: string, pageKey: PageType): Promise<ComponentType<any> | null> {
+  if (process.env.NODE_ENV === 'development') {
+    return tryDevImport(slug, pageKey)
+  }
+  return tryProdLoad(slug, pageKey)
 }
 
 // --- Dev 模式 ---

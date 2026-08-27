@@ -13,6 +13,7 @@ import { isDatabaseError } from '@/lib/database-errors'
 import { getPublicArticleBySlug, getPublicArticleNavigation } from '@/lib/services/article-service'
 import { getSiteSettingsMap } from '@/lib/services/setting-service'
 import { normalizeThemeName, readThemeTemplate } from '@/lib/theme'
+import { resolveThemePage } from '@/lib/theme/resolver'
 import { orderThemeSlots } from '@/lib/theme-slots'
 
 type ArticlePageProps = {
@@ -134,6 +135,33 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
       toc: <ArticleToc headings={headings} />,
     }
     const slots = orderThemeSlots(['article-header', 'article-content', 'article-navigation', 'comments', 'toc'], template?.slots)
+
+    const themePage = await resolveThemePage(normalizeThemeName(settings.activeTheme), 'article-detail')
+    if (themePage) {
+      const themePageData = {
+        article,
+        contentHtml,
+        toc: headings,
+        readingMinutes,
+        wordCount,
+        commentsMode,
+        navigation,
+        comments: article.comments,
+        metaVisibility: {
+          showPublishedAt,
+          showViewCount,
+          showReadingTime,
+          showWordCount,
+          showCategory,
+          showTags,
+          order: normalizeArticleMetaOrder(settings.articleMetaOrder),
+        },
+        settings,
+        components: {},
+      } as any
+      const ThemePageComponent = themePage
+      return <ThemePageComponent data={themePageData} />
+    }
 
     return (
       <div className="mx-auto max-w-6xl px-(--content-padding) py-12 sm:py-18">

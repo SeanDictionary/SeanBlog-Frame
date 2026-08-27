@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card } from '@/components/ui/card'
+import type { ThemeSettingSchemaItem, ThemePackageSummary } from '@/lib/theme'
 
 type Setting = {
   id: string
@@ -10,24 +11,9 @@ type Setting = {
   value: unknown
 }
 
-type ThemeSettingSchemaItem = {
-  key: string
-  label: string
-  type: 'text' | 'color' | 'number' | 'boolean' | 'select'
-  default?: string | number | boolean
-  cssVariable?: string
-  options?: Array<{ label: string; value: string }>
-}
 
-type ThemePackageSummary = {
-  slug: string
-  name: string
-  version: string
-  author?: string
-  description?: string
-  previewImage?: string
-  settingsSchema: ThemeSettingSchemaItem[]
-}
+
+
 
 type PersonalizationManagerProps = {
   initialSettings: Setting[]
@@ -291,9 +277,55 @@ export function PersonalizationManager({ initialSettings, availableThemes }: Per
 function ThemeSettingField({ item, value }: { item: ThemeSettingSchemaItem; value: unknown }) {
   if (item.type === 'boolean') return <Toggle name={item.key} label={item.label} checked={value === true} />
   if (item.type === 'select') return <label className="grid gap-1.5 text-sm">{item.label}<select name={item.key} defaultValue={String(value)} className="h-10 rounded-md border border-neutral-300 bg-white px-3 dark:border-neutral-700 dark:bg-neutral-900">{item.options?.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+  if (item.type === 'multiselect') return <MultiselectField item={item} value={value} />
+  if (item.type === 'list') return <ListField item={item} value={value} />
   return <label className="grid gap-1.5 text-sm">{item.label}<input name={item.key} type={item.type === 'color' ? 'color' : item.type === 'number' ? 'number' : 'text'} defaultValue={String(value)} className="h-10 rounded-md border border-neutral-300 bg-white px-3 font-mono dark:border-neutral-700 dark:bg-neutral-900" /></label>
 }
 
 function Toggle({ name, label, checked }: { name: string; label: string; checked: boolean }) {
   return <label className="inline-flex items-center gap-2 text-sm"><input name={name} type="checkbox" defaultChecked={checked} /> {label}</label>
+}
+
+function MultiselectField({ item, value }: { item: ThemeSettingSchemaItem; value: unknown }) {
+  const selected = Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : []
+  return (
+    <div className="grid gap-1.5 text-sm">
+      <span>{item.label}</span>
+      <div className="flex flex-wrap gap-2">
+        {item.options?.map((option) => (
+          <label key={option.value} className="inline-flex items-center gap-1.5 rounded-full border border-neutral-300 px-3 py-1.5 text-xs dark:border-neutral-700">
+            <input type="checkbox" name={`${item.key}__${option.value}`} defaultChecked={selected.includes(option.value)} />
+            {option.label}
+          </label>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function ListField({ item, value }: { item: ThemeSettingSchemaItem; value: unknown }) {
+  const items = Array.isArray(value) ? value.filter((v): v is Record<string, string> => typeof v === 'object' && v !== null) : []
+  const fields = item.itemFields ?? []
+  return (
+    <div className="grid gap-2 text-sm">
+      <span>{item.label}</span>
+      <div className="space-y-2">
+        {items.map((entry, index) => (
+          <div key={index} className="flex flex-wrap gap-2">
+            {fields.map((field) => (
+              <input
+                key={field.key}
+                name={`${item.key}[${index}].${field.key}`}
+                type={field.type === 'number' ? 'number' : field.type === 'color' ? 'color' : 'text'}
+                defaultValue={entry[field.key] ?? ''}
+                placeholder={field.label}
+                className="h-9 rounded-md border border-neutral-300 bg-white px-2 text-xs dark:border-neutral-700 dark:bg-neutral-900"
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+      <p className="text-xs text-neutral-400">共 {items.length} 条。删除请清空内容后保存。</p>
+    </div>
+  )
 }
