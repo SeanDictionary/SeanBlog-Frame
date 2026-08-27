@@ -15,8 +15,8 @@ function HeroSection({ settings }: { settings: Record<string, unknown> }) {
   const siteDescription = typeof settings.siteDescription === 'string' && settings.siteDescription ? settings.siteDescription : ''
   return (
     <section className="cf-hero border-b border-border px-[var(--layout-gap)] py-12 text-center">
-      <h1 className="text-3xl font-bold" style={{ fontFamily: 'var(--font-heading)' }}>{siteName}</h1>
-      {siteDescription && <p className="mt-3 text-sm text-text-secondary">{siteDescription}</p>}
+      <h1 className="text-4xl font-bold" style={{ fontFamily: 'var(--font-heading)' }}>{siteName}</h1>
+      {siteDescription && <p className="mt-3 text-base text-text-secondary">{siteDescription}</p>}
     </section>
   )
 }
@@ -32,15 +32,15 @@ function ArticleListItem({ article, listSeparator }: { article: Article; listSep
       className={`group block transition-colors hover:border-border-hover ${separatorClass}`}
     >
       <div className="flex items-baseline justify-between gap-4">
-        <h2 className="text-base font-semibold transition-colors group-hover:text-accent">{article.title}</h2>
+        <h2 className="text-lg font-semibold transition-colors group-hover:text-accent">{article.title}</h2>
         {article.publishedAt && article.publishedAt instanceof Date && (
-          <time dateTime={article.publishedAt.toISOString()} className="shrink-0 text-xs text-text-tertiary">
+          <time dateTime={article.publishedAt.toISOString()} className="shrink-0 text-sm text-text-tertiary">
             {new Intl.DateTimeFormat('zh-CN', { month: '2-digit', day: '2-digit' }).format(article.publishedAt)}
           </time>
         )}
       </div>
-      {article.excerpt && <p className="mt-1.5 line-clamp-2 text-sm leading-6 text-text-secondary">{article.excerpt}</p>}
-      <div className="mt-2 flex items-center gap-3 text-xs text-text-tertiary">
+      {article.excerpt && <p className="mt-1.5 line-clamp-2 text-base leading-6 text-text-secondary">{article.excerpt}</p>}
+      <div className="mt-2 flex items-center gap-3 text-sm text-text-tertiary">
         {article.category && <span>{article.category.name}</span>}
         {article.tags.slice(0, 3).map((t) => (
           <span key={t.id}>#{t.name}</span>
@@ -63,9 +63,9 @@ function ArticleCard({ article }: { article: Article }) {
         </div>
       )}
       <div className="p-4">
-        <h2 className="text-base font-semibold transition-colors group-hover:text-accent">{article.title}</h2>
-        {article.excerpt && <p className="mt-2 line-clamp-2 text-sm text-text-secondary">{article.excerpt}</p>}
-        <div className="mt-3 flex items-center gap-2 text-xs text-text-tertiary">
+        <h2 className="text-lg font-semibold transition-colors group-hover:text-accent">{article.title}</h2>
+        {article.excerpt && <p className="mt-2 line-clamp-2 text-base text-text-secondary">{article.excerpt}</p>}
+        <div className="mt-3 flex items-center gap-2 text-sm text-text-tertiary">
           {article.publishedAt && article.publishedAt instanceof Date && (
             <time>{new Intl.DateTimeFormat('zh-CN', { month: '2-digit', day: '2-digit' }).format(article.publishedAt)}</time>
           )}
@@ -109,19 +109,19 @@ function SidebarContent({ items, sidebarData, settings }: {
         if (item === 'profile') {
           return (
             <div key="profile" className="rounded-[var(--radius)] bg-[var(--color-muted-bg)] p-4">
-              <h3 className="text-sm font-bold">{siteName}</h3>
-              {siteDescription && <p className="mt-2 text-xs leading-5 text-text-secondary">{siteDescription}</p>}
+              <h3 className="text-base font-bold">{siteName}</h3>
+              {siteDescription && <p className="mt-2 text-sm leading-5 text-text-secondary">{siteDescription}</p>}
             </div>
           )
         }
         if (item === 'recent' && sidebarData?.recentArticles && sidebarData.recentArticles.length > 0) {
           return (
             <div key="recent" className="rounded-[var(--radius)] bg-[var(--color-muted-bg)] p-4">
-              <h3 className="mb-3 text-sm font-bold">最近</h3>
+              <h3 className="mb-3 text-base font-bold">最近</h3>
               <ul className="space-y-1.5">
                 {sidebarData.recentArticles.map((a) => (
                   <li key={a.id}>
-                    <Link href={`/articles/${a.slug}` as Route} className="block truncate text-xs text-text-secondary transition-colors hover:text-accent">
+                    <Link href={`/articles/${a.slug}` as Route} className="block truncate text-sm text-text-secondary transition-colors hover:text-accent">
                       {a.title}
                     </Link>
                   </li>
@@ -133,10 +133,10 @@ function SidebarContent({ items, sidebarData, settings }: {
         if (item === 'tags' && sidebarData?.tags && sidebarData.tags.length > 0) {
           return (
             <div key="tags" className="rounded-[var(--radius)] bg-[var(--color-muted-bg)] p-4">
-              <h3 className="mb-3 text-sm font-bold">标签</h3>
+              <h3 className="mb-3 text-base font-bold">标签</h3>
               <div className="flex flex-wrap gap-1.5">
                 {sidebarData.tags.map((t) => (
-                  <Link key={t.id} href={`/tags/${t.slug}` as Route} className="rounded-[var(--radius-sm)] bg-[rgba(0,0,0,0.15)] px-2 py-0.5 text-xs text-text-secondary transition-colors hover:text-accent">
+                  <Link key={t.id} href={`/tags/${t.slug}` as Route} className="rounded-[var(--radius-sm)] bg-[rgba(0,0,0,0.15)] px-2 py-0.5 text-sm text-text-secondary transition-colors hover:text-accent">
                     {t.name}
                   </Link>
                 ))}
@@ -147,10 +147,10 @@ function SidebarContent({ items, sidebarData, settings }: {
         if (item === 'categories' && sidebarData?.categories && sidebarData.categories.length > 0) {
           return (
             <div key="categories" className="rounded-[var(--radius)] bg-[var(--color-muted-bg)] p-4">
-              <h3 className="mb-3 text-sm font-bold">分类</h3>
+              <h3 className="mb-3 text-base font-bold">分类</h3>
               <ul className="space-y-1.5">
                 {sidebarData.categories.map((c) => (
-                  <li key={c.id} className="flex items-baseline justify-between text-xs">
+                  <li key={c.id} className="flex items-baseline justify-between text-sm">
                     <Link href={`/categories/${c.slug}` as Route} className="text-text-secondary transition-colors hover:text-accent">{c.name}</Link>
                     <span className="text-text-tertiary">{c._count.articles}</span>
                   </li>
@@ -204,10 +204,10 @@ export default function CardinalHomePage({ data }: { data: HomePageData }) {
           {/* 主内容 — 固定宽度，不被侧边栏挤占 */}
           <div className="min-w-0 w-[var(--layout-content-max-width)]">
           <div className="mb-4 flex items-center justify-between">
-            <h1 className="text-2xl font-bold" style={{ fontFamily: 'var(--font-heading)' }}>
+            <h1 className="text-3xl font-bold" style={{ fontFamily: 'var(--font-heading)' }}>
               {showFeatured ? '最新文章' : '文章'}
             </h1>
-            <nav className="flex gap-3 text-xs">
+            <nav className="flex gap-3 text-sm">
               {sortOptions.map((option) => (
                 <Link
                   key={option.value}
@@ -222,7 +222,7 @@ export default function CardinalHomePage({ data }: { data: HomePageData }) {
 
           {showFeatured && pinned.length > 0 && (
             <section className="mb-8">
-              <h2 className="mb-3 text-sm font-bold text-text-secondary">精选</h2>
+              <h2 className="mb-3 text-base font-bold text-text-secondary">精选</h2>
               <ArticleList articles={pinned} settings={settings} />
             </section>
           )}

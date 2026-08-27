@@ -37,8 +37,8 @@ export default function CardinalArticleDetailPage({ data }: { data: ArticleDetai
 
         <article className="min-w-0 w-[var(--layout-content-max-width)]">
           <header className="mb-8">
-            <p className="mb-2 text-xs text-text-tertiary">文章</p>
-            <h1 className="text-3xl font-bold leading-tight" style={{ fontFamily: 'var(--font-heading)' }}>
+            <p className="mb-2 text-sm text-text-tertiary">文章</p>
+            <h1 className="text-4xl font-bold leading-tight" style={{ fontFamily: 'var(--font-heading)' }}>
               {article.title}
             </h1>
             {article.coverImage && (

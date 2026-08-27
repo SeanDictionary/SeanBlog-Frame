@@ -31,7 +31,7 @@ export function MobileSidebar({ children, side = 'right' }: MobileSidebarProps) 
           side === 'left' ? 'left-2' : 'right-2'
         }`}
       >
-        <i className="fa-solid fa-bars text-sm" />
+        <i className="fa-solid fa-bars text-base" />
       </button>
 
       {/* Mobile: drawer overlay */}
@@ -53,7 +53,7 @@ export function MobileSidebar({ children, side = 'right' }: MobileSidebarProps) 
           aria-label="关闭侧边栏"
           className="mb-4 flex h-8 w-8 items-center justify-center rounded-[var(--radius)] text-text-secondary transition-colors hover:text-text"
         >
-          <i className="fa-solid fa-xmark text-lg" />
+          <i className="fa-solid fa-xmark text-xl" />
         </button>
         {children}
       </aside>

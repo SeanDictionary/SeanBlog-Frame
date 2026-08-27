@@ -35,9 +35,9 @@ export function ThemeToggle() {
       className="flex h-8 w-8 items-center justify-center rounded-[var(--radius)] text-text-secondary transition-colors hover:text-text"
     >
       {theme === 'dark' ? (
-        <i className="fa-solid fa-sun text-sm" />
+        <i className="fa-solid fa-sun text-base" />
       ) : (
-        <i className="fa-solid fa-moon text-sm" />
+        <i className="fa-solid fa-moon text-base" />
       )}
     </button>
   )

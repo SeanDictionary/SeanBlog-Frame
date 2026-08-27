@@ -21,9 +21,9 @@ export default function CardinalTaxonomyPage({ data }: { data: TaxonomyPageData 
       <style>{buildDynamicCss(settings)}</style>
       <div className="flex justify-center px-4 py-12"><div className="w-[var(--layout-content-max-width)]">
         <header className="mb-8 border-b border-border pb-6">
-          <p className="mb-1 text-xs text-text-tertiary">{taxonomy.type === 'category' ? '分类' : '标签'}</p>
-          <h1 className="text-3xl font-bold" style={{ fontFamily: 'var(--font-heading)' }}>{taxonomy.name}</h1>
-          {taxonomy.description && <p className="mt-2 text-sm text-text-secondary">{taxonomy.description}</p>}
+          <p className="mb-1 text-sm text-text-tertiary">{taxonomy.type === 'category' ? '分类' : '标签'}</p>
+          <h1 className="text-4xl font-bold" style={{ fontFamily: 'var(--font-heading)' }}>{taxonomy.name}</h1>
+          {taxonomy.description && <p className="mt-2 text-base text-text-secondary">{taxonomy.description}</p>}
         </header>
 
         {articles.length > 0 ? (
@@ -42,8 +42,8 @@ export default function CardinalTaxonomyPage({ data }: { data: TaxonomyPageData 
                     </div>
                   )}
                   <div className="p-4">
-                    <h2 className="text-base font-semibold transition-colors group-hover:text-accent">{article.title}</h2>
-                    {article.excerpt && <p className="mt-2 line-clamp-2 text-sm text-text-secondary">{article.excerpt}</p>}
+                    <h2 className="text-lg font-semibold transition-colors group-hover:text-accent">{article.title}</h2>
+                    {article.excerpt && <p className="mt-2 line-clamp-2 text-base text-text-secondary">{article.excerpt}</p>}
                   </div>
                 </Link>
               ))}
@@ -60,14 +60,14 @@ export default function CardinalTaxonomyPage({ data }: { data: TaxonomyPageData 
                   }`}
                 >
                   <div className="flex items-baseline justify-between gap-4">
-                    <h2 className="text-base font-semibold transition-colors group-hover:text-accent">{article.title}</h2>
+                    <h2 className="text-lg font-semibold transition-colors group-hover:text-accent">{article.title}</h2>
                     {article.publishedAt && article.publishedAt instanceof Date && (
-                      <time className="shrink-0 text-xs text-text-tertiary">
+                      <time className="shrink-0 text-sm text-text-tertiary">
                         {new Intl.DateTimeFormat('zh-CN', { month: '2-digit', day: '2-digit' }).format(article.publishedAt)}
                       </time>
                     )}
                   </div>
-                  {article.excerpt && <p className="mt-1.5 line-clamp-2 text-sm text-text-secondary">{article.excerpt}</p>}
+                  {article.excerpt && <p className="mt-1.5 line-clamp-2 text-base text-text-secondary">{article.excerpt}</p>}
                 </Link>
               ))}
             </div>

@@ -1,5 +1,4 @@
 :root {
-  font-size: 18px;
   --font-sans: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   --font-heading: var(--font-sans);
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -70,12 +69,12 @@
 
 .sb-site-brand {
   font-weight: 700;
-  font-size: 1.125rem;
+  font-size: 1.25rem;
   font-family: var(--font-heading);
 }
 
 .sb-site-nav a {
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
 }
 
 .sb-site-footer {
@@ -83,7 +82,7 @@
 }
 
 .article-content {
-  font-size: 1rem;
+  font-size: 1.125rem;
   line-height: 1.75;
 }
 

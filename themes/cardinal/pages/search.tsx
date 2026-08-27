@@ -19,9 +19,9 @@ export default function CardinalSearchPage({ data }: { data: SearchPageData }) {
       <style>{buildDynamicCss(settings)}</style>
       <div className="flex justify-center px-4 py-12"><div className="w-[var(--layout-content-max-width)]">
         <header className="mb-8 border-b border-border pb-6">
-          <p className="mb-1 text-xs text-text-tertiary">搜索</p>
-          <h1 className="text-3xl font-bold" style={{ fontFamily: 'var(--font-heading)' }}>"{query}"</h1>
-          <p className="mt-2 text-sm text-text-tertiary">共 {pagination.total} 篇</p>
+          <p className="mb-1 text-sm text-text-tertiary">搜索</p>
+          <h1 className="text-4xl font-bold" style={{ fontFamily: 'var(--font-heading)' }}>"{query}"</h1>
+          <p className="mt-2 text-base text-text-tertiary">共 {pagination.total} 篇</p>
         </header>
 
         {articles.length > 0 ? (
@@ -40,8 +40,8 @@ export default function CardinalSearchPage({ data }: { data: SearchPageData }) {
                     </div>
                   )}
                   <div className="p-4">
-                    <h2 className="text-base font-semibold transition-colors group-hover:text-accent">{article.title}</h2>
-                    {article.excerpt && <p className="mt-2 line-clamp-2 text-sm text-text-secondary">{article.excerpt}</p>}
+                    <h2 className="text-lg font-semibold transition-colors group-hover:text-accent">{article.title}</h2>
+                    {article.excerpt && <p className="mt-2 line-clamp-2 text-base text-text-secondary">{article.excerpt}</p>}
                   </div>
                 </Link>
               ))}
@@ -57,8 +57,8 @@ export default function CardinalSearchPage({ data }: { data: SearchPageData }) {
                     separator === 'card' ? 'rounded-[var(--radius)] border border-border p-4' : 'py-6'
                   }`}
                 >
-                  <h2 className="text-base font-semibold transition-colors group-hover:text-accent">{article.title}</h2>
-                  {article.excerpt && <p className="mt-1.5 line-clamp-2 text-sm text-text-secondary">{article.excerpt}</p>}
+                  <h2 className="text-lg font-semibold transition-colors group-hover:text-accent">{article.title}</h2>
+                  {article.excerpt && <p className="mt-1.5 line-clamp-2 text-base text-text-secondary">{article.excerpt}</p>}
                 </Link>
               ))}
             </div>

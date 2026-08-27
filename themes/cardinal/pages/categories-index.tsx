@@ -18,8 +18,8 @@ export default function CardinalCategoriesIndexPage({ data }: { data: Categories
       <style>{buildDynamicCss(settings)}</style>
       <div className="flex justify-center px-4 py-12"><div className="w-[var(--layout-content-max-width)]">
         <header className="mb-8 border-b border-border pb-6">
-          <p className="mb-1 text-xs text-text-tertiary">索引</p>
-          <h1 className="text-3xl font-bold" style={{ fontFamily: 'var(--font-heading)' }}>分类</h1>
+          <p className="mb-1 text-sm text-text-tertiary">索引</p>
+          <h1 className="text-4xl font-bold" style={{ fontFamily: 'var(--font-heading)' }}>分类</h1>
         </header>
 
         {style === 'cards' ? (
@@ -31,9 +31,9 @@ export default function CardinalCategoriesIndexPage({ data }: { data: Categories
                 className="group block rounded-[var(--radius)] border border-border p-5 transition-colors hover:border-border-hover"
                 style={{ boxShadow: 'var(--shadow-card)' }}
               >
-                <h2 className="text-lg font-semibold transition-colors group-hover:text-accent">{cat.name}</h2>
-                {cat.description && <p className="mt-2 text-sm text-text-secondary">{cat.description}</p>}
-                <p className="mt-3 text-xs text-text-tertiary">{cat._count.articles} 篇文章</p>
+                <h2 className="text-xl font-semibold transition-colors group-hover:text-accent">{cat.name}</h2>
+                {cat.description && <p className="mt-2 text-base text-text-secondary">{cat.description}</p>}
+                <p className="mt-3 text-sm text-text-tertiary">{cat._count.articles} 篇文章</p>
               </Link>
             ))}
           </div>
@@ -45,8 +45,8 @@ export default function CardinalCategoriesIndexPage({ data }: { data: Categories
                 href={`/categories/${cat.slug}` as Route}
                 className="group flex items-baseline justify-between gap-4 border-b border-border py-5 transition-colors hover:border-border-hover"
               >
-                <h2 className="text-base font-semibold transition-colors group-hover:text-accent">{cat.name}</h2>
-                <span className="text-xs text-text-tertiary">{cat._count.articles}</span>
+                <h2 className="text-lg font-semibold transition-colors group-hover:text-accent">{cat.name}</h2>
+                <span className="text-sm text-text-tertiary">{cat._count.articles}</span>
               </Link>
             ))}
           </div>
