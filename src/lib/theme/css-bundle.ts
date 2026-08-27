@@ -7,9 +7,12 @@ import { DEFAULT_CALLOUT_CSS } from '@/lib/content/callout-css'
 
 async function buildThemeOptionsCss(themeSlug: string, settings: Record<string, unknown>): Promise<string | null> {
   const manifest = await readThemeManifest(themeSlug).catch(() => null)
-  if (!manifest?.settingsSchema?.length) return null
+  const schema = manifest?.settingsSchema
+  if (!schema) return null
+  const items = Object.values(schema).flat()
+  if (!items.length) return null
 
-  const variables = manifest.settingsSchema
+  const variables = items
     .map((item: ThemeSettingSchemaItem) => {
       if (!item.cssVariable) return null
       const value = settings[item.key] ?? item.default

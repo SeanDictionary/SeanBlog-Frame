@@ -4,7 +4,7 @@ import path from 'node:path'
 import { ThemesManager } from '@/components/admin/themes-manager'
 import { listSettings } from '@/lib/services/setting-service'
 import { getPrisma } from '@/lib/prisma'
-import { listThemes, readThemeManifest, type ThemeSettingSchemaItem } from '@/lib/theme'
+import { listThemes, readThemeManifest } from '@/lib/theme'
 
 function normalizeActiveTheme(value: unknown) {
   return typeof value === 'string' && value !== 'default' ? value : 'seanblog-default'
@@ -34,7 +34,8 @@ export default async function AdminThemesPage() {
   const dbSettings = dbRow?.settings && typeof dbRow.settings === 'object' && !Array.isArray(dbRow.settings)
     ? dbRow.settings as Record<string, unknown>
     : {}
-  for (const item of (manifest?.settingsSchema ?? []) as ThemeSettingSchemaItem[]) {
+  const schema = manifest?.settingsSchema ?? {}
+  for (const item of Object.values(schema).flat()) {
     themeSettings[item.key] = dbSettings[item.key] ?? item.default
   }
   // calloutCustomCss

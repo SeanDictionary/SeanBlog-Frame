@@ -9,27 +9,18 @@
   "assets": {
     "css": "assets/theme.css"
   },
-  "templates": {
-    "home": "templates/home.json",
-    "articleList": "templates/article-list.json",
-    "articleDetail": "templates/article-detail.json",
-    "taxonomy": "templates/taxonomy.json",
-    "search": "templates/search.json"
-  },
   "parts": {
-    "header": "parts/header.json",
-    "footer": "parts/footer.json"
+    "header": {
+      "blocks": [
+        "SiteHeader",
+        "SearchDialog"
+      ]
+    },
+    "footer": {
+      "blocks": [
+        "SiteFooter"
+      ]
+    }
   },
-  "settingsSchema": [],
-  "blocks": [
-    "SiteHeader",
-    "ArticleList",
-    "ArticleCard",
-    "ArticleContent",
-    "TaxonomyList",
-    "Pagination",
-    "SearchDialog",
-    "CommentList",
-    "SiteFooter"
-  ]
+  "settingsSchema": {}
 }

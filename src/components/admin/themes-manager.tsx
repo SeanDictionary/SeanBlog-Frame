@@ -119,7 +119,7 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
       setMessage(null)
       try {
         const newSettings: Record<string, unknown> = {}
-        for (const item of activeThemePackage.settingsSchema) {
+        for (const item of Object.values(activeThemePackage.settingsSchema).flat()) {
           if (item.type === 'boolean') {
             newSettings[item.key] = formData.get(item.key) === 'on'
           } else if (item.type === 'multiselect') {
@@ -245,31 +245,22 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
               <p className="mt-1 text-sm text-neutral-500">主题变量和提示框样式，随主题切换。</p>
             </div>
           </div>
-          {activeThemePackage.settingsSchema.length > 0 && (
+          {Object.keys(activeThemePackage.settingsSchema).length > 0 && (
             <form action={saveThemeSettings} className="mt-5">
-              {/* Group settings by group field */}
-              {(() => {
-                const groups: Record<string, typeof activeThemePackage.settingsSchema> = {}
-                for (const item of activeThemePackage.settingsSchema) {
-                  const g = item.group ?? '其他'
-                  if (!groups[g]) groups[g] = []
-                  groups[g].push(item)
-                }
-                return Object.entries(groups).map(([groupName, items]) => (
-                  <div key={groupName} className="mb-8">
-                    <h3 className="mb-4 border-b border-neutral-200 pb-2 text-sm font-semibold text-neutral-900 dark:border-neutral-800 dark:text-neutral-100">{groupName}</h3>
-                    <div className="divide-y divide-neutral-200 dark:divide-neutral-800">
-                      {items.map((item) => <SettingRow key={item.key} item={item} value={themeSettingValue(themeSettingsState, item)} />)}
-                    </div>
+              {Object.entries(activeThemePackage.settingsSchema).map(([groupName, items]) => (
+                <div key={groupName} className="mb-8">
+                  <h3 className="mb-4 border-b border-neutral-200 pb-2 text-sm font-semibold text-neutral-900 dark:border-neutral-800 dark:text-neutral-100">{groupName}</h3>
+                  <div className="divide-y divide-neutral-200 dark:divide-neutral-800">
+                    {items.map((item) => <SettingRow key={item.key} item={item} value={themeSettingValue(themeSettingsState, item)} />)}
                   </div>
-                ))
-              })()}
+                </div>
+              ))}
               <div className="mt-4">
                 <button type="submit" disabled={isPending} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950">保存主题设置</button>
               </div>
             </form>
           )}
-          {activeThemePackage.settingsSchema.length > 0 && <hr className="my-6 border-neutral-200 dark:border-neutral-800" />}
+          {Object.keys(activeThemePackage.settingsSchema).length > 0 && <hr className="my-6 border-neutral-200 dark:border-neutral-800" />}
           <CalloutCssEditor
             initialValue={(() => {
               const v = themeSettingsState.calloutCustomCss

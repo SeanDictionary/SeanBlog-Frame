@@ -8,23 +8,25 @@
 import { unstable_cache, revalidateTag, revalidatePath } from 'next/cache'
 
 import { getPrisma } from '@/lib/prisma'
-import { readThemeManifest, type ThemeSettingSchemaItem } from '@/lib/theme'
+import { readThemeManifest, type SettingsSchema } from '@/lib/theme'
 import { getSiteSettingsMapSafe } from '@/lib/services/setting-service'
 
 /** 合并数据库设置与 schema 默认值 */
 function mergeWithDefaults(
-  schema: ThemeSettingSchemaItem[] | undefined,
+  schema: SettingsSchema | undefined,
   dbSettings: Record<string, unknown>,
 ): Record<string, unknown> {
-  if (!schema?.length) return dbSettings
-
   const result: Record<string, unknown> = {}
-  for (const item of schema) {
-    const dbValue = dbSettings[item.key]
-    if (dbValue !== undefined) {
-      result[item.key] = dbValue
-    } else if (item.default !== undefined) {
-      result[item.key] = item.default
+  if (schema) {
+    for (const items of Object.values(schema)) {
+      for (const item of items) {
+        const dbValue = dbSettings[item.key]
+        if (dbValue !== undefined) {
+          result[item.key] = dbValue
+        } else if (item.default !== undefined) {
+          result[item.key] = item.default
+        }
+      }
     }
   }
   // 保留数据库中有但 schema 中没有的（如 calloutCustomCss）

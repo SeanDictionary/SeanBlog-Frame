@@ -26,8 +26,9 @@ export async function PUT(
 
     // Validate settings against theme schema
     const manifest = await readThemeManifest(slug)
-    const schema = manifest.settingsSchema ?? []
-    for (const item of schema) {
+    const schema = manifest.settingsSchema ?? {}
+    const allItems = Object.values(schema).flat()
+    for (const item of allItems) {
       const value = settings[item.key]
       if (value === undefined) continue
 

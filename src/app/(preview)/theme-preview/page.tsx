@@ -85,9 +85,12 @@ function parseSort(value: string | undefined): PublicArticleSort {
 
 async function buildThemeOptionsCss(themeSlug: string, settings: Record<string, unknown>) {
   const manifest = await readThemeManifest(themeSlug).catch(() => null)
-  if (!manifest?.settingsSchema?.length) return null
+  const schema = manifest?.settingsSchema
+  if (!schema) return null
+  const items = Object.values(schema).flat()
+  if (!items.length) return null
 
-  const variables = manifest.settingsSchema
+  const variables = items
     .map((item) => {
       if (!item.cssVariable) return null
       const value = settings[item.key] ?? item.default

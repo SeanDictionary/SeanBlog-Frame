@@ -18,13 +18,14 @@ export type ThemeSettingSchemaItem = {
   key: string
   label: string
   description?: string
-  group?: string
   type: 'text' | 'color' | 'number' | 'boolean' | 'select' | 'list' | 'multiselect'
   default?: string | number | boolean | string[] | Array<Record<string, string>>
   cssVariable?: string
   options?: Array<{ label: string; value: string }>
   itemFields?: Array<{ key: string; label: string; type: 'text' | 'color' | 'number' | 'boolean' | 'select' }>
 }
+
+export type SettingsSchema = Record<string, ThemeSettingSchemaItem[]>
 
 export type ThemePackageManifest = {
   slug: string
@@ -38,10 +39,8 @@ export type ThemePackageManifest = {
   assets?: {
     css?: string
   }
-  templates: Record<string, string>
-  parts?: Record<string, string>
-  settingsSchema?: ThemeSettingSchemaItem[]
-  blocks?: string[]
+  parts?: Record<string, ThemePart>
+  settingsSchema?: SettingsSchema
   base?: string
 }
 
@@ -52,7 +51,6 @@ export type ThemeTemplate = {
 }
 
 export type ThemePart = {
-  part?: string
   blocks?: string[]
 }
 
@@ -63,7 +61,7 @@ export type ThemePackageSummary = {
   author?: string
   description?: string
   previewImage?: string
-  settingsSchema: ThemeSettingSchemaItem[]
+  settingsSchema: SettingsSchema
 }
 
 type ZipEntry = {
@@ -111,50 +109,58 @@ function assertRecord(value: unknown, field: string) {
   return value as Record<string, unknown>
 }
 
-function validateSettingsSchema(value: unknown): ThemeSettingSchemaItem[] {
-  if (!Array.isArray(value)) return []
+function validateSettingsSchema(value: unknown): SettingsSchema {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
 
-  return value.map((item) => {
-    const record = assertRecord(item, 'settingsSchema item')
-    const type = record.type
+  const groups = value as Record<string, unknown>
+  const result: SettingsSchema = {}
 
-    if (!['text', 'color', 'number', 'boolean', 'select', 'list', 'multiselect'].includes(String(type))) {
-      throw badRequest('Theme settings schema contains an unsupported field type.', 'INVALID_THEME_MANIFEST')
-    }
+  for (const [groupName, groupValue] of Object.entries(groups)) {
+    if (!Array.isArray(groupValue)) continue
 
-    return {
-      key: assertString(record.key, 'settingsSchema.key'),
-      label: assertString(record.label, 'settingsSchema.label'),
-      description: typeof record.description === 'string' ? record.description : undefined,
-      group: typeof record.group === 'string' ? record.group : undefined,
-      type: type as ThemeSettingSchemaItem['type'],
-      default: typeof record.default === 'string' || typeof record.default === 'number' || typeof record.default === 'boolean'
-        ? record.default
-        : Array.isArray(record.default) ? record.default.filter((v: unknown) => typeof v === 'string') : undefined,
-      cssVariable: typeof record.cssVariable === 'string' ? record.cssVariable : undefined,
-      options: Array.isArray(record.options)
-        ? record.options.map((option) => {
-            const optionRecord = assertRecord(option, 'settingsSchema option')
-            return {
-              label: assertString(optionRecord.label, 'settingsSchema.options.label'),
-              value: assertString(optionRecord.value, 'settingsSchema.options.value'),
-            }
-          })
-        : undefined,
-      itemFields: Array.isArray(record.itemFields)
-        ? record.itemFields.map((field) => {
-            const fieldRecord = assertRecord(field, 'settingsSchema itemField')
-            return {
-              key: assertString(fieldRecord.key, 'settingsSchema.itemField.key'),
-              label: assertString(fieldRecord.label, 'settingsSchema.itemField.label'),
-              type: ['text', 'color', 'number', 'boolean', 'select'].includes(String(fieldRecord.type))
-                ? fieldRecord.type as 'text' | 'color' | 'number' | 'boolean' | 'select'
-                : 'text',
-            }
-          })
-        : undefined,
-    }
-  })
+    result[groupName] = groupValue.map((item) => {
+      const record = assertRecord(item, 'settingsSchema item')
+      const type = record.type
+
+      if (!['text', 'color', 'number', 'boolean', 'select', 'list', 'multiselect'].includes(String(type))) {
+        throw badRequest('Theme settings schema contains an unsupported field type.', 'INVALID_THEME_MANIFEST')
+      }
+
+      return {
+        key: assertString(record.key, 'settingsSchema.key'),
+        label: assertString(record.label, 'settingsSchema.label'),
+        description: typeof record.description === 'string' ? record.description : undefined,
+        type: type as ThemeSettingSchemaItem['type'],
+        default: typeof record.default === 'string' || typeof record.default === 'number' || typeof record.default === 'boolean'
+          ? record.default
+          : Array.isArray(record.default) ? record.default.filter((v: unknown) => typeof v === 'string') : undefined,
+        cssVariable: typeof record.cssVariable === 'string' ? record.cssVariable : undefined,
+        options: Array.isArray(record.options)
+          ? record.options.map((option) => {
+              const optionRecord = assertRecord(option, 'settingsSchema option')
+              return {
+                label: assertString(optionRecord.label, 'settingsSchema.options.label'),
+                value: assertString(optionRecord.value, 'settingsSchema.options.value'),
+              }
+            })
+          : undefined,
+        itemFields: Array.isArray(record.itemFields)
+          ? record.itemFields.map((field) => {
+              const fieldRecord = assertRecord(field, 'settingsSchema itemField')
+              return {
+                key: assertString(fieldRecord.key, 'settingsSchema.itemField.key'),
+                label: assertString(fieldRecord.label, 'settingsSchema.itemField.label'),
+                type: ['text', 'color', 'number', 'boolean', 'select'].includes(String(fieldRecord.type))
+                  ? fieldRecord.type as 'text' | 'color' | 'number' | 'boolean' | 'select'
+                  : 'text',
+              }
+            })
+          : undefined,
+      }
+    })
+  }
+
+  return result
 }
 
 function validateManifest(raw: unknown, expectedSlug?: string): ThemePackageManifest {
@@ -163,13 +169,6 @@ function validateManifest(raw: unknown, expectedSlug?: string): ThemePackageMani
 
   if (expectedSlug && slug !== expectedSlug) {
     throw badRequest('Theme manifest slug must match the theme directory name.', 'INVALID_THEME_MANIFEST')
-  }
-
-  const templates = assertRecord(manifest.templates, 'templates')
-  for (const requiredTemplate of ['home', 'articleDetail', 'taxonomy', 'search']) {
-    if (typeof templates[requiredTemplate] !== 'string') {
-      throw badRequest(`Theme manifest must declare template ${requiredTemplate}.`, 'INVALID_THEME_MANIFEST')
-    }
   }
 
   const assets = manifest.assets === undefined ? undefined : assertRecord(manifest.assets, 'assets')
@@ -189,12 +188,22 @@ function validateManifest(raw: unknown, expectedSlug?: string): ThemePackageMani
     engineVersion,
     previewImage: typeof manifest.previewImage === 'string' ? manifest.previewImage : undefined,
     assets: assets ? { css: typeof assets.css === 'string' ? assets.css : undefined } : undefined,
-    templates: Object.fromEntries(Object.entries(templates).filter((entry): entry is [string, string] => typeof entry[1] === 'string')),
     parts: manifest.parts && typeof manifest.parts === 'object' && !Array.isArray(manifest.parts)
-      ? Object.fromEntries(Object.entries(manifest.parts).filter((entry): entry is [string, string] => typeof entry[1] === 'string'))
+      ? Object.fromEntries(
+          Object.entries(manifest.parts)
+            .filter(([, v]) => v && typeof v === 'object' && !Array.isArray(v))
+            .map(([k, v]) => {
+              const rawBlocks = (v as Record<string, unknown>).blocks
+              return [k, {
+                blocks: Array.isArray(rawBlocks)
+                  ? rawBlocks.filter((b: unknown): b is string => typeof b === 'string')
+                  : [],
+              }]
+            })
+        )
       : undefined,
     settingsSchema: validateSettingsSchema(manifest.settingsSchema),
-    blocks: Array.isArray(manifest.blocks) ? manifest.blocks.filter((block): block is string => typeof block === 'string') : [],
+    base: typeof manifest.base === 'string' ? manifest.base : undefined,
   }
 }
 
@@ -376,7 +385,6 @@ function validatePart(raw: unknown): ThemePart {
   const record = assertRecord(raw, 'part')
 
   return {
-    part: typeof record.part === 'string' ? record.part : undefined,
     blocks: Array.isArray(record.blocks) ? record.blocks.filter((block): block is string => typeof block === 'string') : [],
   }
 }
@@ -417,7 +425,7 @@ export async function listThemes(): Promise<ThemePackageSummary[]> {
               author: manifest.author,
               description: manifest.description,
               previewImage: manifest.previewImage,
-              settingsSchema: manifest.settingsSchema ?? [],
+              settingsSchema: manifest.settingsSchema ?? {},
             }
             return summary
           } catch {
@@ -447,23 +455,14 @@ function rewriteThemeCssUrls(themeSlug: string, cssPath: string, css: string) {
   })
 }
 
-export async function readThemeTemplate(themeName: string, templateKey: string) {
-  try {
-    const manifest = await readThemeManifest(themeName)
-    const templatePath = manifest.templates[templateKey]
-    if (!templatePath) return null
-    return validateTemplate(await readJsonFile(resolveThemePath(manifest.slug, templatePath)))
-  } catch {
-    return null
-  }
+export async function readThemeTemplate(_themeName: string, _templateKey: string): Promise<ThemeTemplate | null> {
+  return null
 }
 
 export async function readThemePart(themeName: string, partKey: string) {
   try {
     const manifest = await readThemeManifest(themeName)
-    const partPath = manifest.parts?.[partKey]
-    if (!partPath) return null
-    return validatePart(await readJsonFile(resolveThemePath(manifest.slug, partPath)))
+    return manifest.parts?.[partKey] ?? null
   } catch {
     return null
   }
