@@ -111,7 +111,7 @@ export function PersonalizationManager({ initialSettings, availableThemes, callo
         }
 
         applySetting(data.setting)
-        setMessage('个性化设置已保存。')
+        setMessage(null)
         router.refresh()
       } catch (error) {
         setMessage(error instanceof Error ? error.message : '保存失败。')
@@ -131,7 +131,7 @@ export function PersonalizationManager({ initialSettings, availableThemes, callo
       try {
         const savedSettings = await persistSettings('public-layout', entries.map(([key, value]) => ({ key, value })))
         applySettings(savedSettings)
-        setMessage('个性化设置已保存。')
+        setMessage(null)
         router.refresh()
       } catch (error) {
         setMessage(error instanceof Error ? error.message : '保存失败。')
@@ -153,7 +153,7 @@ export function PersonalizationManager({ initialSettings, availableThemes, callo
         }))
         const savedSettings = await persistSettings('theme-settings', updates, activeThemePackage.slug)
         applySettings(savedSettings)
-        setMessage('主题包设置已保存。')
+        setMessage(null)
         router.refresh()
       } catch (error) {
         setMessage(error instanceof Error ? error.message : '主题设置保存失败。')
@@ -280,7 +280,7 @@ export function PersonalizationManager({ initialSettings, availableThemes, callo
         </Card>
       )}
 
-      {message && <p className="text-sm text-neutral-500" role="status">{message}</p>}
+      
     </div>
   )
 }

@@ -83,7 +83,9 @@ export function CalloutCssEditor({ initialValue, onSave, onReset, presetValue }:
             style={{
               fontFamily: 'var(--font-mono, ui-monospace, monospace)',
               fontSize: '0.75rem',
-              minHeight: '18rem',
+              minHeight: '16rem',
+            maxHeight: '16rem',
+            overflow: 'auto',
               backgroundColor: 'transparent',
             }}
           />
