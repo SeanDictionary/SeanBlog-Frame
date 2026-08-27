@@ -1,0 +1,1 @@
+{"template": "taxonomy", "layout": "card-grid", "slots": ["article-list", "pagination"]}
