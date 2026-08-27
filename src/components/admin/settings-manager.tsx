@@ -202,7 +202,7 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
       try {
         const setting = await persistSetting(key, value)
         setSettings((previous) => mergeSettings(previous, [setting]))
-        setMessage(`已保存${label ? ` ${label}` : ` ${key}`}。`)
+        setMessage(null)
         router.refresh()
       } catch (error) {
         reportError(error, '保存失败。')
@@ -217,7 +217,7 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
       try {
         const savedSettings = await Promise.all(updates.map((update) => persistSetting(update.key, update.value)))
         setSettings((previous) => mergeSettings(previous, savedSettings))
-        setMessage(successMessage)
+        setMessage(null)
         router.refresh()
       } catch (error) {
         reportError(error, '保存失败。')
@@ -232,7 +232,7 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
       try {
         const savedSettings = await persistSettings('analytics', updates)
         setSettings((previous) => mergeSettings(previous, savedSettings))
-        setMessage('已保存访问统计设置。')
+        setMessage(null)
         router.refresh()
       } catch (error) {
         reportError(error, '访问统计设置保存失败。')
@@ -247,7 +247,7 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
       try {
         const savedSettings = await persistSettings('site-info', updates)
         setSettings((previous) => mergeSettings(previous, savedSettings))
-        setMessage('已保存站点信息。')
+        setMessage(null)
         router.refresh()
       } catch (error) {
         reportError(error, '站点信息保存失败。')
@@ -283,7 +283,7 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
       try {
         const savedSettings = await persistSettings('article-meta', [...updates, { key: 'articleMetaOrder', value: visibleIds }])
         setSettings((previous) => mergeSettings(previous, savedSettings))
-        setMessage('已保存文章元数据设置。')
+        setMessage(null)
         router.refresh()
       } catch (error) {
         reportError(error, '文章元数据设置保存失败。')
@@ -441,7 +441,7 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
         />
       </Card>
 
-      {message && <p className="text-sm text-neutral-500" role="status">{message}</p>}
+      {message && <p className="text-sm text-red-600 dark:text-red-400" role="alert">{message}</p>}
     </div>
   )
 }
