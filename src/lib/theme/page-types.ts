@@ -50,9 +50,9 @@ export type HomePageData = {
     coverImage: string | null
     isPinned: boolean
     publishedAt: Date | null
-    updatedAt: Date | null
+    updatedAt?: Date | null
     viewCount: number
-    visitorCount: number
+    visitorCount?: number
     _count: { comments: number }
     category: { id: string; name: string; slug: string } | null
     tags: Array<{ id: string; name: string; slug: string; description: string | null }>
@@ -76,9 +76,9 @@ export type ArticleDetailPageData = {
     excerpt: string | null
     coverImage: string | null
     publishedAt: Date | null
-    updatedAt: Date | null
+    updatedAt?: Date | null
     viewCount: number
-    visitorCount: number
+    visitorCount?: number
     metaTitle: string | null
     metaDescription: string | null
     metaKeywords: string | null

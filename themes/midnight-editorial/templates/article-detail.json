@@ -1,0 +1,5 @@
+{
+  "template": "article-detail",
+  "layout": "centered-article",
+  "slots": ["toc", "article-header", "article-content", "article-navigation", "comments"]
+}

@@ -8,6 +8,7 @@ import { Pagination } from '@/components/pagination'
 import { listPublicArticles } from '@/lib/services/article-service'
 import { getSiteSettingsMap } from '@/lib/services/setting-service'
 import { normalizeThemeName, readThemeTemplate } from '@/lib/theme'
+import { resolveThemePage } from '@/lib/theme/resolver'
 import { orderThemeSlots } from '@/lib/theme-slots'
 import { publicArticleSortSchema, type PublicArticleSort } from '@/lib/validations/cms'
 
@@ -125,6 +126,22 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     pagination: <Pagination currentPage={result.meta.page} pageCount={result.meta.pageCount} hrefForPage={(nextPage) => pageHref(nextPage, sort)} />,
   }
   const slots = orderThemeSlots(['site-intro', 'pinned-articles', 'article-list', 'pagination'], template?.slots)
+
+  // 主题页面解析器：如果活跃主题提供了 JSX 页面，使用它；否则走 slot 系统
+  const themePage = await resolveThemePage(normalizeThemeName(settings.activeTheme), 'home')
+  if (themePage) {
+    const themePageData = {
+      articles: latest,
+      pinned,
+      pagination: result.meta,
+      sort,
+      sortOptions,
+      settings,
+      components: {},
+    } as any
+    const ThemePageComponent = themePage
+    return <ThemePageComponent data={themePageData} />
+  }
 
   return (
     <div className="mx-auto max-w-(--content-max-width) px-(--content-padding) py-12 sm:py-18">
