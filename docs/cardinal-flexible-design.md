@@ -709,3 +709,157 @@ CSS 代码结构：
 | **P4** | taxonomy / categories-index / tags-index / search | 其余 4 个页面文件 |
 | **P5** | 移动端抽屉 + 运行时色彩切换（ThemeToggle + cookie） | layout.tsx + 客户端组件 |
 | **P6** | 管理界面设置项渲染 | themes-manager.tsx |
+
+## 其他：自定义设置
+
+> 以下为 Cardinal 主题完整自定义设置列表，参照 Argon 主题设置 + 当前已有设置，重新设计。
+> 标注 ✅=当前已有，🆕=新增。
+
+---
+
+### 一、布局结构
+
+- ✅ 显示顶部栏 (showTopBar) [布尔] (true)
+  - 是否显示顶部导航栏，关闭后品牌和导航移入侧边栏
+
+- 🆕 顶部栏行为 (headerBehavior) [选择] (fixed-always)
+  - fixed-always：始终固定悬浮在页面最上方
+  - collapse-on-scroll：向下滚动时隐藏，向上滚动时显示
+  - static：仅在页面顶部时显示，不固定
+
+- ✅ 侧边栏位置 (sidebarPosition) [选择] (right)
+  - none / left / right / both
+
+- ✅ 侧边栏固定方式 (sidebarSticky) [选择] (sticky)
+  - static：不固定 / sticky：滚动吸顶 / fixed：全屏固定（Lazzaro 风格）
+
+- ✅ 侧边栏内容 (sidebarContent) [多选] (profile, recent, tags)
+  - profile：个人简介（站名+描述）
+  - recent：最近 5 篇文章
+  - tags：标签云
+  - categories：分类列表（带文章数）
+  - toc：文章目录（仅详情页有效）
+
+- ✅ 内容宽度 (contentWidth) [选择] (medium)
+  - narrow：36rem / medium：48rem / wide：60rem
+  - 此宽度为文章列表/正文宽度，侧边栏在旁边不挤占
+
+- ✅ 文章列表样式 (articleListStyle) [选择] (list)
+  - list：文字列表（纵向排列，标题+摘要+标签）
+  - cards：卡片网格（封面图+标题+摘要）
+
+- ✅ 列表分隔方式 (listSeparator) [选择] (border)
+  - border：底线分隔 / gap：间距分隔 / card：卡片包裹
+
+- ✅ 首页 Hero 区 (showHeroSection) [布尔] (true)
+  - 首页顶部是否显示站点名称和介绍区域
+
+- 🆕 Hero 区样式 (heroStyle) [选择] (minimal)
+  - minimal：站名+描述居中（当前样式）
+  - banner：全宽渐变背景+大标题
+  - fullscreen：全屏封面（仅首页）
+  - hidden：完全隐藏
+
+- ✅ 精选文章区 (showFeaturedSection) [布尔] (false)
+  - 首页是否拆分精选置顶 + 最新文章两个区块
+
+- 🆕 显示上下篇导航 (showArticleNav) [布尔] (true)
+  - 文章详情页底部是否显示上一篇/下一篇导航
+
+- 🆕 相似文章推荐 (relatedArticles) [选择] (off)
+  - off：不推荐 / by-category：按分类推荐 / by-tags：按标签推荐 / by-both：分类+标签
+  - 显示在文章详情页正文下方
+
+- 🆕 推荐文章数 (relatedArticlesCount) [数字] (3)
+  - 相似文章推荐最多显示几篇
+
+---
+
+### 二、视觉风格
+
+- ✅ 色彩模式 (colorMode) [选择] (dark)
+  - dark：深色 / light：浅色 / auto：跟随系统
+
+- ✅ 前台色彩切换按钮 (showThemeToggle) [布尔] (true)
+  - 是否在前台显示深浅色切换按钮
+
+- ✅ 正文字体 (fontFamily) [选择] (monospace)
+  - monospace：等宽 / sans：无衬线 / serif：衬线
+
+- ✅ 标题字体 (headingFontFamily) [选择] (same)
+  - same：跟随正文 / monospace / sans / serif
+
+- ✅ 强调色 (accentColor) [颜色] (#cf829e)
+  - 链接、悬停、强调色
+
+- ✅ 圆角大小 (borderRadius) [选择] (small)
+  - none / small / medium / large
+
+- 🆕 阴影样式 (shadowStyle) [选择] (none)
+  - 替代当前的 showShadow 布尔值，更细粒度控制
+  - none：无阴影 / light：浅阴影 / deep：深阴影
+
+- 🆕 顶栏毛玻璃效果 (headerBlur) [布尔] (true)
+  - 顶栏是否使用 backdrop-blur 毛玻璃效果
+
+- 🆕 文章标题装饰样式 (articleHeadingStyle) [选择] (default)
+  - default：默认样式（下划线）
+  - underline：标题底部彩色下划线
+  - bar-left：标题左侧彩色竖条
+
+- 🆕 代码块配色主题 (codeBlockTheme) [选择] (one-dark)
+  - one-dark / github-dark / github-light / nord / dracula
+  - 文章正文中代码块的语法高亮配色
+
+- 🆕 代码块显示行号 (showCodeLineNumbers) [布尔] (true)
+  - 代码块是否默认显示行号
+
+---
+
+### 三、文章详情
+
+- 🆕 文章元信息项 (articleMetaItems) [多选] (publishedAt, viewCount, category, tags)
+  - publishedAt：发布时间
+  - updatedAt：修改时间
+  - viewCount：浏览量
+  - commentCount：评论数
+  - category：所属分类
+  - tags：标签
+  - 顺序即显示顺序
+
+- 🆕 显示阅读时间 (showReadingTime) [布尔] (true)
+  - 文章详情页是否显示字数和预计阅读时间
+
+- 🆕 显示分享按钮 (showShareButtons) [布尔] (false)
+  - 文章详情页是否显示社交分享按钮
+
+- 🆕 目录显示序号 (showTocNumbers) [布尔] (false)
+  - 文章目录的标题是否显示序号（如 3.2.1）
+
+- 🆕 文章过时提示 (showOutdatedNotice) [布尔] (false)
+  - 当文章发布/修改时间距今超过阈值时，在文章顶部显示提示条
+
+- 🆕 过时阈值天数 (outdatedThresholdDays) [数字] (365)
+  - 超过多少天判定为过时，-1 表示永不提示
+
+---
+
+### 四、页脚 & 浮动操作
+
+- 🆕 显示返回顶部按钮 (showBackToTop) [布尔] (true)
+  - 页面右下角是否显示返回顶部浮动按钮
+
+- 🆕 显示跳转评论按钮 (showCommentJumpButton) [布尔] (false)
+  - 在允许评论的文章中显示跳转到底部评论区的浮动按钮
+
+---
+
+### 汇总
+
+| 分组 | 已有 | 新增 | 合计 |
+|---|---|---|---|
+| 布局结构 | 8 | 5 | 13 |
+| 视觉风格 | 7 | 5 | 12 |
+| 文章详情 | 0 | 6 | 6 |
+| 页脚 & 浮动操作 | 0 | 2 | 2 |
+| **总计** | **15** | **18** | **33** |
