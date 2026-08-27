@@ -16,7 +16,7 @@ export default function CardinalCategoriesIndexPage({ data }: { data: Categories
   return (
     <>
       <style>{buildDynamicCss(settings)}</style>
-      <div className="mx-auto max-w-[var(--layout-content-max-width)] px-4 py-12">
+      <div className="flex justify-center px-4 py-12"><div className="w-[var(--layout-content-max-width)]">
         <header className="mb-8 border-b border-border pb-6">
           <p className="mb-1 text-xs text-text-tertiary">索引</p>
           <h1 className="text-3xl font-bold" style={{ fontFamily: 'var(--font-heading)' }}>分类</h1>
@@ -54,8 +54,7 @@ export default function CardinalCategoriesIndexPage({ data }: { data: Categories
 
         <div className="mt-6">
           <Pagination currentPage={pagination.page} pageCount={pagination.pageCount} hrefForPage={pageHref} />
-        </div>
-      </div>
+      </div></div></div>
     </>
   )
 }

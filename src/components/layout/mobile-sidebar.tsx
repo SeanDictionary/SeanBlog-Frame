@@ -19,7 +19,7 @@ export function MobileSidebar({ children, side = 'right' }: MobileSidebarProps) 
   return (
     <>
       {/* Desktop: regular aside */}
-      <aside className="hidden lg:block">
+      <aside className="hidden w-[var(--layout-sidebar-width)] shrink-0 lg:block">
         <div className="sticky top-20">{children}</div>
       </aside>
 

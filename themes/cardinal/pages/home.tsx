@@ -180,12 +180,6 @@ export default function CardinalHomePage({ data }: { data: HomePageData }) {
     <SidebarContent items={sidebarItems} sidebarData={sidebarData} settings={settings} />
   ) : null
 
-  const layoutClass =
-    sidebarPos === 'left' ? 'lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-10' :
-    sidebarPos === 'right' ? 'lg:grid lg:grid-cols-[minmax(0,1fr)_15rem] lg:gap-10' :
-    sidebarPos === 'both' ? 'lg:grid lg:grid-cols-[15rem_minmax(0,1fr)_15rem] lg:gap-8' :
-    ''
-
   function pageHref(page: number): Route {
     const params = new URLSearchParams()
     if (page > 1) params.set('page', String(page))
@@ -200,14 +194,15 @@ export default function CardinalHomePage({ data }: { data: HomePageData }) {
 
       {showHero && <HeroSection settings={settings} />}
 
-      <div className={`mx-auto max-w-[var(--layout-content-max-width)] px-4 py-8 ${layoutClass}`}>
-        {/* 左侧栏 */}
-        {sidebarPos === 'left' || sidebarPos === 'both' ? (
-          <MobileSidebar side="left">{sidebarEl}</MobileSidebar>
-        ) : null}
+      <div className="flex justify-center px-4 py-8">
+        <div className="flex gap-[var(--layout-gap)]">
+          {/* 左侧栏 */}
+          {(sidebarPos === 'left' || sidebarPos === 'both') && (
+            <MobileSidebar side="left">{sidebarEl}</MobileSidebar>
+          )}
 
-        {/* 主内容 */}
-        <div className="min-w-0">
+          {/* 主内容 — 固定宽度，不被侧边栏挤占 */}
+          <div className="min-w-0 w-[var(--layout-content-max-width)]">
           <div className="mb-4 flex items-center justify-between">
             <h1 className="text-2xl font-bold" style={{ fontFamily: 'var(--font-heading)' }}>
               {showFeatured ? '最新文章' : '文章'}
@@ -243,10 +238,11 @@ export default function CardinalHomePage({ data }: { data: HomePageData }) {
           </div>
         </div>
 
-        {/* 右侧栏 */}
-        {sidebarPos === 'right' || sidebarPos === 'both' ? (
-          <MobileSidebar side="right">{sidebarEl}</MobileSidebar>
-        ) : null}
+          {/* 右侧栏 */}
+          {(sidebarPos === 'right' || sidebarPos === 'both') && (
+            <MobileSidebar side="right">{sidebarEl}</MobileSidebar>
+          )}
+        </div>
       </div>
     </>
   )

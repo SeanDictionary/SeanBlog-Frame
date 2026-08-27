@@ -18,11 +18,6 @@ export default function CardinalArticleDetailPage({ data }: { data: ArticleDetai
   const sidebarItems = getSidebarItems(settings)
   const showToc = sidebarItems.includes('toc') && toc.length > 0
 
-  const layoutClass =
-    sidebarPos === 'right' && (showToc || hasSidebar) ? 'lg:grid lg:grid-cols-[minmax(0,1fr)_14rem] lg:gap-10' :
-    sidebarPos === 'left' && (showToc || hasSidebar) ? 'lg:grid lg:grid-cols-[14rem_minmax(0,1fr)] lg:gap-10' :
-    ''
-
   const sidebarEl = showToc ? (
     <ArticleToc headings={toc} />
   ) : null
@@ -31,15 +26,16 @@ export default function CardinalArticleDetailPage({ data }: { data: ArticleDetai
     <>
       <style>{buildDynamicCss(settings)}</style>
 
-      <div className={`mx-auto max-w-[var(--layout-content-max-width)] px-4 py-12 ${layoutClass}`}>
-        {/* 左侧栏（文章 TOC） */}
-        {sidebarPos === 'left' && sidebarEl ? (
-          <aside className="hidden lg:block">
-            <div className="sticky top-20">{sidebarEl}</div>
-          </aside>
-        ) : null}
+      <div className="flex justify-center px-4 py-12">
+        <div className="flex gap-[var(--layout-gap)] items-start">
+          {/* 左侧栏（文章 TOC） */}
+          {sidebarPos === 'left' && sidebarEl ? (
+            <aside className="hidden w-[var(--layout-sidebar-width)] shrink-0 lg:block">
+              <div className="sticky top-20">{sidebarEl}</div>
+            </aside>
+          ) : null}
 
-        <article className="min-w-0">
+        <article className="min-w-0 w-[var(--layout-content-max-width)]">
           <header className="mb-8">
             <p className="mb-2 text-xs text-text-tertiary">文章</p>
             <h1 className="text-3xl font-bold leading-tight" style={{ fontFamily: 'var(--font-heading)' }}>
@@ -78,10 +74,11 @@ export default function CardinalArticleDetailPage({ data }: { data: ArticleDetai
 
         {/* 右侧栏（TOC） */}
         {sidebarPos === 'right' && sidebarEl ? (
-          <aside className="hidden lg:block">
+          <aside className="hidden w-[var(--layout-sidebar-width)] shrink-0 lg:block">
             <div className="sticky top-20">{sidebarEl}</div>
           </aside>
         ) : null}
+        </div>
       </div>
     </>
   )
