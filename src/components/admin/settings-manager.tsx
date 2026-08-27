@@ -441,22 +441,6 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
         />
       </Card>
 
-      <Card padding="lg">
-        <form action={(formData) => {
-          const updates = settings.filter((s) => !EXCLUDED_SETTING_KEYS.has(s.key) && !s.key.startsWith('themeSetting:') && !s.key.startsWith('publicHeader') && !s.key.startsWith('publicFooter') && !s.key.startsWith('adminSidebar')).map((s) => ({ key: s.key, value: String(formData.get(s.key) ?? '') }))
-          saveMany(updates, '已保存所有设置。')
-        }}>
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h2 className="font-semibold">其他设置</h2>
-              <p className="mt-1 text-sm text-neutral-500">未归入上述分类的站点设置项。</p>
-            </div>
-            <button type="submit" disabled={isPending} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-950">保存</button>
-          </div>
-          <div className="mt-5 space-y-4">{settings.filter((setting) => !EXCLUDED_SETTING_KEYS.has(setting.key) && !setting.key.startsWith('themeSetting:') && !setting.key.startsWith('publicHeader') && !setting.key.startsWith('publicFooter') && !setting.key.startsWith('adminSidebar')).map((setting) => <div key={setting.id} className="grid gap-2 sm:grid-cols-[12rem_1fr]"><label className="font-mono text-sm sm:pt-2.5">{setting.key}</label><textarea name={setting.key} defaultValue={stringifyValue(setting.value)} rows={2} className="rounded-md border border-neutral-300 bg-white p-3 font-mono text-xs outline-none dark:border-neutral-700 dark:bg-neutral-900" /></div>)}</div>
-        </form>
-      </Card>
-
       {message && <p className="text-sm text-neutral-500" role="status">{message}</p>}
     </div>
   )
