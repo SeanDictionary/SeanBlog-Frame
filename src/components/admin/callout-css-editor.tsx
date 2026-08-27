@@ -1,25 +1,21 @@
 'use client'
 
-import Editor from 'react-simple-code-editor'
 import Prism from 'prismjs'
 import 'prismjs/components/prism-css'
 import 'prismjs/themes/prism.min.css'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 type CalloutCssEditorProps = {
-  /** Initial CSS value (user's custom or theme preset or default). */
   initialValue: string
-  /** Called when user clicks save. */
   onSave: (css: string) => void
-  /** Called when user clicks reset. */
   onReset: () => void
-  /** The preset CSS to restore on reset (theme-specific, not the global default). */
   presetValue: string
 }
 
 export function CalloutCssEditor({ initialValue, onSave, onReset, presetValue }: CalloutCssEditorProps) {
   const [code, setCode] = useState(initialValue)
   const [validation, setValidation] = useState<{ valid: boolean; error?: string; checking?: boolean } | null>(null)
+  const preRef = useRef<HTMLPreElement>(null)
 
   useEffect(() => {
     if (code === initialValue) {
@@ -47,6 +43,12 @@ export function CalloutCssEditor({ initialValue, onSave, onReset, presetValue }:
   const checking = validation?.checking === true
   const canSave = changed && validation?.valid === true && !checking
 
+  function handleScroll(e: React.UIEvent<HTMLTextAreaElement>) {
+    if (preRef.current) {
+      preRef.current.scrollTop = e.currentTarget.scrollTop
+    }
+  }
+
   return (
     <div>
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -72,27 +74,27 @@ export function CalloutCssEditor({ initialValue, onSave, onReset, presetValue }:
           </button>
         </div>
       </div>
-      <div className="mt-4 space-y-3">
-        <div className={`overflow-hidden rounded-md border ${validation?.valid === false ? 'border-red-400' : 'border-neutral-300 dark:border-neutral-700'}`}>
-          <Editor
-            value={code}
-            onValueChange={setCode}
-            highlight={(css) => Prism.highlight(css, Prism.languages.css, 'css')}
-            padding={12}
-            textareaClassName="font-mono text-xs outline-none"
-            style={{
-              fontFamily: 'var(--font-mono, ui-monospace, monospace)',
-              fontSize: '0.75rem',
-              height: '16rem',
-            overflow: 'auto',
-              backgroundColor: 'transparent',
-            }}
-          />
-        </div>
-        {validation?.valid === false && validation.error && (
-          <p className="rounded-md bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-950/30 dark:text-red-400">⚠ {validation.error}</p>
-        )}
+      <div className={`mt-4 relative overflow-hidden rounded-md border ${validation?.valid === false ? 'border-red-400' : 'border-neutral-300 dark:border-neutral-700'}`}>
+        <pre
+          ref={preRef}
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 m-0 overflow-auto p-3 font-mono text-xs leading-5"
+          style={{ color: 'inherit', background: 'transparent' }}
+        >
+          <code dangerouslySetInnerHTML={{ __html: Prism.highlight(code, Prism.languages.css, 'css') + '\n' }} />
+        </pre>
+        <textarea
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          onScroll={handleScroll}
+          spellCheck={false}
+          className="relative m-0 block w-full resize-y border-0 bg-transparent p-3 font-mono text-xs leading-5 text-transparent caret-current outline-none"
+          style={{ minHeight: '16rem', height: '16rem' }}
+        />
       </div>
+      {validation?.valid === false && validation.error && (
+        <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-950/30 dark:text-red-400">⚠ {validation.error}</p>
+      )}
     </div>
   )
 }
