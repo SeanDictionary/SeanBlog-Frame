@@ -318,7 +318,7 @@ export function AnalyticsTrendChart({
               <p className="font-semibold">{shortDateLabel(hoveredPoint.date)}</p>
               <p className="mt-1 flex items-center gap-1.5"><span className="size-2 rounded-full bg-blue-600" />访问量 {formatNumber(hoveredPoint.views)}</p>
               <p className="mt-0.5 flex items-center gap-1.5"><span className="size-2 rounded-full bg-amber-600" />访客数 {formatNumber(hoveredPoint.visitors)}</p>
-              <span className={`absolute h-2 w-2 rotate-45 bg-neutral-900 dark:bg-neutral-800 ${tooltipAbove ? 'bottom-[-4px]' : 'top-[-4px]'}`} style={{ left: clamp(hover.px - tooltipLeft - 4, 4, TOOLTIP_WIDTH - 12) }} />
+              <span className={`absolute h-2 w-2 rotate-45 bg-neutral-900 dark:bg-neutral-800 ${tooltipAbove ? '-bottom-1' : '-top-1'}`} style={{ left: clamp(hover.px - tooltipLeft - 4, 4, TOOLTIP_WIDTH - 12) }} />
             </div>
           )}
         </div>

@@ -299,7 +299,7 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
           setDraggedMetaId(null)
         }}
       >
-        <div className="flex h-[38px] shrink-0 items-center gap-2">
+        <div className="flex h-9.5 shrink-0 items-center gap-2">
           <h3 className="text-sm font-semibold">{visible ? '显示' : '隐藏'}</h3>
           <span className="text-xs text-neutral-500">{items.length} 项</span>
         </div>
@@ -428,7 +428,7 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
         </form>
       </Card>
 
-      
+
       <Card padding="lg">
         <form action={(formData) => {
           saveMany([

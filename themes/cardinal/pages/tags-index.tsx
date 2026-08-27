@@ -15,7 +15,7 @@ export default function CardinalTagsIndexPage({ data }: { data: TagsIndexPageDat
   return (
     <>
       <style>{buildDynamicCss(settings)}</style>
-      <div className="flex justify-center px-4 py-12"><div className="w-[var(--layout-content-max-width)]">
+      <div className="flex justify-center px-4 py-12"><div className="w-(--layout-content-max-width)">
         <header className="mb-8 border-b border-border pb-6">
           <p className="mb-1 text-sm text-text-tertiary">索引</p>
           <h1 className="text-4xl font-bold" style={{ fontFamily: 'var(--font-heading)' }}>标签</h1>
@@ -26,7 +26,7 @@ export default function CardinalTagsIndexPage({ data }: { data: TagsIndexPageDat
             <Link
               key={tag.id}
               href={`/tags/${tag.slug}` as Route}
-              className="rounded-[var(--radius)] bg-[var(--color-muted-bg)] px-3 py-1.5 text-base text-text-secondary transition-colors hover:text-accent"
+              className="rounded-(--radius) bg-(--color-muted-bg) px-3 py-1.5 text-base text-text-secondary transition-colors hover:text-accent"
             >
               {tag.name}
               <span className="ml-1.5 text-sm text-text-tertiary">{tag._count.articles}</span>

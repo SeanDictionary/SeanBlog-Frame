@@ -17,7 +17,7 @@ export default function CardinalSearchPage({ data }: { data: SearchPageData }) {
   return (
     <>
       <style>{buildDynamicCss(settings)}</style>
-      <div className="flex justify-center px-4 py-12"><div className="w-[var(--layout-content-max-width)]">
+      <div className="flex justify-center px-4 py-12"><div className="w-(--layout-content-max-width)">
         <header className="mb-8 border-b border-border pb-6">
           <p className="mb-1 text-sm text-text-tertiary">搜索</p>
           <h1 className="text-4xl font-bold" style={{ fontFamily: 'var(--font-heading)' }}>"{query}"</h1>
@@ -31,7 +31,7 @@ export default function CardinalSearchPage({ data }: { data: SearchPageData }) {
                 <Link
                   key={article.id}
                   href={`/articles/${article.slug}` as Route}
-                  className="group block overflow-hidden rounded-[var(--radius)] border border-border transition-colors hover:border-border-hover"
+                  className="group block overflow-hidden rounded-(--radius) border border-border transition-colors hover:border-border-hover"
                   style={{ boxShadow: 'var(--shadow-card)' }}
                 >
                   {article.coverImage && (
@@ -54,7 +54,7 @@ export default function CardinalSearchPage({ data }: { data: SearchPageData }) {
                   href={`/articles/${article.slug}` as Route}
                   className={`group block transition-colors hover:border-border-hover ${
                     separator === 'border' ? 'border-b border-border py-6' :
-                    separator === 'card' ? 'rounded-[var(--radius)] border border-border p-4' : 'py-6'
+                    separator === 'card' ? 'rounded-(--radius) border border-border p-4' : 'py-6'
                   }`}
                 >
                   <h2 className="text-lg font-semibold transition-colors group-hover:text-accent">{article.title}</h2>
