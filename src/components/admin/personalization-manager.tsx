@@ -3,6 +3,8 @@
 import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card } from '@/components/ui/card'
+import { CalloutCssEditor } from '@/components/admin/callout-css-editor'
+import { DEFAULT_CALLOUT_CSS } from '@/lib/content/callout-css'
 import type { ThemeSettingSchemaItem, ThemePackageSummary } from '@/lib/theme'
 
 type Setting = {
@@ -18,6 +20,8 @@ type Setting = {
 type PersonalizationManagerProps = {
   initialSettings: Setting[]
   availableThemes: ThemePackageSummary[]
+  calloutPreset: string
+  activeThemeSlug: string
 }
 
 type ApiResponse = {
@@ -37,7 +41,7 @@ function settingEnabled(settings: Setting[], key: string, fallback = true) {
   return typeof value === 'boolean' ? value : fallback
 }
 
-function activeThemeSlug(settings: Setting[]) {
+function getActiveThemeSlug(settings: Setting[]) {
   const value = settingValue(settings, 'activeTheme', 'seanblog-default')
   return value === 'default' ? 'seanblog-default' : value
 }
@@ -51,14 +55,14 @@ function themeSettingValue(settings: Setting[], themeSlug: string, item: ThemeSe
   return setting ?? item.default ?? ''
 }
 
-export function PersonalizationManager({ initialSettings, availableThemes }: PersonalizationManagerProps) {
+export function PersonalizationManager({ initialSettings, availableThemes, calloutPreset, activeThemeSlug }: PersonalizationManagerProps) {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [settings, setSettings] = useState(initialSettings)
   const [themes, setThemes] = useState(availableThemes)
   const [message, setMessage] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
-  const activeTheme = activeThemeSlug(settings)
+  const activeTheme = getActiveThemeSlug(settings)
   const activeThemePackage = themes.find((theme) => theme.slug === activeTheme) ?? themes[0]
 
   function applySetting(setting: Setting) {
@@ -243,15 +247,47 @@ export function PersonalizationManager({ initialSettings, availableThemes }: Per
         </div>
       </form>
 
-      {activeThemePackage && activeThemePackage.settingsSchema.length > 0 && (
-        <form action={saveThemeSettings} className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-950">
-          <h2 className="font-semibold">{activeThemePackage.name} 设置</h2>
-          <p className="mt-1 text-sm text-neutral-500">由当前主题包的 settingsSchema 动态生成。</p>
-          <div className="mt-5 grid gap-4 md:grid-cols-4">
-            {activeThemePackage.settingsSchema.map((item) => <ThemeSettingField key={item.key} item={item} value={themeSettingValue(settings, activeThemePackage.slug, item)} />)}
-          </div>
-          <button disabled={isPending} className="mt-5 rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950">保存主题包设置</button>
-        </form>
+      {activeThemePackage && (
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)]">
+          {activeThemePackage.settingsSchema.length > 0 && (
+            <Card padding="lg">
+              <form action={saveThemeSettings}>
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <h2 className="font-semibold">{activeThemePackage.name} 设置</h2>
+                    <p className="mt-1 text-sm text-neutral-500">配色、宽度、圆角等主题变量。</p>
+                  </div>
+                  <button type="submit" disabled={isPending} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950">保存</button>
+                </div>
+                <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                  {activeThemePackage.settingsSchema.map((item) => <ThemeSettingField key={item.key} item={item} value={themeSettingValue(settings, activeThemePackage.slug, item)} />)}
+                </div>
+              </form>
+            </Card>
+          )}
+
+          <Card padding="lg">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h2 className="font-semibold">Callout CSS</h2>
+                <p className="mt-1 text-sm text-neutral-500">当前主题的提示框样式，随主题切换。</p>
+              </div>
+            </div>
+            <div className="mt-5">
+              <CalloutCssEditor
+                initialValue={(() => {
+                  const key = `calloutCustomCss:${activeThemeSlug}`
+                  const v = settings.find((s) => s.key === key)?.value
+                  const s = typeof v === 'string' ? v : ''
+                  return s.trim() ? s : (calloutPreset || DEFAULT_CALLOUT_CSS)
+                })()}
+                presetValue={calloutPreset || DEFAULT_CALLOUT_CSS}
+                onSave={(css) => saveSetting(`calloutCustomCss:${activeThemeSlug}`, css)}
+                onReset={() => saveSetting(`calloutCustomCss:${activeThemeSlug}`, calloutPreset || DEFAULT_CALLOUT_CSS)}
+              />
+            </div>
+          </Card>
+        </div>
       )}
 
       {message && <p className="text-sm text-neutral-500" role="status">{message}</p>}

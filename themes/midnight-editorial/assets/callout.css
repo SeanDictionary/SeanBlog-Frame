@@ -1,0 +1,37 @@
+:root {
+  --color-callout-note: var(--color-accent);
+  --color-callout-tip: var(--color-success);
+  --color-callout-important: #a78bfa;
+  --color-callout-warning: var(--color-warning);
+  --color-callout-caution: var(--color-error);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-callout-important: #c4b5fd;
+  }
+}
+
+.article-content .callout {
+  border-left: 4px solid var(--callout-color, var(--color-border));
+  border-radius: var(--radius);
+  padding: 1rem 1.5rem;
+  margin: 1.5em 0;
+  background: color-mix(in srgb, var(--callout-color, var(--color-border)) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--callout-color, var(--color-border)) 20%, transparent);
+  border-left-width: 4px;
+}
+
+.article-content .callout > :first-child {
+  margin-top: 0;
+}
+
+.article-content .callout > :last-child {
+  margin-bottom: 0;
+}
+
+.article-content .callout--note      { --callout-color: var(--color-callout-note); }
+.article-content .callout--tip       { --callout-color: var(--color-callout-tip); }
+.article-content .callout--important  { --callout-color: var(--color-callout-important); }
+.article-content .callout--warning   { --callout-color: var(--color-callout-warning); }
+.article-content .callout--caution    { --callout-color: var(--color-callout-caution); }

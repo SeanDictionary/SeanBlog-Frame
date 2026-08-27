@@ -1,3 +1,6 @@
+import { readFile } from 'node:fs/promises'
+import path from 'node:path'
+
 import { readThemeCss, readThemeManifest, type ThemeSettingSchemaItem } from '@/lib/theme'
 import { getSiteSettingsMapSafe } from '@/lib/services/setting-service'
 import { DEFAULT_CALLOUT_CSS } from '@/lib/content/callout-css'
@@ -22,11 +25,20 @@ async function buildThemeOptionsCss(themeSlug: string, settings: Record<string, 
   return variables.length ? `:root{${variables.join(';')}}` : null
 }
 
+/** Read a theme's preset callout CSS from assets/callout.css (if exists). */
+async function readThemeCalloutPreset(themeSlug: string): Promise<string | null> {
+  try {
+    const manifest = await readThemeManifest(themeSlug)
+    const cssPath = path.join(process.cwd(), 'themes', manifest.slug, 'assets', 'callout.css')
+    return await readFile(cssPath, 'utf8')
+  } catch {
+    return null
+  }
+}
+
 /**
- * Build the complete theme CSS (theme stylesheet + settings variables) for a given
- * theme slug. Falls back to the default theme if the requested theme has no CSS.
- * Used by both the public layout and the article editor preview to ensure
- * preview rendering matches the live site.
+ * Build the complete theme CSS bundle (theme stylesheet + settings variables + callout CSS).
+ * Callout CSS resolution: per-theme custom setting → theme preset → default built-in.
  */
 export async function buildThemeCssBundle(): Promise<{ css: string; calloutCss: string } | null> {
   const settings = await getSiteSettingsMapSafe()
@@ -37,11 +49,16 @@ export async function buildThemeCssBundle(): Promise<{ css: string; calloutCss: 
   const themeOptionsCss = await buildThemeOptionsCss(activeTheme, settings)
     ?? await buildThemeOptionsCss('seanblog-default', settings)
 
-  const css = [customThemeCss, themeOptionsCss].filter(Boolean).join('\n')
-  const calloutCss = typeof settings.calloutCustomCss === 'string' && settings.calloutCustomCss.trim()
-    ? settings.calloutCustomCss
-    : DEFAULT_CALLOUT_CSS
+  // Callout CSS: per-theme custom → theme preset → default
+  const calloutSettingKey = `calloutCustomCss:${activeTheme}`
+  const calloutCustom = typeof settings[calloutSettingKey] === 'string' && (settings[calloutSettingKey] as string).trim()
+    ? settings[calloutSettingKey] as string
+    : null
+  const calloutPreset = await readThemeCalloutPreset(activeTheme)
+  const calloutCss = calloutCustom ?? calloutPreset ?? DEFAULT_CALLOUT_CSS
 
-  if (!css && !calloutCss) return null
+  const css = [customThemeCss, themeOptionsCss].filter(Boolean).join('\n')
+
+  if (!css && calloutCss === DEFAULT_CALLOUT_CSS) return null
   return { css, calloutCss }
 }
