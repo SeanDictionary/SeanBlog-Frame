@@ -13,10 +13,6 @@ type Setting = {
   value: unknown
 }
 
-
-
-
-
 type ThemesManagerProps = {
   initialSettings: Setting[]
   availableThemes: ThemePackageSummary[]
@@ -244,9 +240,12 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
               <h2 className="font-semibold">{activeThemePackage.name} 设置</h2>
               <p className="mt-1 text-sm text-neutral-500">主题变量和提示框样式，随主题切换。</p>
             </div>
+            {Object.keys(activeThemePackage.settingsSchema).length > 0 && (
+              <button type="submit" form="theme-settings-form" disabled={isPending} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950">{isPending ? '保存中…' : '保存主题设置'}</button>
+            )}
           </div>
           {Object.keys(activeThemePackage.settingsSchema).length > 0 && (
-            <form action={saveThemeSettings} className="mt-5">
+            <form id="theme-settings-form" action={saveThemeSettings} className="mt-5">
               {Object.entries(activeThemePackage.settingsSchema).map(([groupName, items]) => (
                 <div key={groupName} className="mb-8">
                   <h3 className="mb-4 border-b border-neutral-200 pb-2 text-sm font-semibold text-neutral-900 dark:border-neutral-800 dark:text-neutral-100">{groupName}</h3>
@@ -255,9 +254,6 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
                   </div>
                 </div>
               ))}
-              <div className="mt-4">
-                <button type="submit" disabled={isPending} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950">保存主题设置</button>
-              </div>
             </form>
           )}
           {Object.keys(activeThemePackage.settingsSchema).length > 0 && <hr className="my-6 border-neutral-200 dark:border-neutral-800" />}
@@ -312,22 +308,24 @@ function SettingControl({ item, value }: { item: ThemeSettingSchemaItem; value: 
 }
 
 function ToggleSwitch({ name, checked }: { name: string; checked: boolean }) {
+  const [isChecked, setIsChecked] = useState(checked)
   return (
-    <label className="inline-flex cursor-pointer items-center">
-      <input name={name} type="checkbox" defaultChecked={checked} className="peer sr-only" />
-      <span className="flex h-6 w-11 items-center rounded-full bg-neutral-300 p-0.5 transition-colors peer-checked:bg-blue-600 dark:bg-neutral-700 peer-checked:dark:bg-blue-500">
-        <span className="h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5" />
+    <label className="inline-flex cursor-pointer items-center" onClick={(e) => { e.preventDefault(); setIsChecked(!isChecked) }}>
+      <input name={name} type="checkbox" checked={isChecked} onChange={() => {}} className="sr-only" />
+      <span className={`flex h-6 w-11 items-center rounded-full p-0.5 transition-colors ${isChecked ? 'bg-blue-600 dark:bg-blue-500' : 'bg-neutral-300 dark:bg-neutral-700'}`}>
+        <span className={`h-5 w-5 rounded-full bg-white shadow transition-transform ${isChecked ? 'translate-x-5' : 'translate-x-0'}`} />
       </span>
     </label>
   )
 }
 
 function RadioGroup({ name, options, value }: { name: string; options: Array<{ label: string; value: string }>; value: string }) {
+  const [selected, setSelected] = useState(value)
   return (
     <div className="inline-flex flex-wrap gap-1 rounded-lg border border-neutral-200 p-1 dark:border-neutral-800">
       {options.map((option) => (
-        <label key={option.value} className={`cursor-pointer rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${option.value === value ? 'bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-950' : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'}`}>
-          <input type="radio" name={name} value={option.value} defaultChecked={option.value === value} className="sr-only" />
+        <label key={option.value} className={`cursor-pointer rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${option.value === selected ? 'bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-950' : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'}`} onClick={(e) => { e.preventDefault(); setSelected(option.value) }}>
+          <input type="radio" name={name} value={option.value} checked={option.value === selected} onChange={() => {}} className="sr-only" />
           {option.label}
         </label>
       ))}
@@ -345,20 +343,16 @@ function SelectDropdown({ name, options, value }: { name: string; options: Array
 
 function ColorPicker({ name, value }: { name: string; value: string }) {
   const presets = ['#cf829e', '#ff7a7a', '#3b82f6', '#22c55e', '#a855f7', '#f59e0b', '#6b7280', '#0f172a']
+  const [color, setColor] = useState(value)
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <input name={name} type="color" defaultValue={value} className="h-10 w-16 cursor-pointer rounded-md border border-neutral-300 dark:border-neutral-700" />
-        <input type="text" defaultValue={value} className="h-10 w-24 rounded-md border border-neutral-300 bg-white px-3 text-sm font-mono dark:border-neutral-700 dark:bg-neutral-900" readOnly />
+        <input name={name} type="color" value={color} onChange={(e) => setColor(e.target.value)} className="h-10 w-16 cursor-pointer rounded-md border border-neutral-300 dark:border-neutral-700" />
+        <input type="text" value={color} readOnly className="h-10 w-24 rounded-md border border-neutral-300 bg-white px-3 text-sm font-mono dark:border-neutral-700 dark:bg-neutral-900" />
       </div>
       <div className="flex flex-wrap gap-2">
-        {presets.map((color) => (
-          <button key={color} type="button" className="h-7 w-7 rounded-full border-2 transition-transform hover:scale-110" style={{ backgroundColor: color, borderColor: value === color ? '#3b82f6' : 'transparent' }} onClick={() => {
-            const colorInput = document.querySelector(`input[name="${name}"]`) as HTMLInputElement
-            const textInput = colorInput?.nextElementSibling as HTMLInputElement
-            if (colorInput) { colorInput.value = color; colorInput.dispatchEvent(new Event('input', { bubbles: true })) }
-            if (textInput) { textInput.value = color }
-          }} />
+        {presets.map((c) => (
+          <button key={c} type="button" className={`h-7 w-7 rounded-full border-2 transition-transform hover:scale-110 ${color === c ? 'border-blue-500' : 'border-transparent'}`} style={{ backgroundColor: c }} onClick={() => setColor(c)} />
         ))}
       </div>
     </div>
@@ -366,14 +360,15 @@ function ColorPicker({ name, value }: { name: string; value: string }) {
 }
 
 function MultiselectField({ item, value }: { item: ThemeSettingSchemaItem; value: unknown }) {
-  const selected = Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : []
+  const initialSelected = Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : []
+  const [selected, setSelected] = useState<string[]>(initialSelected)
   return (
     <div className="flex flex-wrap gap-2">
       {item.options?.map((option) => {
         const isSelected = selected.includes(option.value)
         return (
-          <label key={option.value} className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${isSelected ? 'border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-950/30 dark:text-blue-300' : 'border-neutral-300 text-neutral-600 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800'}`}>
-            <input type="checkbox" name={`${item.key}__${option.value}`} defaultChecked={isSelected} className="sr-only" />
+          <label key={option.value} className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${isSelected ? 'border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-950/30 dark:text-blue-300' : 'border-neutral-300 text-neutral-600 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800'}`} onClick={(e) => { e.preventDefault(); setSelected(prev => prev.includes(option.value) ? prev.filter(v => v !== option.value) : [...prev, option.value]) }}>
+            <input type="checkbox" name={`${item.key}__${option.value}`} checked={isSelected} onChange={() => {}} className="sr-only" />
             {option.label}
           </label>
         )
