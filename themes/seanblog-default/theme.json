@@ -20,36 +20,7 @@
     "header": "parts/header.json",
     "footer": "parts/footer.json"
   },
-  "settingsSchema": [
-    {
-      "key": "accentColor",
-      "label": "强调色",
-      "type": "color",
-      "default": "#2563eb",
-      "cssVariable": "--color-accent"
-    },
-    {
-      "key": "contentMaxWidth",
-      "label": "内容宽度",
-      "type": "text",
-      "default": "48rem",
-      "cssVariable": "--content-max-width"
-    },
-    {
-      "key": "radius",
-      "label": "圆角",
-      "type": "text",
-      "default": "0.375rem",
-      "cssVariable": "--radius"
-    },
-    {
-      "key": "headerHeight",
-      "label": "Header 高度",
-      "type": "text",
-      "default": "4rem",
-      "cssVariable": "--header-height"
-    }
-  ],
+  "settingsSchema": [],
   "blocks": [
     "SiteHeader",
     "ArticleList",

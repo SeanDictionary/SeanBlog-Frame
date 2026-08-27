@@ -248,7 +248,7 @@ export function PersonalizationManager({ initialSettings, availableThemes, callo
       </form>
 
       {activeThemePackage && (
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)]">
+        <div className={activeThemePackage.settingsSchema.length > 0 ? "grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)]" : "space-y-6"}>
           {activeThemePackage.settingsSchema.length > 0 && (
             <Card padding="lg">
               <form action={saveThemeSettings}>
