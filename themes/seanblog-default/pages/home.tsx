@@ -1,8 +1,6 @@
 import Link from 'next/link'
 import type { Route } from 'next'
 
-import { ArticleCard } from '@/components/article/article-card'
-import { Pagination } from '@/components/pagination'
 import type { HomePageData, ThemePage } from '@/lib/theme/page-types'
 
 function pageHref(page: number, sort: string): Route {
@@ -19,6 +17,7 @@ function sortHref(sort: string): Route {
 
 export default function DefaultHomePage({ data }: { data: HomePageData }) {
   const { articles, pinned, pagination, sort, sortOptions, settings } = data
+  const { ArticleCard, Pagination } = data.components
   const siteName = typeof settings.siteName === 'string' ? settings.siteName : 'SeanBlog'
   const siteDescription = typeof settings.siteDescription === 'string' ? settings.siteDescription : ''
   const page = pagination.page

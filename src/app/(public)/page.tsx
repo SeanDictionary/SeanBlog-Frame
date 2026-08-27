@@ -11,6 +11,7 @@ import { getMergedSettings } from '@/lib/services/theme-settings-service'
 import { listPublicTags } from '@/lib/services/tag-service'
 import { normalizeThemeName, readThemeTemplate } from '@/lib/theme'
 import { resolveThemePage } from '@/lib/theme/resolver'
+import { getThemeComponents } from '@/lib/theme/components'
 import { orderThemeSlots } from '@/lib/theme-slots'
 import { publicArticleSortSchema, type PublicArticleSort } from '@/lib/validations/cms'
 
@@ -156,7 +157,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       sortOptions,
       settings,
       sidebarData,
-      components: {},
+      components: getThemeComponents(),
     } as any
     const ThemePageComponent = themePage
     return <ThemePageComponent data={themePageData} />

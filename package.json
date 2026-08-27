@@ -13,7 +13,8 @@
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "admin:reset-password": "node scripts/reset-admin-password.mjs",
-    "logs:prune": "node scripts/prune-operation-logs.mjs"
+    "logs:prune": "node scripts/prune-operation-logs.mjs",
+    "themes:build": "tsx scripts/build-themes.mts"
   },
   "keywords": [],
   "author": "",
@@ -26,6 +27,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^17.3.1",
+    "esbuild": "^0.28.1",
     "lucide-react": "^1.27.0",
     "next": "^16.2.12",
     "next-auth": "^5.0.0-beta.32",

@@ -1,8 +1,6 @@
 import Link from 'next/link'
 import type { Route } from 'next'
 
-import { Pagination } from '@/components/pagination'
-import { MobileSidebar } from '@/components/layout/mobile-sidebar'
 import type { HomePageData } from '@/lib/theme/page-types'
 import { buildDynamicCss, getSettingString, isSettingTrue, getSidebarItems } from '../lib/settings-helpers'
 
@@ -169,6 +167,7 @@ function SidebarContent({ items, sidebarData, settings }: {
 
 export default function CardinalHomePage({ data }: { data: HomePageData }) {
   const { articles, pinned, pagination, sort, sortOptions, settings, sidebarData } = data
+  const { Pagination, MobileSidebar } = data.components
 
   const sidebarPos = getSettingString(settings, 'sidebarPosition', 'right')
   const showHero = isSettingTrue(settings, 'showHeroSection')

@@ -379,12 +379,32 @@ function MultiselectField({ item, value }: { item: ThemeSettingSchemaItem; value
 }
 
 function ListField({ item, value }: { item: ThemeSettingSchemaItem; value: unknown }) {
-  const items = Array.isArray(value) ? value.filter((v): v is Record<string, string> => typeof v === 'object' && v !== null) : []
   const fields = item.itemFields ?? []
+  const [entries, setEntries] = useState<Array<Record<string, string>>>(
+    Array.isArray(value)
+      ? value.filter((v): v is Record<string, string> => typeof v === 'object' && v !== null)
+          .map((v) => {
+            const e: Record<string, string> = {}
+            for (const f of fields) e[f.key] = typeof (v as any)[f.key] === 'string' ? (v as any)[f.key] : ''
+            return e
+          })
+      : []
+  )
+
+  function addRow() {
+    const blank: Record<string, string> = {}
+    for (const f of fields) blank[f.key] = ''
+    setEntries((prev) => [...prev, blank])
+  }
+
+  function removeRow(index: number) {
+    setEntries((prev) => prev.filter((_, i) => i !== index))
+  }
+
   return (
     <div className="space-y-2">
-      {items.map((entry, index) => (
-        <div key={index} className="flex flex-wrap gap-2">
+      {entries.map((entry, index) => (
+        <div key={index} className="flex flex-wrap items-center gap-2">
           {fields.map((field) => (
             <input
               key={field.key}
@@ -395,9 +415,13 @@ function ListField({ item, value }: { item: ThemeSettingSchemaItem; value: unkno
               className="h-9 rounded-md border border-neutral-300 bg-white px-2 text-xs dark:border-neutral-700 dark:bg-neutral-900"
             />
           ))}
+          <button type="button" onClick={() => removeRow(index)} className="h-9 rounded-md border border-red-200 px-2 text-xs text-red-600 dark:border-red-900/60">删除</button>
         </div>
       ))}
-      <p className="text-xs text-neutral-400">共 {items.length} 条。删除请清空内容后保存。</p>
+      <div className="flex items-center gap-3">
+        <button type="button" onClick={addRow} className="rounded-md border border-neutral-300 px-3 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800">+ 添加一行</button>
+        <span className="text-xs text-neutral-400">共 {entries.length} 条</span>
+      </div>
     </div>
   )
 }

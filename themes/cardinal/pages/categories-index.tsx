@@ -1,12 +1,12 @@
 import Link from 'next/link'
 import type { Route } from 'next'
 
-import { Pagination } from '@/components/pagination'
 import type { CategoriesIndexPageData } from '@/lib/theme/page-types'
 import { buildDynamicCss, getSettingString } from '../lib/settings-helpers'
 
 export default function CardinalCategoriesIndexPage({ data }: { data: CategoriesIndexPageData }) {
   const { categories, pagination, settings } = data
+  const { Pagination } = data.components
   const style = getSettingString(settings, 'articleListStyle', 'list')
 
   function pageHref(page: number): Route {

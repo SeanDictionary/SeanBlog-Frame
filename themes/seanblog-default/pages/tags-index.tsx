@@ -1,10 +1,9 @@
 import type { Route } from 'next'
 import Link from 'next/link'
 
-import { Pagination } from '@/components/pagination'
-
 export default function DefaultTagsIndexPage({ data }: { data: any }) {
   const { tags, pagination } = data
+  const { Pagination } = data.components
 
   const pageHref = (page: number): Route => (page === 1 ? '/tags' : `/tags?page=${page}`) as Route
 

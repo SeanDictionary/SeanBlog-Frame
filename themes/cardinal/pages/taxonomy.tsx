@@ -1,12 +1,12 @@
 import Link from 'next/link'
 import type { Route } from 'next'
 
-import { Pagination } from '@/components/pagination'
 import type { TaxonomyPageData } from '@/lib/theme/page-types'
 import { buildDynamicCss, getSettingString } from '../lib/settings-helpers'
 
 export default function CardinalTaxonomyPage({ data }: { data: TaxonomyPageData }) {
   const { taxonomy, articles, pagination, settings } = data
+  const { Pagination } = data.components
 
   function pageHref(page: number): Route {
     const base = taxonomy.type === 'category' ? 'categories' : 'tags'

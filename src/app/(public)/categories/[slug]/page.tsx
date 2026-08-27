@@ -10,6 +10,7 @@ import { listPublicArticles } from '@/lib/services/article-service'
 import { getMergedSettings } from '@/lib/services/theme-settings-service'
 import { normalizeThemeName, readThemeTemplate } from '@/lib/theme'
 import { resolveThemePage } from '@/lib/theme/resolver'
+import { getThemeComponents } from '@/lib/theme/components'
 import { orderThemeSlots } from '@/lib/theme-slots'
 
 type CategoryPageProps = {
@@ -63,7 +64,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
         articles: result.items,
         pagination: result.meta,
         settings,
-        components: {},
+        components: getThemeComponents(),
       } as any
       const ThemePageComponent = themePage
       return <ThemePageComponent data={themePageData} />

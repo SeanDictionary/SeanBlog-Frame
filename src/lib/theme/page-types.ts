@@ -168,26 +168,33 @@ export type SearchPageData = {
 }
 
 // --- 注入的预建组件 ---
+// 框架在组装 themePageData 时总是注入全集，字段必填。
 
 export type ThemeComponents = {
   /** 文章正文 HTML 渲染（Server，可被 parts 覆盖） */
-  ArticleContent?: ComponentType<{ html: string }>
+  ArticleContent: ComponentType<{ html: string }>
   /** 文章元信息（Server，可被覆盖） */
-  ArticleMeta?: ComponentType<Record<string, unknown>>
+  ArticleMeta: ComponentType<Record<string, unknown>>
   /** 上下篇导航（Server，可被覆盖） */
-  ArticleNavigation?: ComponentType<{ previous: { title: string; slug: string } | null; next: { title: string; slug: string } | null }>
+  ArticleNavigation: ComponentType<{ previous: { title: string; slug: string } | null; next: { title: string; slug: string } | null }>
   /** 目录（Server，可被覆盖） */
-  ArticleToc?: ComponentType<{ headings: TocItem[] }>
+  ArticleToc: ComponentType<{ headings: TocItem[] }>
   /** 评论列表（Server，可被覆盖，内部含 CommentForm Client 组件） */
-  CommentList?: ComponentType<Record<string, unknown>>
+  CommentList: ComponentType<Record<string, unknown>>
+  /** 文章卡片（列表项，Server） */
+  ArticleCard: ComponentType<Record<string, unknown>>
   /** 分页（Server，可被覆盖） */
-  Pagination?: ComponentType<{ currentPage: number; pageCount: number; hrefForPage: (page: number) => Route }>
+  Pagination: ComponentType<{ currentPage: number; pageCount: number; hrefForPage: (page: number) => Route }>
   /** 搜索对话框（Client，不可覆盖） */
-  SearchDialog?: ComponentType<Record<string, unknown>>
+  SearchDialog: ComponentType<Record<string, unknown>>
+  /** 移动端侧边栏（Client） */
+  MobileSidebar: ComponentType<Record<string, unknown>>
+  /** 搜索结果高亮文本（Server） */
+  HighlightedText: ComponentType<Record<string, unknown>>
   /** 站点 Header（Server，可被 parts 覆盖） */
-  SiteHeader?: ComponentType<{ settings: SiteSettings }>
+  SiteHeader: ComponentType<{ settings: SiteSettings }>
   /** 站点 Footer（Server，可被 parts 覆盖） */
-  SiteFooter?: ComponentType<{ settings: SiteSettings }>
+  SiteFooter: ComponentType<{ settings: SiteSettings }>
 }
 
 // --- 页面类型映射 ---

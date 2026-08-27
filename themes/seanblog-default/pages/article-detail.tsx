@@ -1,13 +1,8 @@
 import type { ReactNode } from 'react'
 
-import { ArticleContent } from '@/components/article/article-content'
-import { ArticleMeta } from '@/components/article/article-meta'
-import { ArticleNavigation } from '@/components/article/article-navigation'
-import { ArticleToc } from '@/components/article/article-toc'
-import { CommentList } from '@/components/comment/comment-list'
-
 export default function DefaultArticleDetailPage({ data }: { data: any }) {
   const { article, contentHtml, toc, readingMinutes, wordCount, commentsMode, navigation, comments } = data
+  const { ArticleContent, ArticleMeta, ArticleNavigation, ArticleToc, CommentList } = data.components
 
   const slotContent: Record<string, ReactNode> = {
     'article-header': (

@@ -1,12 +1,9 @@
 import type { Route } from 'next'
 import type { ReactNode } from 'react'
 
-import { ArticleCard } from '@/components/article/article-card'
-import { Pagination } from '@/components/pagination'
-import { HighlightedText } from '@/components/search/highlighted-text'
-
 export default function DefaultSearchPage({ data }: { data: any }) {
   const { query, articles, pagination } = data
+  const { ArticleCard, Pagination, HighlightedText } = data.components
 
   if (!query) {
     const slotContent: Record<string, ReactNode> = {

@@ -220,6 +220,9 @@ async function walkThemeFiles(themeName: string, directory = getThemeDirectory(t
   const files: ZipEntry[] = []
 
   for (const entry of entries) {
+    // 跳过编译产物目录，不进导出包
+    if (entry.isDirectory() && entry.name === '.build') continue
+
     const fullPath = path.join(directory, entry.name)
     const relativePath = prefix ? `${prefix}/${entry.name}` : entry.name
 
@@ -534,9 +537,15 @@ export async function installThemePackageFromManifest(manifest: ThemePackageMani
     throw error
   }
 
-  // 清除 resolver 内存缓存
-  const { clearThemeCache } = await import('@/lib/theme/resolver')
-  clearThemeCache(slug)
+  // 安装时预编译所有页面（fail-fast：编译失败则回滚）
+  try {
+    const { preloadTheme, clearThemeCache } = await import('@/lib/theme/resolver')
+    await preloadTheme(slug)
+    clearThemeCache(slug)
+  } catch (error) {
+    await rm(directory, { recursive: true, force: true }).catch(() => undefined)
+    throw error
+  }
 
   return slug
 }

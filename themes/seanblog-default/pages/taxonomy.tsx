@@ -1,11 +1,9 @@
 import type { Route } from 'next'
 import type { ReactNode } from 'react'
 
-import { ArticleCard } from '@/components/article/article-card'
-import { Pagination } from '@/components/pagination'
-
 export default function DefaultTaxonomyPage({ data }: { data: any }) {
   const { taxonomy, articles, pagination } = data
+  const { ArticleCard, Pagination } = data.components
   const basePath = taxonomy.type === 'tag' ? `/tags/${taxonomy.slug}` : `/categories/${taxonomy.slug}`
   const pageHref = (nextPage: number): Route => (nextPage === 1 ? basePath : `${basePath}?page=${nextPage}`) as Route
 

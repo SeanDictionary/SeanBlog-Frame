@@ -1,12 +1,12 @@
 import Link from 'next/link'
 import type { Route } from 'next'
 
-import { Pagination } from '@/components/pagination'
 import type { SearchPageData } from '@/lib/theme/page-types'
 import { buildDynamicCss, getSettingString } from '../lib/settings-helpers'
 
 export default function CardinalSearchPage({ data }: { data: SearchPageData }) {
   const { query, articles, pagination, settings } = data
+  const { Pagination } = data.components
   const style = getSettingString(settings, 'articleListStyle', 'list')
   const separator = getSettingString(settings, 'listSeparator', 'border')
 

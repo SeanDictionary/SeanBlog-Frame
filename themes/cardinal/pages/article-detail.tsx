@@ -1,22 +1,22 @@
-import Link from 'next/link'
-import type { Route } from 'next'
-
-import { ArticleContent } from '@/components/article/article-content'
-import { ArticleMeta } from '@/components/article/article-meta'
-import { ArticleNavigation } from '@/components/article/article-navigation'
-import { ArticleToc } from '@/components/article/article-toc'
-import { CommentList } from '@/components/comment/comment-list'
 import type { ArticleDetailPageData } from '@/lib/theme/page-types'
+
 import { buildDynamicCss, getSettingString, isSettingTrue, getSidebarItems } from '../lib/settings-helpers'
 
 export default function CardinalArticleDetailPage({ data }: { data: ArticleDetailPageData }) {
   const { article, contentHtml, toc, readingMinutes, wordCount, navigation, comments, settings } = data
   const commentsMode = data.commentsMode
+  const {
+    ArticleContent,
+    ArticleMeta,
+    ArticleNavigation,
+    ArticleToc,
+    CommentList,
+  } = data.components
 
   const sidebarPos = getSettingString(settings, 'sidebarPosition', 'right')
   const hasSidebar = sidebarPos !== 'none'
   const sidebarItems = getSidebarItems(settings)
-  const showToc = sidebarItems.includes('toc') && toc.length > 0
+  const showToc = sidebarItems.includes('toc') && toc.length > 0 && ArticleToc
 
   // 从主题设置构建文章元信息显示配置
   const metaItems = Array.isArray(settings.articleMetaItems)
@@ -54,32 +54,34 @@ export default function CardinalArticleDetailPage({ data }: { data: ArticleDetai
             {article.coverImage && (
               <img src={article.coverImage} alt="" className="mt-6 aspect-video w-full rounded-[var(--radius)] border border-border object-cover" />
             )}
-            <div className="mt-4">
-              <ArticleMeta
-                publishedAt={article.publishedAt}
-                category={article.category}
-                tags={article.tags}
-                viewCount={article.viewCount}
-                readingMinutes={readingMinutes}
-                wordCount={wordCount}
-                visibility={{
-                  showPublishedAt: metaItems.includes('publishedAt'),
-                  showViewCount: metaItems.includes('viewCount'),
-                  showCategory: metaItems.includes('category'),
-                  showTags: metaItems.includes('tags'),
-                  showReadingTime: showReading,
-                  showWordCount: showReading,
-                  order: metaOrder as any,
-                }}
-              />
-            </div>
+            {ArticleMeta && (
+              <div className="mt-4">
+                <ArticleMeta
+                  publishedAt={article.publishedAt}
+                  category={article.category}
+                  tags={article.tags}
+                  viewCount={article.viewCount}
+                  readingMinutes={readingMinutes}
+                  wordCount={wordCount}
+                  visibility={{
+                    showPublishedAt: metaItems.includes('publishedAt'),
+                    showViewCount: metaItems.includes('viewCount'),
+                    showCategory: metaItems.includes('category'),
+                    showTags: metaItems.includes('tags'),
+                    showReadingTime: showReading,
+                    showWordCount: showReading,
+                    order: metaOrder as any,
+                  }}
+                />
+              </div>
+            )}
           </header>
 
-          <ArticleContent html={contentHtml} />
+          {ArticleContent && <ArticleContent html={contentHtml} />}
 
-          <ArticleNavigation previous={navigation.previous} next={navigation.next} />
+          {ArticleNavigation && <ArticleNavigation previous={navigation.previous} next={navigation.next} />}
 
-          <CommentList articleId={article.id} comments={comments as any} mode={commentsMode} />
+          {CommentList && <CommentList articleId={article.id} comments={comments as any} mode={commentsMode} />}
         </article>
 
         {/* 右侧栏（TOC） */}

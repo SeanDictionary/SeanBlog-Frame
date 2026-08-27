@@ -7,6 +7,7 @@ import { getMergedSettings } from '@/lib/services/theme-settings-service'
 import { listPublicCategories } from '@/lib/services/category-service'
 import { normalizeThemeName } from '@/lib/theme'
 import { resolveThemePage } from '@/lib/theme/resolver'
+import { getThemeComponents } from '@/lib/theme/components'
 
 type CategoriesPageProps = {
   searchParams: Promise<{ page?: string }>
@@ -39,7 +40,7 @@ export default async function CategoriesPage({ searchParams }: CategoriesPagePro
       categories: result.items,
       pagination: result.meta,
       settings,
-      components: {},
+      components: getThemeComponents(),
     } as any
     const ThemePageComponent = themePage
     return <ThemePageComponent data={themePageData} />

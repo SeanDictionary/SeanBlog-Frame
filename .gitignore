@@ -17,6 +17,9 @@
 /.next/
 /out/
 
+# 主题编译产物（由 themes:build / 安装时生成，不进版本库）
+/themes/*/.build/
+
 # production
 /build
 

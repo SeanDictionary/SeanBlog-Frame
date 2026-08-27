@@ -1,12 +1,12 @@
 import Link from 'next/link'
 import type { Route } from 'next'
 
-import { Pagination } from '@/components/pagination'
 import type { TagsIndexPageData } from '@/lib/theme/page-types'
 import { buildDynamicCss } from '../lib/settings-helpers'
 
 export default function CardinalTagsIndexPage({ data }: { data: TagsIndexPageData }) {
   const { tags, pagination, settings } = data
+  const { Pagination } = data.components
 
   function pageHref(page: number): Route {
     return (page === 1 ? '/tags' : `/tags?page=${page}`) as Route
