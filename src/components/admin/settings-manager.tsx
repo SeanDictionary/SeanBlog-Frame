@@ -493,7 +493,7 @@ function CalloutCssEditor({ initialValue, onSave, onReset }: {
             disabled={!canSave}
             className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-40 dark:bg-neutral-100 dark:text-neutral-950"
           >
-            保存
+            {!validation?.checking ? "保存css样式" : "检查语法..."}
           </button>
           <button
             type="button"
