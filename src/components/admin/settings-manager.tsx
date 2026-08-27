@@ -429,6 +429,27 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
       </Card>
 
       
+      <Card padding="lg">
+        <form action={(formData) => {
+          saveMany([
+            { key: 'publicFooterText', value: String(formData.get('publicFooterText') ?? '') },
+            { key: 'publicFooterShowRss', value: formData.get('publicFooterShowRss') === 'on' },
+          ], 'footer')
+        }}>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="font-semibold">页脚</h2>
+              <p className="mt-1 text-sm text-neutral-500">支持 HTML，将直接渲染到前台页脚区域。</p>
+            </div>
+            <button type="submit" disabled={isPending} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-950">保存</button>
+          </div>
+          <div className="mt-5 grid gap-4">
+            <label className="grid gap-1.5 text-sm">页脚内容（HTML）<textarea name="publicFooterText" defaultValue={stringifyValue(settings.find((s) => s.key === 'publicFooterText')?.value) ?? ''} rows={4} placeholder='<p>© 2024 SeanBlog. All rights reserved.</p>' className="rounded-md border border-neutral-300 bg-white p-3 font-mono text-xs outline-none dark:border-neutral-700 dark:bg-neutral-900" /></label>
+            <label className="inline-flex items-center gap-2 text-sm font-medium"><input name="publicFooterShowRss" type="checkbox" defaultChecked={getBooleanSetting(settings, 'publicFooterShowRss', true)} /> 显示 RSS 入口</label>
+          </div>
+        </form>
+      </Card>
+
       {message && <p className="text-sm text-red-600 dark:text-red-400" role="alert">{message}</p>}
     </div>
   )

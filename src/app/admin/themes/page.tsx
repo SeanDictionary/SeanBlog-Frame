@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 
-import { PersonalizationManager } from '@/components/admin/personalization-manager'
+import { ThemesManager } from '@/components/admin/themes-manager'
 import { listSettings } from '@/lib/services/setting-service'
 import { listThemes, readThemeManifest } from '@/lib/theme'
 
@@ -28,10 +28,10 @@ export default async function AdminPersonalizationPage() {
     <div className="mx-auto max-w-7xl">
       <header className="mb-8">
         <p className="mb-2 text-sm text-neutral-500">系统管理</p>
-        <h1 className="text-3xl font-semibold tracking-tight">个性化</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">主题</h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral-500">集中管理主题包、自定义样式和页脚设置。主题包定义前台布局和配色，Callout CSS 随主题切换。</p>
       </header>
-      <PersonalizationManager
+      <ThemesManager
         initialSettings={settings}
         availableThemes={themes}
         calloutPreset={calloutPreset ?? ''}

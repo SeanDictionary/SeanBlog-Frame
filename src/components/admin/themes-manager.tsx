@@ -17,7 +17,7 @@ type Setting = {
 
 
 
-type PersonalizationManagerProps = {
+type ThemesManagerProps = {
   initialSettings: Setting[]
   availableThemes: ThemePackageSummary[]
   calloutPreset: string
@@ -55,7 +55,7 @@ function themeSettingValue(settings: Setting[], themeSlug: string, item: ThemeSe
   return setting ?? item.default ?? ''
 }
 
-export function PersonalizationManager({ initialSettings, availableThemes, calloutPreset, activeThemeSlug }: PersonalizationManagerProps) {
+export function ThemesManager({ initialSettings, availableThemes, calloutPreset, activeThemeSlug }: ThemesManagerProps) {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [settings, setSettings] = useState(initialSettings)
@@ -119,25 +119,6 @@ export function PersonalizationManager({ initialSettings, availableThemes, callo
     })
   }
 
-  function saveForm(formData: FormData) {
-    const entries = [
-      ['publicHeaderTitle', String(formData.get('publicHeaderTitle') ?? '')],
-      ['publicFooterText', String(formData.get('publicFooterText') ?? '')],
-      ['publicFooterShowRss', formData.get('publicFooterShowRss') === 'on'],
-    ] as const
-
-    startTransition(async () => {
-      setMessage(null)
-      try {
-        const savedSettings = await persistSettings('public-layout', entries.map(([key, value]) => ({ key, value })))
-        applySettings(savedSettings)
-        setMessage(null)
-        router.refresh()
-      } catch (error) {
-        setMessage(error instanceof Error ? error.message : '保存失败。')
-      }
-    })
-  }
 
   function saveThemeSettings(formData: FormData) {
     if (!activeThemePackage) return
@@ -232,20 +213,6 @@ export function PersonalizationManager({ initialSettings, availableThemes, callo
           ))}
         </div>
       </Card>
-
-      <form action={saveForm} className="grid gap-7">
-        <Card padding="lg">
-          <h2 className="font-semibold">页脚</h2>
-          <p className="mt-1 text-sm text-neutral-500">Dock 栏和 Header 样式由主题包控制，请到主题设置中配置。此处仅保留页脚文案和 RSS 开关。</p>
-          <div className="mt-5 grid gap-4">
-            <label className="grid gap-1.5 text-sm">页脚文案<input name="publicFooterText" defaultValue={settingValue(settings, 'publicFooterText')} placeholder="默认版权文案" className="h-10 rounded-md border border-neutral-300 bg-white px-3 dark:border-neutral-700 dark:bg-neutral-900" /></label>
-            <Toggle name="publicFooterShowRss" label="显示 RSS 入口" checked={settingEnabled(settings, 'publicFooterShowRss')} />
-          </div>
-        </Card>
-        <div>
-          <button disabled={isPending} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950">保存页脚设置</button>
-        </div>
-      </form>
 
       {activeThemePackage && (
         <Card padding="lg">

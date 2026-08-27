@@ -29,7 +29,7 @@ const adminNavigation: Array<{ href: Route; label: string; icon: string; childre
       { href: '/admin/visitors' as Route, label: '访客记录', icon: 'fa-solid fa-users' },
     ],
   },
-  { href: '/admin/personalization' as Route, label: '个性化', icon: 'fa-solid fa-palette' },
+  { href: '/admin/themes' as Route, label: '主题', icon: 'fa-solid fa-palette' },
   { href: '/admin/media', label: '媒体', icon: 'fa-regular fa-images' },
   { href: '/admin/logs' as Route, label: '日志', icon: 'fa-solid fa-list-check' },
   { href: '/admin/settings', label: '设置', icon: 'fa-solid fa-sliders' },
