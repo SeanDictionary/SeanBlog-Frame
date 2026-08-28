@@ -13,48 +13,54 @@
     else document.addEventListener('DOMContentLoaded', fn)
   }
 
-  // --- 搜索弹窗 ---
+  // --- 搜索弹窗（弹窗 markup 由主题提供，这里只接线 fetch + 填充）---
   ready(function () {
-    var overlay = null
-    function ensureOverlay() {
-      if (overlay) return overlay
-      overlay = document.createElement('div')
-      overlay.className = 'sb-search-overlay'
-      overlay.setAttribute('hidden', '')
-      overlay.innerHTML =
-        '<div class="sb-search-dialog"><input type="search" placeholder="搜索文章…" /><ul class="sb-search-results"></ul></div>'
-      document.body.appendChild(overlay)
-      var input = overlay.querySelector('input')
-      var list = overlay.querySelector('ul')
-      var timer
-      input.addEventListener('input', function () {
-        window.clearTimeout(timer)
-        var q = input.value.trim()
-        if (!q) { list.innerHTML = ''; return }
-        timer = window.setTimeout(function () {
-          fetch('/api/search?q=' + encodeURIComponent(q))
-            .then(function (r) { return r.json() })
-            .then(function (data) {
-              var items = (data.articles || data.items || []) || []
-              list.innerHTML = items.slice(0, 8).map(function (a) {
-                return '<li><a href="/articles/' + a.slug + '">' + (a.title || '') + '</a></li>'
-              }).join('') || '<li class="sb-muted">无结果</li>'
-            }).catch(function () {})
-        }, 200)
-      })
-      overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.setAttribute('hidden', '') })
-      return overlay
+    var dialog = document.querySelector('[data-sb-search-dialog]')
+    if (!dialog) return
+    var input = dialog.querySelector('[data-sb-search-input]')
+    var results = dialog.querySelector('[data-sb-search-results]')
+    var tpl = dialog.querySelector('[data-sb-search-result-template]')
+    var empty = dialog.querySelector('[data-sb-search-empty]')
+    var timer
+
+    function open() {
+      dialog.removeAttribute('hidden')
+      if (input) { input.value = ''; input.focus() }
+      if (results) results.innerHTML = ''
+      if (empty) empty.setAttribute('hidden', '')
     }
+    function close() { dialog.setAttribute('hidden', '') }
+
     document.querySelectorAll('[data-sb-search]').forEach(function (el) {
-      el.addEventListener('click', function () {
-        var o = ensureOverlay()
-        o.removeAttribute('hidden')
-        var input = o.querySelector('input')
-        if (input) input.focus()
-      })
+      el.addEventListener('click', open)
     })
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && overlay && !overlay.hasAttribute('hidden')) overlay.setAttribute('hidden', '')
+    dialog.addEventListener('click', function (e) { if (e.target === dialog) close() })
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !dialog.hasAttribute('hidden')) close() })
+
+    if (input) input.addEventListener('input', function () {
+      window.clearTimeout(timer)
+      var q = input.value.trim()
+      if (!q) { if (results) results.innerHTML = ''; if (empty) empty.setAttribute('hidden', ''); return }
+      timer = window.setTimeout(function () {
+        fetch('/api/search?q=' + encodeURIComponent(q))
+          .then(function (r) { return r.json() })
+          .then(function (data) {
+            if (!results) return
+            results.innerHTML = ''
+            var items = ((data.articles || data.items || []) || []).slice(0, 8)
+            if (!items.length) { if (empty) empty.removeAttribute('hidden'); return }
+            if (empty) empty.setAttribute('hidden', '')
+            items.forEach(function (a) {
+              if (!tpl) return
+              var node = tpl.content.cloneNode(true)
+              var link = node.querySelector('[data-sb-result-link]')
+              var title = node.querySelector('[data-sb-result-title]')
+              if (link) link.setAttribute('href', '/articles/' + (a.slug || ''))
+              if (title) title.textContent = a.title || ''
+              results.appendChild(node)
+            })
+          }).catch(function () {})
+      }, 200)
     })
   })
 

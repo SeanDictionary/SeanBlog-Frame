@@ -208,6 +208,7 @@ form[data-sb-comment-form][data-state="pending"] .sb-comment-status { color: var
 .sb-search-results { list-style: none; padding: 0; margin: 0.5rem 0 0; max-height: 50vh; overflow-y: auto; }
 .sb-search-results li a { display: block; padding: 0.6rem 0.5rem; text-decoration: none; color: var(--color-text); font-size: 0.9rem; border-radius: var(--radius-sm); }
 .sb-search-results li a:hover { background: var(--color-bg-secondary); }
+.sb-search-empty { padding: 0.6rem 0.5rem; color: var(--color-text-tertiary); font-size: 0.85rem; }
 
 /* === 响应式 === */
 @media (max-width: 640px) {
