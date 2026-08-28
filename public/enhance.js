@@ -1,11 +1,12 @@
 /**
  * 平台渐进增强脚本（客户端，纯 vanilla JS，无依赖）
- * 主题给元素挂 data-sb-* 属性即可获得行为：
- *  [data-sb-comment-form]  评论提交 → POST /api/comments (JSON)
- *  [data-sb-search]         打开搜索弹窗
- *  [data-sb-theme-toggle]   深浅色切换 + cookie
- *  [data-sb-sidebar-toggle] 侧栏开合
- *  [data-sb-toc]            目录滚动高亮
+ * 只处理“碰平台 API / 共享状态”的行为。纯展示交互由主题自己的 assets/js 处理。
+ *
+ * 主题放带 data-sb-* 属性的元素即可获得行为（不挂也能静态展示）：
+ *  [data-sb-comment-form]   评论提交 → POST /api/comments (JSON，含全字段)
+ *                           APPROVED 时按 data-sb-comment-target 刷新页面滚回评论区
+ *  [data-sb-search]          打开搜索弹窗 → GET /api/search
+ *  [data-sb-theme-toggle]    深浅色切换 + sb-theme cookie
  */
 ;(function () {
   function ready(fn) {
