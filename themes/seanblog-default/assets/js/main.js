@@ -1,15 +1,28 @@
 /**
- * 默认主题脚本（主题级交互，纯展示，不碰 API）
+ * 默认主题脚本（主题级交互，纯展示，不碰平台 API）
+ * - 深浅色切换：点按钮切换 <html data-theme> + 写 sb-theme cookie（主题 bootstrap 读它做无闪烁）
  * - 评论回复：点回复按钮设 parentId + 显示 banner + 聚焦；取消恢复
  * - 侧栏开合、目录滚动高亮
  *
- * 平台行为（评论提交 / 搜索 / cookie）由 /enhance.js 处理。
+ * 平台行为（评论提交 / 搜索）由 /enhance.js 处理。
  */
 ;(function () {
   function ready(fn) {
     if (document.readyState !== 'loading') fn()
     else document.addEventListener('DOMContentLoaded', fn)
   }
+
+  // --- 深浅色切换 ---
+  ready(function () {
+    document.querySelectorAll('[data-sb-theme-toggle]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        var cur = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark'
+        var next = cur === 'dark' ? 'light' : 'dark'
+        document.documentElement.setAttribute('data-theme', next)
+        document.cookie = 'sb-theme=' + next + ';path=/;max-age=31536000;SameSite=Lax'
+      })
+    })
+  })
 
   ready(function () {
     var form = document.querySelector('[data-sb-comment-form]')
