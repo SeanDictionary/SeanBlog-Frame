@@ -147,7 +147,7 @@ Handlebars.registerHelper('format_date', (date: unknown, opts: { hash?: { format
     .replace('mm', pad(d.getMinutes()))
 })
 
-Handlebars.registerHelper('excerpt', (text: unknown, opts: { hash?: { length?: number } }) => {
+Handlebars.registerHelper('truncate', (text: unknown, opts: { hash?: { length?: number } }) => {
   const len = opts?.hash?.length ?? 200
   const s = typeof text === 'string' ? text.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim() : ''
   return s.length > len ? s.slice(0, len) + '…' : s
