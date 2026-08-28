@@ -14,6 +14,7 @@
     {{{body}}}
   </main>
   {{> footer}}
+  <script src="{{asset "assets/js/main.js"}}" defer></script>
   {{{platform_enhance}}}
   <script>(function(){var m="{{theme.config.color_mode}}";if(document.cookie.indexOf("sb-theme=")>=0){var c=(document.cookie.match(/sb-theme=(dark|light)/)||[])[1];if(c)document.documentElement.setAttribute("data-theme",c);}else if(m==="auto"){try{document.documentElement.setAttribute("data-theme",matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");}catch(e){}}})();
   </script>

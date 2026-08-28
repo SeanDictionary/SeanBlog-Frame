@@ -113,34 +113,6 @@
     })
   })
 
-  // --- 评论回复（点回复按钮设 parentId + 上下文 banner）---
-  ready(function () {
-    var form = document.querySelector('[data-sb-comment-form]')
-    if (!form) return
-    var parentInput = form.querySelector('[name=parentId]')
-    var banner = form.querySelector('[data-sb-reply-banner]')
-    var bannerText = form.querySelector('[data-sb-reply-text]')
-    document.querySelectorAll('[data-sb-reply-to]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var id = btn.getAttribute('data-sb-reply-to')
-        var author = btn.getAttribute('data-sb-reply-author') || ''
-        if (parentInput) parentInput.value = id
-        if (banner && bannerText) {
-          bannerText.textContent = '回复 @' + author
-          banner.removeAttribute('hidden')
-        }
-        var ta = form.querySelector('textarea[name=content]')
-        form.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        if (ta) setTimeout(function () { ta.focus() }, 300)
-      })
-    })
-    var cancel = form.querySelector('[data-sb-reply-cancel]')
-    if (cancel) cancel.addEventListener('click', function () {
-      if (parentInput) parentInput.value = ''
-      if (banner) banner.setAttribute('hidden', '')
-    })
-  })
-
   // --- 评论提交（JSON，含全部字段）---
   ready(function () {
     document.querySelectorAll('[data-sb-comment-form]').forEach(function (form) {
