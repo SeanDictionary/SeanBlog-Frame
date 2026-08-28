@@ -179,6 +179,78 @@ function rehypeCodeBlockEnhancements() {
   }
 }
 
+// --- Code block per-line wrapping ---
+// Wraps each visual line of a fenced code block in <span class="line"> so themes
+// can use CSS counters to show/hide line numbers. Runs after sanitize so the
+// `line` class is not stripped (sanitize only allows `token-*` on spans).
+
+function cloneElement(node: HtmlNode, children: HtmlNode[]): HtmlNode {
+  return {
+    type: 'element',
+    tagName: node.tagName,
+    properties: node.properties ? { ...node.properties } : {},
+    children,
+  }
+}
+
+function splitNodeByLines(node: HtmlNode): HtmlNode[][] {
+  if (node.type === 'text') {
+    const parts = (node.value ?? '').split('\n')
+    return parts.map((part) => (part === '' ? [] : [textNode(part)]))
+  }
+
+  if (node.type === 'element') {
+    const childLines = splitChildrenByLines(node.children)
+    return childLines.map((lineChildren) => [cloneElement(node, lineChildren)])
+  }
+
+  return [[node]]
+}
+
+function splitChildrenByLines(children: HtmlNode[] = []): HtmlNode[][] {
+  const lines: HtmlNode[][] = [[]]
+  for (const child of children) {
+    const childLines = splitNodeByLines(child)
+    for (let i = 0; i < childLines.length; i++) {
+      if (i > 0) lines.push([])
+      lines[lines.length - 1].push(...childLines[i])
+    }
+  }
+  return lines
+}
+
+function wrapCodeLines(children: HtmlNode[] = []): HtmlNode[] {
+  const lines = splitChildrenByLines(children)
+  while (lines.length > 1 && lines[lines.length - 1].length === 0) {
+    lines.pop()
+  }
+  return lines.map((lineChildren) => ({
+    type: 'element',
+    tagName: 'span',
+    properties: { className: ['line'] },
+    children: lineChildren,
+  }))
+}
+
+function rehypeCodeLineWrap() {
+  return (tree: HtmlNode) => {
+    function visitNode(node: HtmlNode) {
+      if (node.type === 'element' && node.tagName === 'pre') {
+        const code = node.children?.find(
+          (child) => child.type === 'element' && child.tagName === 'code',
+        )
+        if (code) {
+          code.children = wrapCodeLines(code.children)
+        }
+      }
+
+      node.children?.forEach(visitNode)
+    }
+
+    visitNode(tree)
+  }
+}
+
 // --- Admonition / Callout directive plugin ---
 
 const CALLOUT_TYPES = new Set(['note', 'tip', 'important', 'warning', 'caution', 'info', 'success', 'danger'])
@@ -275,6 +347,7 @@ const processor = unified()
       src: ['http', 'https', 'data'],
     },
   })
+  .use(rehypeCodeLineWrap)
   .use(rehypeStringify)
 
 export async function markdownToHtml(markdown: string) {
