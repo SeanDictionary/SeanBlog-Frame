@@ -419,7 +419,7 @@ export async function listThemes(): Promise<ThemePackageSummary[]> {
     const entries = await readdir(themesRoot, { withFileTypes: true })
     const themes = await Promise.all(
       entries
-        .filter((entry) => entry.isDirectory() && /^[a-z0-9][a-z0-9_-]{0,63}$/.test(entry.name))
+        .filter((entry) => (entry.isDirectory() || entry.isSymbolicLink()) && /^[a-z0-9][a-z0-9_-]{0,63}$/.test(entry.name))
         .map(async (entry) => {
           try {
             const manifest = await readThemeManifest(entry.name)
