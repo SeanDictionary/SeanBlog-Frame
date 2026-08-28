@@ -1,11 +1,13 @@
 <!DOCTYPE html>
-<html lang="{{site.locale}}" data-theme="{{#eq theme.config.color_mode "light"}}light{{else}}{{#eq theme.config.color_mode "auto"}}dark{{else}}dark{{/eq}}{{/eq}}">
+<html lang="{{site.locale}}" data-theme="{{#eq theme.config.color_mode "light"}}light{{else}}dark{{/eq}}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
   {{{font_awesome}}}
   {{{seo_head}}}
-  <link rel="stylesheet" href="{{asset "assets/theme.css"}}">
   {{{theme_css}}}
   {{{callout_css}}}
 </head>
@@ -16,5 +18,7 @@
   </main>
   {{> footer}}
   {{{platform_enhance}}}
+  <script>(function(){var m="{{theme.config.color_mode}}";if(document.cookie.indexOf("sb-theme=")>=0){var c=(document.cookie.match(/sb-theme=(dark|light)/)||[])[1];if(c)document.documentElement.setAttribute("data-theme",c);}else if(m==="auto"){try{document.documentElement.setAttribute("data-theme",matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");}catch(e){}}})();
+  </script>
 </body>
 </html>

@@ -1,17 +1,15 @@
 {{#if pinned.length}}
 <section class="sb-pinned">
-  <div class="sb-section-label"><i class="fa-solid fa-thumbtack"></i> 置顶</div>
+  <p class="sb-list-title"><i class="fa-solid fa-thumbtack" style="font-size:0.7rem"></i> 置顶</p>
   {{#each pinned}}{{> post-card}}{{/each}}
 </section>
 {{/if}}
 
 <section class="sb-list">
   <div class="sb-list-head">
-    <h2 class="sb-list-title">{{#eq pagination.page 1}}最新文章{{else}}第 {{pagination.page}} 页{{/eq}}</h2>
+    <p class="sb-list-title">{{#eq pagination.page 1}}最新文章{{else}}第 {{pagination.page}} 页{{/eq}}</p>
     <nav class="sb-sort">
-      {{#each sortOptions}}
-        <a href="{{href}}" {{#eq value ../sort}}aria-current="true"{{/eq}}>{{label}}</a>
-      {{/each}}
+      {{#each sortOptions}}<a href="{{href}}" {{#eq value ../sort}}aria-current="true"{{/eq}}>{{label}}</a>{{/each}}
     </nav>
   </div>
   {{#if posts.length}}

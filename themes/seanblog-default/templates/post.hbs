@@ -1,13 +1,12 @@
 <article class="sb-post">
   <header class="sb-post-head">
-    <p class="sb-section-label">文章</p>
+    <p class="sb-post-kicker">文章</p>
     <h1 class="sb-post-title">{{post.title}}</h1>
     <div class="sb-post-meta">
-      {{#if post.publishedAt}}<time>{{format_date post.publishedAt format="YYYY-MM-DD"}}</time>{{/if}}
-      {{#if post.category}}<span>{{post.category.name}}</span>{{/if}}
+      {{#if post.publishedAt}}<time datetime="{{format_date post.publishedAt format="YYYY-MM-DD"}}">{{format_date post.publishedAt format="YYYY-MM-DD"}}</time>{{/if}}
+      {{#if post.category}}<a href="/categories/{{post.category.slug}}">{{post.category.name}}</a>{{/if}}
       {{#if post.viewCount}}<span>{{post.viewCount}} 浏览</span>{{/if}}
       <span>{{post.readingMinutes}} 分钟阅读 · {{post.wordCount}} 字</span>
-      {{#each post.tags}}<a class="sb-tag" href="/tags/{{slug}}">{{name}}</a>{{/each}}
     </div>
     {{#if post.coverImage}}<img class="sb-post-cover" src="{{post.coverImage}}" alt="">{{/if}}
   </header>
@@ -16,37 +15,52 @@
 
   {{#if toc.length}}
   <nav class="sb-toc" data-sb-toc aria-label="目录">
-    <p class="sb-section-label">目录</p>
-    {{#each toc}}<a href="#{{id}}" style="margin-left:{{level}}rem">{{text}}</a>{{/each}}
+    <p class="sb-toc-title">目录</p>
+    {{#each toc}}<a href="#{{id}}">{{text}}</a>{{/each}}
   </nav>
   {{/if}}
 
   <nav class="sb-post-nav">
-    {{#if navigation.previous}}<a href="/articles/{{navigation.previous.slug}}">← {{navigation.previous.title}}</a>{{/if}}
-    {{#if navigation.next}}<a href="/articles/{{navigation.next.slug}}">{{navigation.next.title}} →</a>{{/if}}
+    {{#if navigation.previous}}<a href="/articles/{{navigation.previous.slug}}" rel="prev">← {{navigation.previous.title}}</a>{{/if}}
+    {{#if navigation.next}}<a href="/articles/{{navigation.next.slug}}" rel="next">{{navigation.next.title}} →</a>{{/if}}
   </nav>
 
   <section class="sb-comments">
-    <h2 class="sb-section-label">{{comments.length}} 条评论</h2>
+    <p class="sb-comments-title">{{comments.length}} 条评论</p>
+
     {{#each comments}}
     <article class="sb-comment" data-id="{{id}}">
-      <header>{{author}} · {{format_date createdAt format="YYYY-MM-DD HH:mm"}}</header>
-      <div>{{content}}</div>
+      <div class="sb-comment-head">
+        {{#if link}}<a class="sb-comment-author" href="{{link}}" target="_blank" rel="nofollow">{{author}}</a>{{else}}<span class="sb-comment-author">{{author}}</span>{{/if}}
+        <span class="sb-comment-time">· {{format_date createdAt format="YYYY-MM-DD HH:mm"}}</span>
+      </div>
+      <div class="sb-comment-body">{{content}}</div>
       {{#if replies.length}}
       <div class="sb-comment-replies">
         {{#each replies}}
-        <div class="sb-comment"><header>{{author}}</header><div>{{content}}</div></div>
+        <article class="sb-comment" data-id="{{id}}">
+          <div class="sb-comment-head"><span class="sb-comment-author">{{author}}</span><span class="sb-comment-time">· {{format_date createdAt format="MM-DD HH:mm"}}</span></div>
+          <div class="sb-comment-body">{{content}}</div>
+        </article>
         {{/each}}
       </div>
       {{/if}}
     </article>
     {{/each}}
+
     {{#ne commentsMode "disabled"}}
-    <form data-sb-comment-form data-article-id="{{post.id}}">
-      <input name="content" placeholder="写下你的评论…" required>
-      <input name="guestName" placeholder="昵称（可选）">
-      <button type="submit">发表评论</button>
-      <p data-sb-comment-status class="sb-comment-status"></p>
+    <form class="sb-comment-form" data-sb-comment-form data-article-id="{{post.id}}">
+      <div class="sb-form-row">
+        <label class="sb-field">昵称<input name="guestName" type="text" placeholder="你的昵称" autocomplete="name"></label>
+        <label class="sb-field">邮箱<input name="guestEmail" type="email" placeholder="email@example.com" autocomplete="email"></label>
+      </div>
+      <label class="sb-field" style="margin-bottom:0.75rem">网站<input name="guestLink" type="url" placeholder="https://（可选）" autocomplete="url"></label>
+      <label class="sb-field">评论<textarea name="content" placeholder="写下你的评论…" required></textarea></label>
+      <input type="hidden" name="parentId" value="">
+      <div class="sb-form-actions">
+        <button type="submit" class="sb-btn">发表评论</button>
+        <p class="sb-comment-status" data-sb-comment-status></p>
+      </div>
     </form>
     {{/ne}}
   </section>

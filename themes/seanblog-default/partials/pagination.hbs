@@ -1,9 +1,9 @@
 {{#if pagination.pageCount}}
 <nav class="sb-pagination" aria-label="分页">
-  {{#if pagination.prevUrl}}<a href="{{pagination.prevUrl}}" rel="prev">← 上一页</a>{{/if}}
+  {{#if pagination.prevUrl}}<a href="{{pagination.prevUrl}}" rel="prev" aria-label="上一页">←</a>{{/if}}
   {{#each pagination.pages}}
     {{#if active}}<span class="sb-page-active">{{page}}</span>{{else}}<a href="{{url}}">{{page}}</a>{{/if}}
   {{/each}}
-  {{#if pagination.nextUrl}}<a href="{{pagination.nextUrl}}" rel="next">下一页 →</a>{{/if}}
+  {{#if pagination.nextUrl}}<a href="{{pagination.nextUrl}}" rel="next" aria-label="下一页">→</a>{{/if}}
 </nav>
 {{/if}}
