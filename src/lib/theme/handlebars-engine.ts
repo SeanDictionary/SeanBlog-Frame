@@ -46,6 +46,11 @@ function getPartialMap(slug: string) {
 }
 
 async function loadThemeTemplates(slug: string) {
+  // dev 模式每次重读磁盘（主题文件不在 Next 模块图内，无 HMR）
+  if (process.env.NODE_ENV !== 'production') {
+    templateCache.delete(slug)
+    partialSources.delete(slug)
+  }
   if (templateCache.has(slug) && partialSources.has(slug)) return
   const dir = path.join(themesRoot, slug)
   await Promise.all([

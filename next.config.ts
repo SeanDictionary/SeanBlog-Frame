@@ -7,7 +7,7 @@ const contentSecurityPolicy = [
   `script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com",
   "font-src 'self' data: https://cdnjs.cloudflare.com",
-  "img-src 'self' data: blob:",
+  "img-src 'self' data: blob: https:",
   `connect-src 'self'${isDevelopment ? ' http: ws:' : ''}`,
   "object-src 'none'",
   "base-uri 'self'",

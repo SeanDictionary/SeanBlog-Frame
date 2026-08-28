@@ -4,6 +4,8 @@ import { handleApiError } from '@/lib/api/response'
 import { requireAdmin } from '@/lib/auth.utils'
 
 function contentTypeFor(path: string) {
+  if (path.endsWith('.css')) return 'text/css; charset=utf-8'
+  if (path.endsWith('.js')) return 'text/javascript; charset=utf-8'
   if (path.endsWith('.svg')) return 'image/svg+xml; charset=utf-8'
   if (path.endsWith('.png')) return 'image/png'
   if (path.endsWith('.jpg') || path.endsWith('.jpeg')) return 'image/jpeg'

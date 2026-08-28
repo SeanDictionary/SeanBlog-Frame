@@ -10,7 +10,7 @@ import { countContentWordsFromHtml, estimateReadingMinutesFromHtml } from '@/lib
 import { getPublicArticleBySlug, getPublicArticleNavigation, listPublicArticles, searchArticles } from '@/lib/services/article-service'
 import { getPublicCategoryBySlug, listPublicCategories } from '@/lib/services/category-service'
 import { getMergedSettings } from '@/lib/services/theme-settings-service'
-import { listPublicTags } from '@/lib/services/tag-service'
+import { getPublicTagBySlug, listPublicTags } from '@/lib/services/tag-service'
 
 export type SiteCtx = {
   title: string
@@ -173,7 +173,7 @@ export async function buildPostCtx(slug: string) {
 export async function buildTaxonomyCtx(type: 'category' | 'tag', slug: string, searchParams: { page?: string }) {
   const base = await baseCtx()
   const page = parsePage(searchParams.page)
-  const info = await getPublicCategoryBySlug(slug) // tag 复用同形状
+  const info = type === 'category' ? await getPublicCategoryBySlug(slug) : await getPublicTagBySlug(slug)
   const result = await listPublicArticles({ page, pageSize: 12, [type]: slug } as any)
   const basePath = type === 'category' ? `/categories/${slug}` : `/tags/${slug}`
   return {
