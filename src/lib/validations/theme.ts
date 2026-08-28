@@ -10,6 +10,8 @@ const unsafeCssPattern = /<\/?style|[<>]|@import|!important/i
 
 function assertDeclarations(rule: postcss.Rule) {
   rule.each((node) => {
+    // 跳过注释节点（允许规则内注释）
+    if (node.type === 'comment') return
     if (node.type !== 'decl' || !node.value || node.important || unsafeCssPattern.test(node.value)) {
       throw badRequest('Theme CSS contains an unsupported declaration.', 'INVALID_THEME_CSS')
     }
@@ -44,6 +46,9 @@ export function validateThemeCss(css: string) {
   let declarationCount = 0
 
   root.each((node) => {
+    // 跳过顶层注释节点
+    if (node.type === 'comment') return
+
     if (node.type === 'rule') {
       assertDeclarations(node)
       declarationCount += node.nodes?.length ?? 0
@@ -53,6 +58,7 @@ export function validateThemeCss(css: string) {
     if (node.type === 'atrule') {
       if (node.name === 'media') {
         node.each((child) => {
+          if (child.type === 'comment') return
           if (child.type !== 'rule') {
             throw badRequest('Theme CSS media queries may only contain rule blocks.', 'INVALID_THEME_CSS')
           }

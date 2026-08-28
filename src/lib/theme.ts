@@ -479,7 +479,8 @@ export async function readThemeCss(themeName: string) {
     const cssPath = manifest.assets?.css ?? themeCssFallbackPath
     const css = await readFile(resolveThemePath(manifest.slug, cssPath), 'utf8')
     return rewriteThemeCssUrls(manifest.slug, cssPath, validateThemeCss(css))
-  } catch {
+  } catch (error) {
+    console.error(`[theme] CSS 加载/校验失败 (${themeName}):`, error instanceof Error ? error.message : error)
     return null
   }
 }
