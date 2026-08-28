@@ -39,6 +39,67 @@ export type PaginationCtx = {
   pages: Array<{ page: number; url: string; active: boolean }>
 }
 
+export type SidebarArticle = {
+  id: string
+  title: string
+  slug: string
+  publishedAt: Date | null
+}
+
+export type SidebarTag = {
+  id: string
+  name: string
+  slug: string
+}
+
+export type SidebarCategory = {
+  id: string
+  name: string
+  slug: string
+  count: number
+}
+
+export type SidebarData = {
+  recentArticles: SidebarArticle[]
+  tags: SidebarTag[]
+  categories: SidebarCategory[]
+}
+
+const EMPTY_SIDEBAR: SidebarData = { recentArticles: [], tags: [], categories: [] }
+
+async function loadSidebarData(): Promise<SidebarData> {
+  try {
+    const [recentResult, tagsResult, categoriesResult] = await Promise.all([
+      listPublicArticles({ page: 1, pageSize: 5, sort: 'publishedAt' }),
+      listPublicTags({ page: 1, pageSize: 50 }),
+      listPublicCategories({ page: 1, pageSize: 50 }),
+    ])
+
+    return {
+      recentArticles: recentResult.items.map((a) => ({
+        id: a.id,
+        title: a.title,
+        slug: a.slug,
+        publishedAt: a.publishedAt,
+      })),
+      tags: tagsResult.items.map((t) => ({
+        id: t.id,
+        name: t.name,
+        slug: t.slug,
+      })),
+      categories: categoriesResult.items.map((c) => ({
+        id: c.id,
+        name: c.name,
+        slug: c.slug,
+        count: c._count.articles,
+      })),
+    }
+  } catch (error) {
+    console.error('Failed to load sidebar data.', error)
+    return EMPTY_SIDEBAR
+  }
+}
+
 const HEADING_PATTERN = /<h([2-4])[^>]*id=["']([^"']+)["'][^>]*>([\s\S]*?)<\/h\1>/gi
 
 function getHeadings(html: string) {
@@ -82,8 +143,11 @@ function buildPagination(basePath: string, page: number, pageCount: number, tota
   }
 }
 
-async function baseCtx(): Promise<{ settings: Record<string, unknown>; site: SiteCtx; theme: { slug: string; config: Record<string, unknown> } }> {
-  const settings = await getMergedSettings()
+async function baseCtx(): Promise<{ settings: Record<string, unknown>; site: SiteCtx; theme: { slug: string; config: Record<string, unknown> }; sidebarData: SidebarData }> {
+  const [settings, sidebarData] = await Promise.all([
+    getMergedSettings(),
+    loadSidebarData(),
+  ])
   const site: SiteCtx = {
     title: typeof settings.siteName === 'string' && settings.siteName.trim() ? settings.siteName : 'SeanBlog',
     description: typeof settings.siteDescription === 'string' ? settings.siteDescription : '',
@@ -92,7 +156,7 @@ async function baseCtx(): Promise<{ settings: Record<string, unknown>; site: Sit
     logo: typeof settings.siteLogo === 'string' ? settings.siteLogo : null,
   }
   const themeSlug = typeof settings.activeTheme === 'string' && settings.activeTheme !== 'default' ? settings.activeTheme : 'seanblog-default'
-  return { settings, site, theme: { slug: themeSlug, config: settings as Record<string, unknown> } }
+  return { settings, site, theme: { slug: themeSlug, config: settings as Record<string, unknown> }, sidebarData }
 }
 
 // --- 各页面 ctx 构建 ---
