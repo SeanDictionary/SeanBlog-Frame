@@ -107,6 +107,14 @@
               f.setAttribute('data-state', st === 'APPROVED' ? 'success' : 'pending')
               if (status) status.textContent = st === 'APPROVED' ? '评论成功，已显示。' : '已提交，待审核后显示。'
               f.reset()
+              // APPROVED：评论已显示，刷新页面以展示新评论并滚回评论区（由 data-sb-comment-target 声明目标）
+              if (st === 'APPROVED') {
+                var target = f.getAttribute('data-sb-comment-target')
+                setTimeout(function () {
+                  if (target) { try { location.hash = target.replace(/^#/, '') } catch (e) {} }
+                  location.reload()
+                }, 900)
+              }
             } else {
               f.setAttribute('data-state', 'error')
               if (status) status.textContent = (res.d && res.d.error && res.d.error.message) || '提交失败'

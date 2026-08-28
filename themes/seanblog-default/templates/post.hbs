@@ -25,7 +25,7 @@
     {{#if navigation.next}}<a href="/articles/{{navigation.next.slug}}" rel="next">{{navigation.next.title}} →</a>{{/if}}
   </nav>
 
-  <section class="sb-comments">
+  <section id="sb-comments" class="sb-comments">
     <p class="sb-comments-title">{{comments.length}} 条评论</p>
 
     {{#each comments}}
@@ -54,7 +54,7 @@
     {{/each}}
 
     {{#ne commentsMode "disabled"}}
-    <form class="sb-comment-form" data-sb-comment-form data-article-id="{{post.id}}">
+    <form class="sb-comment-form" data-sb-comment-form data-sb-comment-target="#sb-comments" data-article-id="{{post.id}}">
       <div class="sb-reply-banner" data-sb-reply-banner hidden><span data-sb-reply-text></span> <button type="button" class="sb-reply-cancel" data-sb-reply-cancel>取消</button></div>
       <div class="sb-form-row">
         <label class="sb-field">昵称<input name="guestName" type="text" placeholder="你的昵称" autocomplete="name"></label>
