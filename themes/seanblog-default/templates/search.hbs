@@ -1,0 +1,11 @@
+<header class="sb-archive-head">
+  <p class="sb-section-label">搜索</p>
+  <h1 class="sb-archive-title">{{query}}</h1>
+  <p class="sb-muted">共 {{pagination.total}} 篇</p>
+</header>
+{{#if posts.length}}
+  {{#each posts}}{{> post-card}}{{/each}}
+{{else}}
+  <p class="sb-empty">没有找到相关文章。</p>
+{{/if}}
+{{> pagination}}

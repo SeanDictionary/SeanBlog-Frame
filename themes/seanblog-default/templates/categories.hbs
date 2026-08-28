@@ -1,0 +1,7 @@
+<header class="sb-archive-head"><h1 class="sb-archive-title">分类</h1></header>
+<ul class="sb-tax-list">
+  {{#each categories}}
+  <li><a href="/categories/{{slug}}">{{name}}</a> <span class="sb-muted">({{_count.articles}})</span></li>
+  {{/each}}
+</ul>
+{{> pagination}}

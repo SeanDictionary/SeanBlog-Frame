@@ -1,0 +1,29 @@
+slug: seanblog-default
+name: SeanBlog Default
+version: 2.0.0
+author:
+  name: SeanBlog Frame
+description: 默认主题，内容优先、原生组件、柔和边框、低干扰交互。
+engine: seanblog-theme
+engineVersion: 2
+assets:
+  css: assets/theme.css
+settingsSchema:
+  视觉:
+    - key: color_mode
+      label: 色彩模式
+      type: select
+      default: dark
+      options:
+        - { label: 深色, value: dark }
+        - { label: 浅色, value: light }
+        - { label: 跟随系统, value: auto }
+    - key: show_theme_toggle
+      label: 前台深浅色切换按钮
+      type: boolean
+      default: true
+    - key: accent_color
+      label: 强调色
+      type: color
+      default: "#2563eb"
+      cssVariable: --color-accent

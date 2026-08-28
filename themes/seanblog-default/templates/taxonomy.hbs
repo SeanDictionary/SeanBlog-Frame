@@ -1,0 +1,11 @@
+<header class="sb-archive-head">
+  <p class="sb-section-label">{{#eq taxonomy.type "category"}}分类{{else}}标签{{/eq}}</p>
+  <h1 class="sb-archive-title">{{taxonomy.name}}</h1>
+  {{#if taxonomy.description}}<p class="sb-archive-desc">{{taxonomy.description}}</p>{{/if}}
+</header>
+{{#if posts.length}}
+  {{#each posts}}{{> post-card}}{{/each}}
+{{else}}
+  <p class="sb-empty">暂无文章。</p>
+{{/if}}
+{{> pagination}}

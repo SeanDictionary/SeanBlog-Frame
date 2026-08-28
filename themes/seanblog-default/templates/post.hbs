@@ -1,0 +1,53 @@
+<article class="sb-post">
+  <header class="sb-post-head">
+    <p class="sb-section-label">文章</p>
+    <h1 class="sb-post-title">{{post.title}}</h1>
+    <div class="sb-post-meta">
+      {{#if post.publishedAt}}<time>{{format_date post.publishedAt format="YYYY-MM-DD"}}</time>{{/if}}
+      {{#if post.category}}<span>{{post.category.name}}</span>{{/if}}
+      {{#if post.viewCount}}<span>{{post.viewCount}} 浏览</span>{{/if}}
+      <span>{{post.readingMinutes}} 分钟阅读 · {{post.wordCount}} 字</span>
+      {{#each post.tags}}<a class="sb-tag" href="/tags/{{slug}}">{{name}}</a>{{/each}}
+    </div>
+    {{#if post.coverImage}}<img class="sb-post-cover" src="{{post.coverImage}}" alt="">{{/if}}
+  </header>
+
+  <div class="sb-post-content article-content">{{{content}}}</div>
+
+  {{#if toc.length}}
+  <nav class="sb-toc" data-sb-toc aria-label="目录">
+    <p class="sb-section-label">目录</p>
+    {{#each toc}}<a href="#{{id}}" style="margin-left:{{level}}rem">{{text}}</a>{{/each}}
+  </nav>
+  {{/if}}
+
+  <nav class="sb-post-nav">
+    {{#if navigation.previous}}<a href="/articles/{{navigation.previous.slug}}">← {{navigation.previous.title}}</a>{{/if}}
+    {{#if navigation.next}}<a href="/articles/{{navigation.next.slug}}">{{navigation.next.title}} →</a>{{/if}}
+  </nav>
+
+  <section class="sb-comments">
+    <h2 class="sb-section-label">{{comments.length}} 条评论</h2>
+    {{#each comments}}
+    <article class="sb-comment" data-id="{{id}}">
+      <header>{{author}} · {{format_date createdAt format="YYYY-MM-DD HH:mm"}}</header>
+      <div>{{content}}</div>
+      {{#if replies.length}}
+      <div class="sb-comment-replies">
+        {{#each replies}}
+        <div class="sb-comment"><header>{{author}}</header><div>{{content}}</div></div>
+        {{/each}}
+      </div>
+      {{/if}}
+    </article>
+    {{/each}}
+    {{#ne commentsMode "disabled"}}
+    <form data-sb-comment-form data-article-id="{{post.id}}">
+      <input name="content" placeholder="写下你的评论…" required>
+      <input name="guestName" placeholder="昵称（可选）">
+      <button type="submit">发表评论</button>
+      <p data-sb-comment-status class="sb-comment-status"></p>
+    </form>
+    {{/ne}}
+  </section>
+</article>

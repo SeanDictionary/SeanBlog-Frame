@@ -1,15 +1,17 @@
 import { mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { inflateRawSync } from 'node:zlib'
+import { load as yamlLoad, dump as yamlDump } from 'js-yaml'
+import Handlebars from 'handlebars'
 
 import { badRequest, conflict, notFound } from '@/lib/api/errors'
 import { assertThemeName, DEFAULT_THEME_NAME, validateThemeCss } from '@/lib/validations/theme'
 
 export const THEME_ENGINE = 'seanblog-theme'
-export const THEME_ENGINE_VERSION = 1
+export const THEME_ENGINE_VERSION = 2
 
 const themesRoot = path.join(process.cwd(), 'themes')
-const themeManifestFilename = 'theme.json'
+const themeManifestFilename = 'theme.yaml'
 const themeCssFallbackPath = 'assets/theme.css'
 const maxThemePackageBytes = 2 * 1024 * 1024
 const maxThemeFileCount = 200
@@ -207,11 +209,11 @@ function validateManifest(raw: unknown, expectedSlug?: string): ThemePackageMani
   }
 }
 
-async function readJsonFile(filePath: string) {
+async function readYamlFile(filePath: string) {
   try {
-    return JSON.parse(await readFile(filePath, 'utf8')) as unknown
+    return yamlLoad(await readFile(filePath, 'utf8')) as unknown
   } catch {
-    throw badRequest('Theme package contains invalid JSON.', 'INVALID_THEME_PACKAGE')
+    throw badRequest('Theme package contains invalid YAML.', 'INVALID_THEME_PACKAGE')
   }
 }
 
@@ -394,7 +396,7 @@ function validatePart(raw: unknown): ThemePart {
 
 export async function readThemeManifest(themeName: string) {
   const slug = normalizeThemeName(themeName)
-  const manifest = validateManifest(await readJsonFile(getThemeManifestPath(slug)), slug)
+  const manifest = validateManifest(await readYamlFile(getThemeManifestPath(slug)), slug)
 
   if (manifest.engineVersion > THEME_ENGINE_VERSION) {
     throw badRequest('Theme package requires a newer theme engine.', 'UNSUPPORTED_THEME_VERSION')
@@ -492,19 +494,23 @@ export async function installThemePackageFromZip(file: File) {
   const manifestEntry = entries.find((entry) => entry.path === themeManifestFilename)
 
   if (!manifestEntry) {
-    throw badRequest('Theme package must include theme.json at its root.', 'INVALID_THEME_PACKAGE')
+    throw badRequest('Theme package must include theme.yaml at its root.', 'INVALID_THEME_PACKAGE')
   }
 
   let manifest: ThemePackageManifest
 
   try {
-    manifest = validateManifest(JSON.parse(manifestEntry.content.toString('utf8')))
+    manifest = validateManifest(yamlLoad(manifestEntry.content.toString('utf8')) as unknown)
   } catch (error) {
     if (error instanceof Error && error.name === 'ApiError') throw error
-    throw badRequest('Theme package contains an invalid theme.json manifest.', 'INVALID_THEME_MANIFEST')
+    throw badRequest('Theme package contains an invalid theme.yaml manifest.', 'INVALID_THEME_MANIFEST')
   }
 
   const files = entries.filter((entry) => entry.path !== themeManifestFilename)
+
+  // Handlebars 模板语法预校验（fail-fast）
+  await validateTemplatesSyntax(files)
+
   return installThemePackageFromManifest(manifest, files)
 }
 
@@ -524,7 +530,7 @@ export async function installThemePackageFromManifest(manifest: ThemePackageMani
   await mkdir(directory, { recursive: true })
 
   try {
-    await writeFile(path.join(directory, themeManifestFilename), JSON.stringify(manifest, null, 2), 'utf8')
+    await writeFile(path.join(directory, themeManifestFilename), yamlDump(manifest, { lineWidth: -1 }), 'utf8')
 
     for (const file of files) {
       const target = resolveThemePath(slug, file.path)
@@ -537,15 +543,9 @@ export async function installThemePackageFromManifest(manifest: ThemePackageMani
     throw error
   }
 
-  // 安装时预编译所有页面（fail-fast：编译失败则回滚）
-  try {
-    const { preloadTheme, clearThemeCache } = await import('@/lib/theme/resolver')
-    await preloadTheme(slug)
-    clearThemeCache(slug)
-  } catch (error) {
-    await rm(directory, { recursive: true, force: true }).catch(() => undefined)
-    throw error
-  }
+  // 安装后清模板缓存（渲染时重新加载）
+  const { clearTemplateCache } = await import('@/lib/theme/handlebars-engine')
+  clearTemplateCache(slug)
 
   return slug
 }
@@ -569,11 +569,24 @@ export async function deleteTheme(themeName: string) {
 
   await rm(getThemeDirectory(name), { recursive: true, force: true })
 
-  // 清除 resolver 内存缓存
-  const { clearThemeCache } = await import('@/lib/theme/resolver')
-  clearThemeCache(name)
+  // 清除模板缓存
+  const { clearTemplateCache } = await import('@/lib/theme/handlebars-engine')
+  clearTemplateCache(name)
 }
 
 export async function ensureDefaultTheme() {
   return themeExists(DEFAULT_THEME_NAME)
+}
+
+/** 安装期预校验所有 .hbs 模板语法 */
+async function validateTemplatesSyntax(files: Array<{ path: string; content: string | Buffer }>) {
+  const hbsFiles = files.filter((f) => f.path.endsWith('.hbs'))
+  for (const f of hbsFiles) {
+    const src = typeof f.content === 'string' ? f.content : f.content.toString('utf8')
+    try {
+      Handlebars.compile(src, { noEscape: true })
+    } catch (error) {
+      throw badRequest(`Theme template ${f.path} has invalid Handlebars syntax: ${error instanceof Error ? error.message : String(error)}`, 'INVALID_THEME_TEMPLATE')
+    }
+  }
 }

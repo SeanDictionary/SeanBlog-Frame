@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="{{site.locale}}" data-theme="{{#eq theme.config.color_mode "light"}}light{{else}}{{#eq theme.config.color_mode "auto"}}dark{{else}}dark{{/eq}}{{/eq}}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {{{font_awesome}}}
+  {{{seo_head}}}
+  <link rel="stylesheet" href="{{asset "assets/theme.css"}}">
+  {{{theme_css}}}
+  {{{callout_css}}}
+</head>
+<body class="sb-body sb-page-{{page}}">
+  {{> header}}
+  <main class="sb-main">
+    {{{body}}}
+  </main>
+  {{> footer}}
+  {{{platform_enhance}}}
+</body>
+</html>

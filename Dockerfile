@@ -14,7 +14,6 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npx prisma generate
 RUN npm run build
-RUN npm run themes:build
 
 # 3. 运行
 FROM node:22-alpine AS runner

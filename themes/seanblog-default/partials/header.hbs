@@ -1,0 +1,12 @@
+<header class="sb-header">
+  <div class="sb-header-inner">
+    <a href="/" class="sb-brand">{{site.title}}</a>
+    <nav class="sb-nav">
+      <a href="/">首页</a>
+      <a href="/categories">分类</a>
+      <a href="/tags">标签</a>
+      <button type="button" data-sb-search aria-label="搜索"><i class="fa-solid fa-magnifying-glass"></i></button>
+      {{#if theme.config.show_theme_toggle}}<button type="button" data-sb-theme-toggle aria-label="切换深浅色"><i class="fa-solid fa-moon"></i></button>{{/if}}
+    </nav>
+  </div>
+</header>

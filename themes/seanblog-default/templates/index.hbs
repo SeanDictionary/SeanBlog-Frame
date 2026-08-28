@@ -1,0 +1,24 @@
+{{#if pinned.length}}
+<section class="sb-pinned">
+  <div class="sb-section-label"><i class="fa-solid fa-thumbtack"></i> 置顶</div>
+  {{#each pinned}}{{> post-card}}{{/each}}
+</section>
+{{/if}}
+
+<section class="sb-list">
+  <div class="sb-list-head">
+    <h2 class="sb-list-title">{{#eq pagination.page 1}}最新文章{{else}}第 {{pagination.page}} 页{{/eq}}</h2>
+    <nav class="sb-sort">
+      {{#each sortOptions}}
+        <a href="{{href}}" {{#eq value ../sort}}aria-current="true"{{/eq}}>{{label}}</a>
+      {{/each}}
+    </nav>
+  </div>
+  {{#if posts.length}}
+    {{#each posts}}{{> post-card}}{{/each}}
+  {{else}}
+    <p class="sb-empty">这里还没有文章。</p>
+  {{/if}}
+</section>
+
+{{> pagination}}
