@@ -50,6 +50,7 @@ async function loadThemeTemplates(slug: string) {
   if (process.env.NODE_ENV !== 'production') {
     templateCache.delete(slug)
     partialSources.delete(slug)
+    activePartialsKey = ''
   }
   if (templateCache.has(slug) && partialSources.has(slug)) return
   const dir = path.join(themesRoot, slug)

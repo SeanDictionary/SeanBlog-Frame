@@ -1,14 +1,10 @@
-<a class="sb-card" href="{{url}}">
-  {{#if coverImage}}
-  <div class="sb-card-cover"><img src="{{coverImage}}" alt="" loading="lazy"></div>
-  {{/if}}
-  <div class="sb-card-body">
-    <h3 class="sb-card-title">{{title}}</h3>
-    {{#if excerpt}}<p class="sb-card-excerpt">{{excerpt}}</p>{{/if}}
-    <div class="sb-card-meta">
-      {{#if publishedAt}}<time datetime="{{format_date publishedAt format="YYYY-MM-DD"}}">{{format_date publishedAt format="MM-DD"}}</time>{{/if}}
-      {{#if category}}<a href="/categories/{{category.slug}}">{{category.name}}</a>{{/if}}
-      {{#if commentCount}}<span>{{commentCount}} 评论</span>{{/if}}
-    </div>
+<article class="sb-card">
+  <h3 class="sb-card-title"><a href="{{url}}">{{title}}</a></h3>
+  {{#if coverImage}}<a href="{{url}}" class="sb-card-cover"><img src="{{coverImage}}" alt="" loading="lazy"></a>{{/if}}
+  {{#if excerpt}}<p class="sb-card-excerpt">{{excerpt}}</p>{{/if}}
+  <div class="sb-card-meta">
+    {{#if publishedAt}}<time datetime="{{format_date publishedAt format="YYYY-MM-DD"}}">{{format_date publishedAt format="MM-DD"}}</time>{{/if}}
+    {{#if category}}<a href="/categories/{{category.slug}}">{{category.name}}</a>{{/if}}
+    {{#if commentCount}}<span>{{commentCount}} 评论</span>{{/if}}
   </div>
-</a>
+</article>
