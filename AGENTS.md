@@ -4,7 +4,7 @@
 
 当前项目处于开发阶段，前期项目研判和框架的初步开发已经实现，相关的doc文档已经完成。
 
-由于产品未实际上线，开发中设计到对结构的修改和调整时，不需要考虑前向兼容性问题，可以直接进行修改和调整，以及必要的破坏性修改，如果该修改确实为最佳实现。
+由于产品未实际上线，开发中涉及到对结构的修改和调整时，不需要考虑前向兼容性问题，可以直接进行修改和调整，以及必要的破坏性修改，如果该修改确实为最佳实现。
 
 开发，修改，新增过程中，需要对涉及到的所有文档进行及时更新，保持文档的准确性和完整性。
 
@@ -29,4 +29,11 @@
 - 保持代码的简洁性，避免过度设计和复杂化
 - 遵循最佳实践和设计模式，确保代码的可读性和可扩展性
 - 避免重复代码，提取公共逻辑和组件
-- 设计到ui/ux设计部分，请遵循现代设计原则，确保界面美观、易用。可以使用 `ui-ux-pro-max`, `web-design-guidelines`, `frontend-design`, `vercel-react-view-transitions` 等相关skill，并且搭配 `chrome-devtools`, `playwright` 这两个浏览器自动化mcp工具
+- 涉及到ui/ux设计部分，请遵循现代设计原则，确保界面美观、易用。可以使用 `ui-ux-pro-max`, `web-design-guidelines`, `frontend-design`, `vercel-react-view-transitions` 等相关skill，并且搭配 `chrome-devtools`, `playwright` 这两个浏览器自动化mcp工具
+
+## 后台管理员
+
+admin
+AN67kdtgm2q1Clmbe6ZsBAC4lakjTlpT
+
+如果密码不对可以使用脚本重新生成密码，同时更新上方密码
