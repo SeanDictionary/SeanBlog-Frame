@@ -35,6 +35,7 @@
         <span class="sb-comment-time">· {{format_date createdAt format="YYYY-MM-DD HH:mm"}}</span>
       </div>
       <div class="sb-comment-body">{{content}}</div>
+      <button type="button" class="sb-comment-reply-btn" data-sb-reply-to="{{id}}" data-sb-reply-author="{{author}}">回复</button>
       {{#if replies.length}}
       <div class="sb-comment-replies">
         {{#each replies}}
@@ -50,6 +51,7 @@
 
     {{#ne commentsMode "disabled"}}
     <form class="sb-comment-form" data-sb-comment-form data-article-id="{{post.id}}">
+      <div class="sb-reply-banner" data-sb-reply-banner hidden><span data-sb-reply-text></span> <button type="button" class="sb-reply-cancel" data-sb-reply-cancel>取消</button></div>
       <div class="sb-form-row">
         <label class="sb-field">昵称<input name="guestName" type="text" placeholder="你的昵称" autocomplete="name"></label>
         <label class="sb-field">邮箱<input name="guestEmail" type="email" placeholder="email@example.com" autocomplete="email"></label>
