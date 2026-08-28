@@ -25,49 +25,6 @@
     })
   })
 
-  // --- 侧栏开合 ---
-  ready(function () {
-    document.querySelectorAll('[data-sb-sidebar-toggle]').forEach(function (el) {
-      el.addEventListener('click', function () {
-        var sel = el.getAttribute('data-sb-sidebar-toggle') || ''
-        var target = document.querySelector(sel)
-        if (!target) return
-        var open = target.getAttribute('data-open') === 'true'
-        target.setAttribute('data-open', String(!open))
-        target.classList.toggle('sb-sidebar-open', !open)
-      })
-    })
-  })
-
-  // --- 目录滚动高亮 ---
-  ready(function () {
-    var toc = document.querySelector('[data-sb-toc]')
-    if (!toc) return
-    var links = Array.prototype.slice.call(toc.querySelectorAll('a[href^="#"]'))
-    if (!links.length) return
-    var byId = {}
-    links.forEach(function (a) {
-      var id = a.getAttribute('href').slice(1)
-      if (document.getElementById(id) && !byId[id]) byId[id] = a
-    })
-    if ('IntersectionObserver' in window) {
-      var io = new IntersectionObserver(function (entries) {
-        entries.forEach(function (e) {
-          var a = byId[e.target.id]
-          if (!a) return
-          if (e.isIntersecting) {
-            links.forEach(function (x) { x.removeAttribute('aria-current') })
-            a.setAttribute('aria-current', 'true')
-          }
-        })
-      }, { rootMargin: '0% 0% -80% 0%' })
-      Object.keys(byId).forEach(function (id) {
-        var t = document.getElementById(id)
-        if (t) io.observe(t)
-      })
-    }
-  })
-
   // --- 搜索弹窗 ---
   ready(function () {
     var overlay = null

@@ -29,7 +29,7 @@
     <p class="sb-comments-title">{{comments.length}} 条评论</p>
 
     {{#each comments}}
-    <article class="sb-comment" data-id="{{id}}">
+    <article class="sb-comment sb-comment-top" data-id="{{id}}">
       <div class="sb-comment-head">
         {{#if link}}<a class="sb-comment-author" href="{{link}}" target="_blank" rel="nofollow">{{author}}</a>{{else}}<span class="sb-comment-author">{{author}}</span>{{/if}}
         <span class="sb-comment-time">· {{format_date createdAt format="YYYY-MM-DD HH:mm"}}</span>
@@ -39,9 +39,13 @@
       {{#if replies.length}}
       <div class="sb-comment-replies">
         {{#each replies}}
-        <article class="sb-comment" data-id="{{id}}">
-          <div class="sb-comment-head"><span class="sb-comment-author">{{author}}</span><span class="sb-comment-time">· {{format_date createdAt format="MM-DD HH:mm"}}</span></div>
-          <div class="sb-comment-body">{{content}}</div>
+        <article class="sb-comment sb-comment-reply" data-id="{{id}}">
+          <div class="sb-comment-head">
+            {{#if link}}<a class="sb-comment-author" href="{{link}}" target="_blank" rel="nofollow">{{author}}</a>{{else}}<span class="sb-comment-author">{{author}}</span>{{/if}}
+            <span class="sb-comment-time">· {{format_date createdAt format="MM-DD HH:mm"}}</span>
+          </div>
+          <div class="sb-comment-body">{{#if replyToAuthor}}<span class="sb-reply-at">@{{replyToAuthor}} </span>{{/if}}{{content}}</div>
+          <button type="button" class="sb-comment-reply-btn" data-sb-reply-to="{{id}}" data-sb-reply-author="{{author}}">回复</button>
         </article>
         {{/each}}
       </div>

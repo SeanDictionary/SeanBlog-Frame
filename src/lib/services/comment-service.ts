@@ -228,3 +228,74 @@ export async function trashComment(id: string) {
     status: CommentStatus.TRASHED,
   })
 }
+
+export type FlatReply = {
+  id: string
+  content: string
+  author: string
+  link: string | null
+  createdAt: Date
+  replyToAuthor: string | null
+}
+
+export type CommentThread = {
+  id: string
+  content: string
+  author: string
+  link: string | null
+  createdAt: Date
+  replies: FlatReply[]
+}
+
+/** 取文章的已审核评论，构建顶级 + 扁平回复线程（支持回复回复，统一挂到顶级下）。
+ *  每条回复带 replyToAuthor（直接父评论作者），供主题 @提及 展示。 */
+export async function listArticleCommentThread(articleId: string): Promise<CommentThread[]> {
+  const rows = await getPrisma().comment.findMany({
+    where: { articleId, status: 'APPROVED' },
+    select: { id: true, content: true, guestName: true, guestLink: true, createdAt: true, parentId: true },
+    orderBy: { createdAt: 'asc' },
+  })
+  const byId = new Map(rows.map((r) => [r.id, r]))
+  const nameOf = (r?: { guestName: string | null }) => (r?.guestName?.trim() || '匿名')
+
+  function topAncestor(id: string): string | null {
+    let cur = byId.get(id)
+    if (!cur) return null
+    const seen = new Set<string>()
+    while (cur && cur.parentId) {
+      if (seen.has(cur.id)) break
+      seen.add(cur.id)
+      cur = byId.get(cur.parentId)
+    }
+    return cur ? cur.id : null
+  }
+
+  const threads: CommentThread[] = rows
+    .filter((r) => !r.parentId)
+    .map((r) => ({
+      id: r.id,
+      content: r.content,
+      author: nameOf(r),
+      link: r.guestLink,
+      createdAt: r.createdAt,
+      replies: [],
+    }))
+  const threadById = new Map(threads.map((t) => [t.id, t]))
+
+  for (const r of rows) {
+    if (!r.parentId) continue
+    const topId = topAncestor(r.id)
+    const t = topId ? threadById.get(topId) : undefined
+    if (!t) continue
+    const parent = byId.get(r.parentId)
+    t.replies.push({
+      id: r.id,
+      content: r.content,
+      author: nameOf(r),
+      link: r.guestLink,
+      createdAt: r.createdAt,
+      replyToAuthor: parent ? nameOf(parent) : null,
+    })
+  }
+  return threads
+}

@@ -9,6 +9,7 @@ import { fromPrismaArticleCommentsMode } from '@/lib/comment-settings'
 import { countContentWordsFromHtml, estimateReadingMinutesFromHtml } from '@/lib/content/reading-time'
 import { getPublicArticleBySlug, getPublicArticleNavigation, listPublicArticles, searchArticles } from '@/lib/services/article-service'
 import { getPublicCategoryBySlug, listPublicCategories } from '@/lib/services/category-service'
+import { listArticleCommentThread } from '@/lib/services/comment-service'
 import { getMergedSettings } from '@/lib/services/theme-settings-service'
 import { getPublicTagBySlug, listPublicTags } from '@/lib/services/tag-service'
 
@@ -128,11 +129,12 @@ export async function buildHomeCtx(searchParams: { page?: string; sort?: string 
 
 export async function buildPostCtx(slug: string) {
   const base = await baseCtx()
-  const [article, navigation] = await Promise.all([
-    getPublicArticleBySlug(slug),
-    getPublicArticleNavigation(slug),
-  ])
+  const article = await getPublicArticleBySlug(slug)
   const a = article as any
+  const [navigation, comments] = await Promise.all([
+    getPublicArticleNavigation(slug),
+    listArticleCommentThread(a.id).catch(() => []),
+  ])
   const { contentHtml, headings } = getHeadings(a.contentHtml)
   const readingMinutes = estimateReadingMinutesFromHtml(contentHtml)
   const wordCount = countContentWordsFromHtml(contentHtml)
@@ -158,7 +160,7 @@ export async function buildPostCtx(slug: string) {
     content: contentHtml,
     toc: headings,
     navigation,
-    comments: (a.comments ?? []).map(normalizeComment),
+    comments,
     commentsMode,
     seo: {
       title: a.metaTitle || a.title,
@@ -243,17 +245,6 @@ function normalizePost(a: any) {
     category: a.category,
     tags: (a.tags ?? []).map((t: any) => ({ id: t.id ?? t.tag?.id, name: t.name ?? t.tag?.name, slug: t.slug ?? t.tag?.slug })),
     url: `/articles/${a.slug}` as Route,
-  }
-}
-
-function normalizeComment(c: any) {
-  return {
-    id: c.id,
-    content: c.content,
-    author: c.guestName || '匿名',
-    link: c.guestLink,
-    createdAt: c.createdAt,
-    replies: (c.replies ?? []).map(normalizeComment),
   }
 }
 

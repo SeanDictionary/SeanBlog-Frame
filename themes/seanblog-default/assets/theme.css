@@ -153,6 +153,7 @@ img { max-width: 100%; height: auto; display: block; }
 .sb-comment-time { color: var(--color-text-tertiary); }
 .sb-comment-body { font-size: 0.95rem; color: var(--color-text); }
 .sb-comment-replies { margin-left: 1.25rem; padding-left: 1rem; border-left: 2px solid var(--color-border); margin-top: 0.75rem; }
+.sb-reply-at { color: var(--color-accent); font-weight: 500; }
 .sb-comment-reply-btn { background: none; border: none; color: var(--color-text-tertiary); font-size: 0.75rem; cursor: pointer; padding: 0.25rem 0; }
 .sb-comment-reply-btn:hover { color: var(--color-accent); }
 .sb-reply-banner { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; padding: 0.5rem 0.75rem; background: var(--color-bg-secondary); border-radius: var(--radius-sm); font-size: 0.8rem; color: var(--color-text-secondary); }
