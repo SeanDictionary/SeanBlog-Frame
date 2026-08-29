@@ -308,14 +308,16 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
 
       {activeThemePackage && (
         <Card padding="lg">
-          <div className="sticky top-6 z-20 mb-5 flex flex-wrap items-start justify-between gap-4 rounded-md bg-white p-3 shadow-sm dark:bg-neutral-950">
-            <div>
-              <h2 className="font-semibold">{activeThemePackage.name} 设置</h2>
-              <p className="mt-1 text-sm text-neutral-500">主题变量和提示框样式，随主题切换。</p>
+          <div className="sticky top-0 z-20 -mx-6 -mt-6 rounded-t-lg bg-white px-6 pb-5 pt-6 dark:bg-neutral-950">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold">{activeThemePackage.name} 设置</h2>
+                <p className="mt-1 text-sm text-neutral-500">主题变量和提示框样式，随主题切换。</p>
+              </div>
+              {Object.keys(activeThemePackage.settingsSchema).length > 0 && (
+                <button type="submit" form="theme-settings-form" disabled={isPending} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950">{isPending ? '保存中…' : '保存主题设置'}</button>
+              )}
             </div>
-            {Object.keys(activeThemePackage.settingsSchema).length > 0 && (
-              <button type="submit" form="theme-settings-form" disabled={isPending} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950">{isPending ? '保存中…' : '保存主题设置'}</button>
-            )}
           </div>
           {Object.keys(activeThemePackage.settingsSchema).length > 0 && (
             <form id="theme-settings-form" action={saveThemeSettings}>
