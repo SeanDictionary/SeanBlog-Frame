@@ -1079,10 +1079,10 @@ export async function importAdminArticlesArchive(buffer: Buffer) {
   }
 }
 
-export async function getPublicArticleNavigation(slug: string) {
+export async function getPublicArticleNavigation(slug: string, order: 'publishedAt' | 'updatedAt' = 'publishedAt') {
   const articles = await getPrisma().article.findMany({
     where: getPublicArticleWhere(),
-    orderBy: [{ publishedAt: 'desc' }, { title: 'asc' }],
+    orderBy: order === 'updatedAt' ? [{ updatedAt: 'desc' }, { title: 'asc' }] : [{ publishedAt: 'desc' }, { title: 'asc' }],
     select: {
       title: true,
       slug: true,

@@ -185,12 +185,14 @@ export async function buildHomeCtx(searchParams: { page?: string; sort?: string 
   const sort = (searchParams.sort ?? 'publishedAt') as any
   const result = await listPublicArticles({ page, pageSize: 12, sort })
   const pinned = page === 1 && sort === 'publishedAt' ? result.items.filter((a: any) => a.isPinned) : []
-  const latest = page === 1 && sort === 'publishedAt' ? result.items.filter((a: any) => !a.isPinned) : result.items
+  // posts 始终含全部文章（含置顶），由主题决定是否单独展示置顶区；
+  // 关闭置顶区时置顶文章按顺序混入列表。
+  const posts = result.items.map(normalizePost)
 
   return {
     ...base,
     page: 'home',
-    posts: latest.map(normalizePost),
+    posts,
     pinned: pinned.map(normalizePost),
     pagination: buildPagination('/', page, result.meta.pageCount, result.meta.total, { sort: sort !== 'publishedAt' ? sort : undefined }),
     sort,
@@ -214,7 +216,7 @@ export async function buildPostCtx(slug: string) {
   const article = await getPublicArticleBySlug(slug)
   const a = article as any
   const [navigation, comments] = await Promise.all([
-    getPublicArticleNavigation(slug),
+    getPublicArticleNavigation(slug, base.theme.config.articleNavOrder === 'updatedAt' ? 'updatedAt' : 'publishedAt'),
     listArticleCommentThread(a.id).catch(() => []),
   ])
   const { contentHtml, headings } = getHeadings(a.contentHtml)
