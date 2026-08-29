@@ -74,7 +74,7 @@ export function CalloutCssEditor({ initialValue, onSave, onReset, presetValue }:
           </button>
         </div>
       </div>
-      <div className={`mt-4 relative max-w-sm overflow-hidden rounded-md border bg-white dark:bg-neutral-900 ${validation?.valid === false ? 'border-red-400' : 'border-neutral-300 dark:border-neutral-700'}`}>
+      <div className={`mt-4 relative overflow-hidden rounded-md border bg-white dark:bg-neutral-900 ${validation?.valid === false ? 'border-red-400' : 'border-neutral-300 dark:border-neutral-700'}`}>
         <pre
           ref={preRef}
           aria-hidden="true"
