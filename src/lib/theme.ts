@@ -25,6 +25,8 @@ export type ThemeSettingSchemaItem = {
   cssVariable?: string
   options?: Array<{ label: string; value: string }>
   itemFields?: Array<{ key: string; label: string; type: 'text' | 'color' | 'number' | 'boolean' | 'select' }>
+  /** 后台表单显隐条件表达式（FormKit 风格 if）。引用其他设置 key，求值为假则该项不渲染、不参与保存。 */
+  if?: string
 }
 
 export type SettingsSchema = Record<string, ThemeSettingSchemaItem[]>
@@ -132,6 +134,7 @@ function validateSettingsSchema(value: unknown): SettingsSchema {
         key: assertString(record.key, 'settingsSchema.key'),
         label: assertString(record.label, 'settingsSchema.label'),
         description: typeof record.description === 'string' ? record.description : undefined,
+        if: typeof record.if === 'string' && record.if.trim() ? record.if.trim() : undefined,
         type: type as ThemeSettingSchemaItem['type'],
         default: typeof record.default === 'string' || typeof record.default === 'number' || typeof record.default === 'boolean'
           ? record.default

@@ -6,7 +6,8 @@ import { Card } from '@/components/ui/card'
 import { CalloutCssEditor } from '@/components/admin/callout-css-editor'
 import { useAdminToast } from '@/components/admin/admin-toast-provider'
 import { DEFAULT_CALLOUT_CSS } from '@/lib/content/callout-css'
-import type { ThemeSettingSchemaItem, ThemePackageSummary } from '@/lib/theme'
+import type { ThemeSettingSchemaItem, SettingsSchema, ThemePackageSummary } from '@/lib/theme'
+import { computeVisibility } from '@/lib/theme/setting-condition'
 
 type Setting = {
   id: string
@@ -44,6 +45,19 @@ function themeSettingValue(settings: Record<string, unknown>, item: ThemeSetting
   return value ?? item.default ?? ''
 }
 
+/** 由 schema 默认值 + 已保存设置构建一份用于驱动显隐的 live 值表。 */
+function buildLiveValues(schema: SettingsSchema, saved: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = { ...saved }
+  for (const items of Object.values(schema)) {
+    for (const item of items) {
+      if (result[item.key] === undefined && item.default !== undefined) {
+        result[item.key] = item.default
+      }
+    }
+  }
+  return result
+}
+
 export function ThemesManager({ initialSettings, availableThemes, calloutPreset, activeThemeSlug, themeSettings }: ThemesManagerProps) {
   const router = useRouter()
   const toast = useAdminToast()
@@ -54,6 +68,18 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
   const [isPending, startTransition] = useTransition()
   const activeTheme = getActiveThemeSlug(settings)
   const activeThemePackage = themes.find((theme) => theme.slug === activeTheme) ?? themes[0]
+  // 驱动设置项按需显隐的实时值表：随控件交互更新，保存后与后端同步
+  const [liveValues, setLiveValues] = useState<Record<string, unknown>>(() =>
+    activeThemePackage ? buildLiveValues(activeThemePackage.settingsSchema, themeSettings) : {},
+  )
+  // 含级联隐藏的可见性映射：随 liveValues 变化重算
+  const visibilityMap = activeThemePackage
+    ? computeVisibility(activeThemePackage.settingsSchema, liveValues)
+    : {}
+
+  function updateValue(key: string, value: unknown) {
+    setLiveValues((prev) => ({ ...prev, [key]: value }))
+  }
 
   function applySetting(setting: Setting) {
     setSettings((previous) => previous.some((item) => item.key === setting.key)
@@ -116,7 +142,10 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
       
       try {
         const newSettings: Record<string, unknown> = {}
+        const vis = computeVisibility(activeThemePackage.settingsSchema, liveValues)
         for (const item of Object.values(activeThemePackage.settingsSchema).flat()) {
+          // 隐藏项（含级联隐藏）不提交，服务端部分合并保留其原值
+          if (vis[item.key] === false) continue
           if (item.type === 'boolean') {
             newSettings[item.key] = formData.get(item.key) === 'on'
           } else if (item.type === 'multiselect') {
@@ -147,6 +176,7 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
         if (!response.ok) throw new Error(data.error?.message ?? '主题设置保存失败。')
 
         setThemeSettingsState(newSettings)
+        setLiveValues(buildLiveValues(activeThemePackage.settingsSchema, newSettings))
         
         router.refresh()
       } catch (error) {
@@ -247,11 +277,14 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
           </div>
           {Object.keys(activeThemePackage.settingsSchema).length > 0 && (
             <form id="theme-settings-form" action={saveThemeSettings} className="mt-5">
-              {Object.entries(activeThemePackage.settingsSchema).map(([groupName, items]) => (
+              {Object.entries(activeThemePackage.settingsSchema)
+                .map(([groupName, items]) => [groupName, items.filter((item) => visibilityMap[item.key] !== false)] as const)
+                .filter(([, items]) => items.length > 0)
+                .map(([groupName, items]) => (
                 <div key={groupName} className="mb-8">
                   <h3 className="mb-4 border-b border-neutral-200 pb-2 text-base font-semibold text-neutral-900 dark:border-neutral-800 dark:text-neutral-100">{groupName}</h3>
-                  <div className="divide-y divide-neutral-200 dark:divide-neutral-800">
-                    {items.map((item) => <SettingRow key={item.key} item={item} value={themeSettingValue(themeSettingsState, item)} />)}
+                  <div className="divide-y divide-neutral-200 border-l border-neutral-200 pl-6 dark:divide-neutral-800 dark:border-neutral-800">
+                    {items.map((item) => <SettingRow key={item.key} item={item} value={themeSettingValue(liveValues, item)} onChange={updateValue} />)}
                   </div>
                 </div>
               ))}
@@ -276,7 +309,7 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
   )
 }
 
-function SettingRow({ item, value }: { item: ThemeSettingSchemaItem; value: unknown }) {
+function SettingRow({ item, value, onChange }: { item: ThemeSettingSchemaItem; value: unknown; onChange: (key: string, value: unknown) => void }) {
   return (
     <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-start sm:gap-6">
       <div className="sm:w-48 sm:shrink-0">
@@ -286,47 +319,51 @@ function SettingRow({ item, value }: { item: ThemeSettingSchemaItem; value: unkn
         )}
       </div>
       <div className="flex-1">
-        <SettingControl item={item} value={value} />
+        <SettingControl item={item} value={value} onChange={(v) => onChange(item.key, v)} />
       </div>
     </div>
   )
 }
 
-function SettingControl({ item, value }: { item: ThemeSettingSchemaItem; value: unknown }) {
-  if (item.type === 'boolean') return <ToggleSwitch name={item.key} checked={value === true} />
-  if (item.type === 'color') return <ColorPicker name={item.key} value={String(value)} />
-  if (item.type === 'multiselect') return <MultiselectField item={item} value={value} />
-  if (item.type === 'list') return <ListField item={item} value={value} />
+function SettingControl({ item, value, onChange }: { item: ThemeSettingSchemaItem; value: unknown; onChange: (value: unknown) => void }) {
+  if (item.type === 'boolean') return <ToggleSwitch name={item.key} checked={value === true} onChange={onChange} />
+  if (item.type === 'color') return <ColorPicker name={item.key} value={String(value)} onChange={onChange} />
+  if (item.type === 'multiselect') return <MultiselectField item={item} value={value} onChange={onChange} />
+  if (item.type === 'list') return <ListField item={item} value={value} onChange={onChange} />
   if (item.type === 'select') {
     if (item.options && item.options.length <= 4) {
-      return <RadioGroup name={item.key} options={item.options} value={String(value)} />
+      return <RadioGroup name={item.key} options={item.options} value={String(value)} onChange={onChange} />
     }
-    return <SelectDropdown name={item.key} options={item.options ?? []} value={String(value)} />
+    return <SelectDropdown name={item.key} options={item.options ?? []} value={String(value)} onChange={onChange} />
   }
   return (
-    <input name={item.key} type={item.type === 'number' ? 'number' : 'text'} defaultValue={String(value)} className="h-10 w-full max-w-sm rounded-md border border-neutral-300 bg-white px-3 text-sm dark:border-neutral-700 dark:bg-neutral-900" />
+    <input
+      name={item.key}
+      type={item.type === 'number' ? 'number' : 'text'}
+      defaultValue={String(value)}
+      onChange={(e) => onChange(item.type === 'number' ? Number(e.target.value) : e.target.value)}
+      className="h-10 w-full max-w-sm rounded-md border border-neutral-300 bg-white px-3 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+    />
   )
 }
 
-function ToggleSwitch({ name, checked }: { name: string; checked: boolean }) {
-  const [isChecked, setIsChecked] = useState(checked)
+function ToggleSwitch({ name, checked, onChange }: { name: string; checked: boolean; onChange: (value: boolean) => void }) {
   return (
-    <label className="inline-flex cursor-pointer items-center" onClick={(e) => { e.preventDefault(); setIsChecked(!isChecked) }}>
-      <input name={name} type="checkbox" checked={isChecked} onChange={() => {}} className="sr-only" />
-      <span className={`flex h-6 w-11 items-center rounded-full p-0.5 transition-all duration-200 ${isChecked ? 'bg-blue-600 dark:bg-blue-500' : 'bg-neutral-300 dark:bg-neutral-700'}`}>
-        <span className={`h-5 w-5 rounded-full bg-white shadow transition-all duration-200 ${isChecked ? 'translate-x-5' : 'translate-x-0'}`} />
+    <label className="inline-flex cursor-pointer items-center" onClick={(e) => { e.preventDefault(); const next = !checked; onChange(next) }}>
+      <input name={name} type="checkbox" checked={checked} onChange={() => {}} className="sr-only" />
+      <span className={`flex h-6 w-11 items-center rounded-full p-0.5 transition-all duration-200 ${checked ? 'bg-blue-600 dark:bg-blue-500' : 'bg-neutral-300 dark:bg-neutral-700'}`}>
+        <span className={`h-5 w-5 rounded-full bg-white shadow transition-all duration-200 ${checked ? 'translate-x-5' : 'translate-x-0'}`} />
       </span>
     </label>
   )
 }
 
-function RadioGroup({ name, options, value }: { name: string; options: Array<{ label: string; value: string }>; value: string }) {
-  const [selected, setSelected] = useState(value)
+function RadioGroup({ name, options, value, onChange }: { name: string; options: Array<{ label: string; value: string }>; value: string; onChange: (value: string) => void }) {
   return (
     <div className="inline-flex flex-wrap gap-1 rounded-lg border border-neutral-200 p-1 dark:border-neutral-800">
       {options.map((option) => (
-        <label key={option.value} className={`cursor-pointer rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-200 ${option.value === selected ? 'bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-950' : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'}`} onClick={(e) => { e.preventDefault(); setSelected(option.value) }}>
-          <input type="radio" name={name} value={option.value} checked={option.value === selected} onChange={() => {}} className="sr-only" />
+        <label key={option.value} className={`cursor-pointer rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-200 ${option.value === value ? 'bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-950' : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'}`} onClick={(e) => { e.preventDefault(); onChange(option.value) }}>
+          <input type="radio" name={name} value={option.value} checked={option.value === value} onChange={() => {}} className="sr-only" />
           {option.label}
         </label>
       ))}
@@ -334,41 +371,39 @@ function RadioGroup({ name, options, value }: { name: string; options: Array<{ l
   )
 }
 
-function SelectDropdown({ name, options, value }: { name: string; options: Array<{ label: string; value: string }>; value: string }) {
+function SelectDropdown({ name, options, value, onChange }: { name: string; options: Array<{ label: string; value: string }>; value: string; onChange: (value: string) => void }) {
   return (
-    <select name={name} defaultValue={value} className="h-10 max-w-sm rounded-md border border-neutral-300 bg-white px-3 text-sm dark:border-neutral-700 dark:bg-neutral-900">
+    <select name={name} value={value} onChange={(e) => onChange(e.target.value)} className="h-10 max-w-sm rounded-md border border-neutral-300 bg-white px-3 text-sm dark:border-neutral-700 dark:bg-neutral-900">
       {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
     </select>
   )
 }
 
-function ColorPicker({ name, value }: { name: string; value: string }) {
+function ColorPicker({ name, value, onChange }: { name: string; value: string; onChange: (value: string) => void }) {
   const presets = ['#cf829e', '#ff7a7a', '#3b82f6', '#22c55e', '#a855f7', '#f59e0b', '#6b7280', '#0f172a']
-  const [color, setColor] = useState(value)
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <input name={name} type="color" value={color} onChange={(e) => setColor(e.target.value)} className="h-10 w-16 cursor-pointer rounded-md border border-neutral-300 dark:border-neutral-700" />
-        <input type="text" value={color} readOnly className="h-10 w-24 rounded-md border border-neutral-300 bg-white px-3 text-sm font-mono dark:border-neutral-700 dark:bg-neutral-900" />
+        <input name={name} type="color" value={value} onChange={(e) => onChange(e.target.value)} className="h-10 w-16 cursor-pointer rounded-md border border-neutral-300 dark:border-neutral-700" />
+        <input type="text" value={value} readOnly className="h-10 w-24 rounded-md border border-neutral-300 bg-white px-3 text-sm font-mono dark:border-neutral-700 dark:bg-neutral-900" />
       </div>
       <div className="flex flex-wrap gap-2">
         {presets.map((c) => (
-          <button key={c} type="button" className={`h-7 w-7 rounded-full border-2 transition-all duration-200 hover:scale-110 ${color === c ? 'border-blue-500' : 'border-transparent'}`} style={{ backgroundColor: c }} onClick={() => setColor(c)} />
+          <button key={c} type="button" className={`h-7 w-7 rounded-full border-2 transition-all duration-200 hover:scale-110 ${value === c ? 'border-blue-500' : 'border-transparent'}`} style={{ backgroundColor: c }} onClick={() => onChange(c)} />
         ))}
       </div>
     </div>
   )
 }
 
-function MultiselectField({ item, value }: { item: ThemeSettingSchemaItem; value: unknown }) {
-  const initialSelected = Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : []
-  const [selected, setSelected] = useState<string[]>(initialSelected)
+function MultiselectField({ item, value, onChange }: { item: ThemeSettingSchemaItem; value: unknown; onChange: (value: string[]) => void }) {
+  const selected = Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : []
   return (
     <div className="flex flex-wrap gap-2">
       {item.options?.map((option) => {
         const isSelected = selected.includes(option.value)
         return (
-          <label key={option.value} className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all duration-200 ${isSelected ? 'border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-950/30 dark:text-blue-300' : 'border-neutral-300 text-neutral-600 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800'}`} onClick={(e) => { e.preventDefault(); setSelected(prev => prev.includes(option.value) ? prev.filter(v => v !== option.value) : [...prev, option.value]) }}>
+          <label key={option.value} className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all duration-200 ${isSelected ? 'border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-950/30 dark:text-blue-300' : 'border-neutral-300 text-neutral-600 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800'}`} onClick={(e) => { e.preventDefault(); onChange(selected.includes(option.value) ? selected.filter(v => v !== option.value) : [...selected, option.value]) }}>
             <input type="checkbox" name={`${item.key}__${option.value}`} checked={isSelected} onChange={() => {}} className="sr-only" />
             {option.label}
           </label>
@@ -378,7 +413,7 @@ function MultiselectField({ item, value }: { item: ThemeSettingSchemaItem; value
   )
 }
 
-function ListField({ item, value }: { item: ThemeSettingSchemaItem; value: unknown }) {
+function ListField({ item, value, onChange }: { item: ThemeSettingSchemaItem; value: unknown; onChange: (value: Array<Record<string, string>>) => void }) {
   const fields = item.itemFields ?? []
   const [entries, setEntries] = useState<Array<Record<string, string>>>(
     Array.isArray(value)
@@ -391,14 +426,24 @@ function ListField({ item, value }: { item: ThemeSettingSchemaItem; value: unkno
       : []
   )
 
+  function commit(next: Array<Record<string, string>>) {
+    setEntries(next)
+    onChange(next)
+  }
+
   function addRow() {
     const blank: Record<string, string> = {}
     for (const f of fields) blank[f.key] = ''
-    setEntries((prev) => [...prev, blank])
+    commit([...entries, blank])
   }
 
   function removeRow(index: number) {
-    setEntries((prev) => prev.filter((_, i) => i !== index))
+    commit(entries.filter((_, i) => i !== index))
+  }
+
+  function updateField(index: number, fieldKey: string, fieldValue: string) {
+    const next = entries.map((entry, i) => i === index ? { ...entry, [fieldKey]: fieldValue } : entry)
+    commit(next)
   }
 
   return (
@@ -412,6 +457,7 @@ function ListField({ item, value }: { item: ThemeSettingSchemaItem; value: unkno
               type={field.type === 'number' ? 'number' : field.type === 'color' ? 'color' : 'text'}
               defaultValue={entry[field.key] ?? ''}
               placeholder={field.label}
+              onChange={(e) => updateField(index, field.key, e.target.value)}
               className="h-9 rounded-md border border-neutral-300 bg-white px-2 text-xs dark:border-neutral-700 dark:bg-neutral-900"
             />
           ))}

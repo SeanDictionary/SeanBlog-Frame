@@ -214,6 +214,54 @@ forms:
 - 保存到 `ThemeCustomization.settings`，与 schema 默认值合并后注入模板上下文 `theme.config.*`。
 - 声明了 `cssVariable` 的项，其值自动写入 `:root` 注入到 `default.hbs` 的 `<head>`，与现有 `css-bundle.ts` 逻辑一致。
 
+### 7.1 实际实现：`settingsSchema` 与条件显隐
+
+实际 `theme.yaml` 采用扁平 `settingsSchema`（而非 Halo 的 `forms`/`$formkit`），字段如下：
+
+```yaml
+settingsSchema:
+  布局结构:
+    - key: sidebarPosition          # 设置 key，注入 theme.config.sidebarPosition
+      label: 侧边栏位置             # 后台表单标签
+      type: select                  # text|color|number|boolean|select|list|multiselect
+      default: right
+      description: 可选说明文案
+      cssVariable: --color-accent   # 可选，值写入 :root 变量
+      options:                      # select / multiselect 必填
+        - { label: 无, value: none }
+        - { label: 右侧, value: right }
+      itemFields:                   # list 专有：每行子字段
+        - { key: url, label: 链接, type: text }
+      if: "sidebarPosition !== 'none'"  # 可选：条件显隐表达式
+```
+
+**条件显隐 `if`**（FormKit/Halo 风格字符串，**不使用 eval**，内置安全迷你求值器）：
+
+- 表达式为假时，该项在后台不渲染，且**不参与本次保存**（服务端部分合并保留其原值）。
+- 支持：`==` `!=` `===` `!==` `&&` `||` `!` `()`；字符串 / 数字 / 布尔 / `null` / `undefined` 字面量；标识符（即其他设置 key，缺失视为 `undefined`）。
+- 成员运算：`'x' in arr`（数组包含）、`'x' not in arr`（取反）、`'x' in str`（子串）。用于 multiselect 联动。
+- 标识符支持点号取值 `obj.key`。布尔项与字符串 `true`/`false` 可互通比较。
+- **级联隐藏**：子项引用的父项若被隐藏，子项自动隐藏，无需在子项里重复根条件。例如 `sidebarContent`（`if: sidebarPosition !== 'none'`）被隐藏时，所有 `if` 引用 `sidebarContent` 的子项（如 `profileContent`）一并隐藏。
+- 语法非法时该项仍然显示并输出控制台警告，避免锁死设置；循环依赖检测到时按可见处理并告警。
+
+示例：
+
+```yaml
+- key: sidebarSticky
+  if: "sidebarPosition !== 'none'"
+- key: heroStyle
+  if: "showHeroSection === true"
+- key: showArticleNav
+  if: "articleListStyle === 'list' && listSeparator !== 'card'"
+# 多层依赖 + 级联隐藏
+- key: sidebarContent
+  if: "sidebarPosition !== 'none'"
+- key: profileContent
+  if: "'profile' in sidebarContent"   # sidebarContent 隐藏时本项自动隐藏
+```
+
+求值器实现见 `src/lib/theme/setting-condition.ts`（导出 `evaluateCondition` / `extractReferencedKeys` / `computeVisibility`）；后台联动逻辑见 `src/components/admin/themes-manager.tsx`（顶层 `liveValues` + `computeVisibility` 驱动显隐 + 仅提交可见项）。
+
 ## 8. 模板 API（数据契约 + helpers + data-* 增强）
 
 ### 8.1 上下文（ctx）
@@ -481,7 +529,7 @@ helpers 全部平台内置，**主题不能注册自己的 helper**（安全沙�
 5. **SEO helper `{{{seo_head}}}`**：需把现有 `generateMetadata` 产出迁移到模板 helper，保证 OG/sitemap/JSON-LD 不丢。
 6. **整页 `<html>` 归属**：公开路由组需改用透传根布局，`<html>/<head>/<body>` 由主题 `default.hbs` 输出；深浅色属性与 cookie 逻辑从 `src/app/layout.tsx` 迁到 helper / `default.hbs`。后台不受影响。
 7. **默认主题**：`seanblog-default` 必须作为 Handlebars 模板包存在，且保证永不删除；其模板同时是 fallback 兜底。
-8. **后台表单**：`settings.yaml` 的 FormKit 风格 `if` 条件与 `multiselect` 需在 `ThemesManager` 实现（部分已具备）。
+8. **后台表单**：`settings.yaml` 的 FormKit 风格 `if` 条件显隐与 `multiselect` 均已在 `ThemesManager` 实现（条件求值器 `src/lib/theme/setting-condition.ts`，隐藏项不参与保存、原值由服务端部分合并保留）。
 
 ## 15. 验收标准（实现完成后）
 
