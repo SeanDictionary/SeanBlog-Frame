@@ -180,6 +180,17 @@ Handlebars.registerHelper('not', function (this: any, a: unknown, options: any) 
   return options && options.fn ? (res ? options.fn(this) : options.inverse(this)) : res
 })
 
+/** 限制数组遍历条数：{{#limit arr 10}}...{{/limit}} */
+Handlebars.registerHelper('limit', function (this: any, arr: unknown, count: unknown, options: any) {
+  if (!Array.isArray(arr) || arr.length === 0) return ''
+  const n = Math.max(0, Number(count) || 0)
+  if (n === 0) return ''
+  const items = arr.slice(0, n)
+  const fn = options.fn
+  const last = items.length - 1
+  return items.map((item, i) => fn(item, { data: { index: i, first: i === 0, last: i === last } })).join('')
+})
+
 export const HandlebarsInstance = Handlebars
 
 // --- 渲染入口 ---
