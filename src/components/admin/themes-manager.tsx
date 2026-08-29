@@ -529,17 +529,29 @@ function ListField({ item, value, onChange }: { item: ThemeSettingSchemaItem; va
     <div className="space-y-2">
       {entries.map((entry, index) => (
         <div key={index} className="flex flex-wrap items-center gap-2">
-          {fields.map((field) => (
-            <input
-              key={field.key}
-              name={`${item.key}[${index}].${field.key}`}
-              type={field.type === 'number' ? 'number' : field.type === 'color' ? 'color' : 'text'}
-              defaultValue={entry[field.key] ?? ''}
-              placeholder={field.label}
-              onChange={(e) => updateField(index, field.key, e.target.value)}
-              className="h-9 rounded-md border border-neutral-300 bg-white px-2 text-xs dark:border-neutral-700 dark:bg-neutral-900"
-            />
-          ))}
+          {fields.map((field) =>
+            field.type === 'select' ? (
+              <select
+                key={field.key}
+                name={`${item.key}[${index}].${field.key}`}
+                value={entry[field.key] ?? field.options?.[0]?.value ?? ''}
+                onChange={(e) => updateField(index, field.key, e.target.value)}
+                className="h-9 rounded-md border border-neutral-300 bg-white px-2 text-xs dark:border-neutral-700 dark:bg-neutral-900"
+              >
+                {field.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            ) : (
+              <input
+                key={field.key}
+                name={`${item.key}[${index}].${field.key}`}
+                type={field.type === 'number' ? 'number' : field.type === 'color' ? 'color' : 'text'}
+                defaultValue={entry[field.key] ?? ''}
+                placeholder={field.label}
+                onChange={(e) => updateField(index, field.key, e.target.value)}
+                className="h-9 rounded-md border border-neutral-300 bg-white px-2 text-xs dark:border-neutral-700 dark:bg-neutral-900"
+              />
+            )
+          )}
           <button type="button" onClick={() => removeRow(index)} className="h-9 rounded-md border border-red-200 px-2 text-xs text-red-600 dark:border-red-900/60">删除</button>
         </div>
       ))}

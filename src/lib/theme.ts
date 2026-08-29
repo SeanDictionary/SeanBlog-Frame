@@ -24,7 +24,7 @@ export type ThemeSettingSchemaItem = {
   default?: string | number | boolean | Array<string | Record<string, string>>
   cssVariable?: string
   options?: Array<{ label: string; value: string }>
-  itemFields?: Array<{ key: string; label: string; type: 'text' | 'color' | 'number' | 'boolean' | 'select' }>
+  itemFields?: Array<{ key: string; label: string; type: 'text' | 'color' | 'number' | 'boolean' | 'select'; options?: Array<{ label: string; value: string }> }>
   /** range 专用：最小/最大/步长 */
   min?: number
   max?: number
@@ -190,6 +190,15 @@ function validateItems(items: unknown[]): ThemeSettingSchemaItem[] {
                 type: ['text', 'color', 'number', 'boolean', 'select'].includes(String(fieldRecord.type))
                   ? fieldRecord.type as 'text' | 'color' | 'number' | 'boolean' | 'select'
                   : 'text',
+                options: Array.isArray(fieldRecord.options)
+                  ? fieldRecord.options.map((option) => {
+                      const optionRecord = assertRecord(option, 'settingsSchema itemField option')
+                      return {
+                        label: assertString(optionRecord.label, 'settingsSchema.itemField.options.label'),
+                        value: assertString(optionRecord.value, 'settingsSchema.itemField.options.value'),
+                      }
+                    })
+                  : undefined,
               }
             })
           : undefined,
