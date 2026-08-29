@@ -53,7 +53,7 @@ export function CalloutCssEditor({ initialValue, onSave, onReset, presetValue }:
     <div>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h3 className="text-sm font-semibold">Callout CSS</h3>
+          <h2 className="font-semibold">Callout CSS</h2>
           <p className="mt-1 text-sm text-neutral-500">当前主题的提示框样式。</p>
         </div>
         <div className="flex items-center gap-2">
@@ -61,7 +61,7 @@ export function CalloutCssEditor({ initialValue, onSave, onReset, presetValue }:
             type="button"
             onClick={() => canSave && onSave(code)}
             disabled={!canSave}
-            className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-40 dark:bg-neutral-100 dark:text-neutral-950"
+            className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950"
           >
             {checking ? '检查语法...' : '保存CSS样式'}
           </button>

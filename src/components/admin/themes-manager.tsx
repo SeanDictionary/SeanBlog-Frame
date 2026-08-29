@@ -306,7 +306,7 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
 
       {activeThemePackage && (
         <Card padding="lg">
-          <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="sticky top-0 z-20 -mx-6 -mt-6 mb-5 flex flex-wrap items-start justify-between gap-4 border-b border-neutral-200 bg-white px-6 py-5 dark:border-neutral-800 dark:bg-neutral-950">
             <div>
               <h2 className="font-semibold">{activeThemePackage.name} 设置</h2>
               <p className="mt-1 text-sm text-neutral-500">主题变量和提示框样式，随主题切换。</p>
@@ -316,7 +316,7 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
             )}
           </div>
           {Object.keys(activeThemePackage.settingsSchema).length > 0 && (
-            <form id="theme-settings-form" action={saveThemeSettings} className="mt-5">
+            <form id="theme-settings-form" action={saveThemeSettings}>
               {Object.entries(activeThemePackage.settingsSchema).map(([groupName, group]) => {
                 const row = (item: ThemeSettingSchemaItem) => (
                   <SettingRow key={item.key} item={item} value={themeSettingValue(liveValues, item)} onChange={updateValue} />
@@ -353,11 +353,9 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
                               {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                               <span>{subName}</span>
                             </button>
-                            {expanded && (
-                              <div className="mt-3">
-                                <div className={itemRowsClass}>{items.map(row)}</div>
-                              </div>
-                            )}
+                            <div className={expanded ? 'mt-3' : 'hidden'}>
+                              <div className={itemRowsClass}>{items.map(row)}</div>
+                            </div>
                           </div>
                         )
                       })}
