@@ -21,7 +21,7 @@ export type ThemeSettingSchemaItem = {
   label: string
   description?: string
   type: 'text' | 'color' | 'number' | 'boolean' | 'select' | 'list' | 'multiselect' | 'range' | 'textarea'
-  default?: string | number | boolean | string[] | Array<Record<string, string>>
+  default?: string | number | boolean | Array<string | Record<string, string>>
   cssVariable?: string
   options?: Array<{ label: string; value: string }>
   itemFields?: Array<{ key: string; label: string; type: 'text' | 'color' | 'number' | 'boolean' | 'select' }>
@@ -165,7 +165,9 @@ function validateItems(items: unknown[]): ThemeSettingSchemaItem[] {
         type: type as ThemeSettingSchemaItem['type'],
         default: typeof record.default === 'string' || typeof record.default === 'number' || typeof record.default === 'boolean'
           ? record.default
-          : Array.isArray(record.default) ? record.default.filter((v: unknown) => typeof v === 'string') : undefined,
+          : Array.isArray(record.default)
+            ? record.default.filter((v: unknown): v is string | Record<string, string> => typeof v === 'string' || (v !== null && typeof v === 'object' && !Array.isArray(v)))
+            : undefined,
         cssVariable: typeof record.cssVariable === 'string' ? record.cssVariable : undefined,
         min: typeof record.min === 'number' ? record.min : undefined,
         max: typeof record.max === 'number' ? record.max : undefined,
