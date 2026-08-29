@@ -7,6 +7,7 @@ import { CalloutCssEditor } from '@/components/admin/callout-css-editor'
 import { useAdminToast } from '@/components/admin/admin-toast-provider'
 import { DEFAULT_CALLOUT_CSS } from '@/lib/content/callout-css'
 import type { ThemeSettingSchemaItem, SettingsSchema, ThemePackageSummary } from '@/lib/theme'
+import { flattenSchemaItems } from '@/lib/theme'
 import { computeVisibility } from '@/lib/theme/setting-condition'
 
 type Setting = {
@@ -48,11 +49,9 @@ function themeSettingValue(settings: Record<string, unknown>, item: ThemeSetting
 /** 由 schema 默认值 + 已保存设置构建一份用于驱动显隐的 live 值表。 */
 function buildLiveValues(schema: SettingsSchema, saved: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = { ...saved }
-  for (const items of Object.values(schema)) {
-    for (const item of items) {
-      if (result[item.key] === undefined && item.default !== undefined) {
-        result[item.key] = item.default
-      }
+  for (const item of flattenSchemaItems(schema)) {
+    if (result[item.key] === undefined && item.default !== undefined) {
+      result[item.key] = item.default
     }
   }
   return result
@@ -143,7 +142,7 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
       try {
         const newSettings: Record<string, unknown> = {}
         const vis = computeVisibility(activeThemePackage.settingsSchema, liveValues)
-        for (const item of Object.values(activeThemePackage.settingsSchema).flat()) {
+        for (const item of flattenSchemaItems(activeThemePackage.settingsSchema)) {
           // 隐藏项（含级联隐藏）不提交，服务端部分合并保留其原值
           if (vis[item.key] === false) continue
           if (item.type === 'boolean') {
@@ -277,17 +276,40 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
           </div>
           {Object.keys(activeThemePackage.settingsSchema).length > 0 && (
             <form id="theme-settings-form" action={saveThemeSettings} className="mt-5">
-              {Object.entries(activeThemePackage.settingsSchema)
-                .map(([groupName, items]) => [groupName, items.filter((item) => visibilityMap[item.key] !== false)] as const)
-                .filter(([, items]) => items.length > 0)
-                .map(([groupName, items]) => (
-                <div key={groupName} className="mb-8">
-                  <h3 className="mb-4 border-b border-neutral-200 pb-2 text-base font-semibold text-neutral-900 dark:border-neutral-800 dark:text-neutral-100">{groupName}</h3>
-                  <div className="divide-y divide-neutral-200 border-l border-neutral-200 pl-6 dark:divide-neutral-800 dark:border-neutral-800">
-                    {items.map((item) => <SettingRow key={item.key} item={item} value={themeSettingValue(liveValues, item)} onChange={updateValue} />)}
+              {Object.entries(activeThemePackage.settingsSchema).map(([groupName, group]) => {
+                const row = (item: ThemeSettingSchemaItem) => (
+                  <SettingRow key={item.key} item={item} value={themeSettingValue(liveValues, item)} onChange={updateValue} />
+                )
+                const itemRowsClass = 'divide-y divide-neutral-200 border-l border-neutral-200 pl-6 dark:divide-neutral-800 dark:border-neutral-800'
+                if (Array.isArray(group)) {
+                  const items = group.filter((item) => visibilityMap[item.key] !== false)
+                  if (!items.length) return null
+                  return (
+                    <div key={groupName} className="mb-8">
+                      <h3 className="mb-4 border-b border-neutral-200 pb-2 text-base font-semibold text-neutral-900 dark:border-neutral-800 dark:text-neutral-100">{groupName}</h3>
+                      <div className={itemRowsClass}>{items.map(row)}</div>
+                    </div>
+                  )
+                }
+                // 2 层分组：组 → 子组 → 项
+                const subs = Object.entries(group)
+                  .map(([subName, items]) => [subName, items.filter((item) => visibilityMap[item.key] !== false)] as const)
+                  .filter(([, items]) => items.length > 0)
+                if (!subs.length) return null
+                return (
+                  <div key={groupName} className="mb-8">
+                    <h3 className="mb-4 border-b border-neutral-200 pb-2 text-base font-semibold text-neutral-900 dark:border-neutral-800 dark:text-neutral-100">{groupName}</h3>
+                    <div className="space-y-6">
+                      {subs.map(([subName, items]) => (
+                        <div key={subName}>
+                          <h4 className="mb-3 text-sm font-semibold text-neutral-600 dark:text-neutral-400">{subName}</h4>
+                          <div className={itemRowsClass}>{items.map(row)}</div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </form>
           )}
           {Object.keys(activeThemePackage.settingsSchema).length > 0 && <hr className="my-6 border-neutral-200 dark:border-neutral-800" />}

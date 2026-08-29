@@ -19,6 +19,7 @@
  */
 
 import type { ThemeSettingSchemaItem, SettingsSchema } from '@/lib/theme'
+import { flattenSchemaItems } from '@/lib/theme'
 
 export class SettingConditionError extends Error {
   constructor(message: string, public expression: string, public position: number) {
@@ -393,8 +394,8 @@ export function computeVisibility(
   values: Record<string, unknown>,
 ): Record<string, boolean> {
   const itemsByKey = new Map<string, ThemeSettingSchemaItem>()
-  for (const items of Object.values(schema)) {
-    for (const item of items) itemsByKey.set(item.key, item)
+  for (const item of flattenSchemaItems(schema)) {
+    itemsByKey.set(item.key, item)
   }
   const knownKeys = new Set(itemsByKey.keys())
   const refsByKey = new Map<string, Set<string>>()

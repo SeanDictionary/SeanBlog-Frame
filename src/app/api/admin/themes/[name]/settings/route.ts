@@ -5,7 +5,7 @@ import { requireSameOriginRequest } from '@/lib/api/request-guard'
 import { requireAdmin } from '@/lib/auth.utils'
 import { adminLogActor, recordOperation } from '@/lib/services/operation-log-service'
 import { saveThemeSettings } from '@/lib/services/theme-settings-service'
-import { normalizeThemeName, readThemeManifest } from '@/lib/theme'
+import { flattenSchemaItems, normalizeThemeName, readThemeManifest } from '@/lib/theme'
 
 export async function PUT(
   request: Request,
@@ -27,7 +27,7 @@ export async function PUT(
     // Validate settings against theme schema
     const manifest = await readThemeManifest(slug)
     const schema = manifest.settingsSchema ?? {}
-    const allItems = Object.values(schema).flat()
+    const allItems = flattenSchemaItems(schema)
     for (const item of allItems) {
       const value = settings[item.key]
       if (value === undefined) continue

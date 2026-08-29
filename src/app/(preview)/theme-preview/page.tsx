@@ -16,7 +16,7 @@ import { countContentWordsFromHtml, estimateReadingMinutesFromHtml } from '@/lib
 import { getAdminSession } from '@/lib/auth.utils'
 import { listPublicArticles, getPublicArticleBySlug, getPublicArticleNavigation } from '@/lib/services/article-service'
 import { getMergedSettings } from '@/lib/services/theme-settings-service'
-import { normalizeThemeName, readThemeCss, readThemeManifest, readThemePart, readThemeTemplate } from '@/lib/theme'
+import { flattenSchemaItems, normalizeThemeName, readThemeCss, readThemeManifest, readThemePart, readThemeTemplate } from '@/lib/theme'
 import { orderThemeSlots } from '@/lib/theme-slots'
 import { publicArticleSortSchema, type PublicArticleSort } from '@/lib/validations/cms'
 
@@ -78,7 +78,7 @@ async function buildThemeOptionsCss(themeSlug: string, settings: Record<string, 
   const manifest = await readThemeManifest(themeSlug).catch(() => null)
   const schema = manifest?.settingsSchema
   if (!schema) return null
-  const items = Object.values(schema).flat()
+  const items = flattenSchemaItems(schema)
   if (!items.length) return null
 
   const variables = items

@@ -8,7 +8,7 @@
 import { unstable_cache, revalidateTag, revalidatePath } from 'next/cache'
 
 import { getPrisma } from '@/lib/prisma'
-import { readThemeManifest, type SettingsSchema } from '@/lib/theme'
+import { flattenSchemaItems, readThemeManifest, type SettingsSchema } from '@/lib/theme'
 import { getSiteSettingsMapSafe } from '@/lib/services/setting-service'
 
 /** 合并数据库设置与 schema 默认值 */
@@ -18,14 +18,12 @@ function mergeWithDefaults(
 ): Record<string, unknown> {
   const result: Record<string, unknown> = {}
   if (schema) {
-    for (const items of Object.values(schema)) {
-      for (const item of items) {
-        const dbValue = dbSettings[item.key]
-        if (dbValue !== undefined) {
-          result[item.key] = dbValue
-        } else if (item.default !== undefined) {
-          result[item.key] = item.default
-        }
+    for (const item of flattenSchemaItems(schema)) {
+      const dbValue = dbSettings[item.key]
+      if (dbValue !== undefined) {
+        result[item.key] = dbValue
+      } else if (item.default !== undefined) {
+        result[item.key] = item.default
       }
     }
   }

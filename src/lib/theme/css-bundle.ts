@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 
-import { readThemeCss, readThemeManifest, type ThemeSettingSchemaItem } from '@/lib/theme'
+import { flattenSchemaItems, readThemeCss, readThemeManifest, type ThemeSettingSchemaItem } from '@/lib/theme'
 import { getActiveThemeSettings } from '@/lib/services/theme-settings-service'
 import { DEFAULT_CALLOUT_CSS } from '@/lib/content/callout-css'
 
@@ -9,7 +9,7 @@ async function buildThemeOptionsCss(themeSlug: string, settings: Record<string, 
   const manifest = await readThemeManifest(themeSlug).catch(() => null)
   const schema = manifest?.settingsSchema
   if (!schema) return null
-  const items = Object.values(schema).flat()
+  const items = flattenSchemaItems(schema)
   if (!items.length) return null
 
   const variables = items

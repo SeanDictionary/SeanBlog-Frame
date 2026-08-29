@@ -29,7 +29,24 @@ export type ThemeSettingSchemaItem = {
   if?: string
 }
 
-export type SettingsSchema = Record<string, ThemeSettingSchemaItem[]>
+/** 设置分组：1 层为项数组，2 层为「子组名 → 项数组」。两者可混用。 */
+export type SettingsGroup = ThemeSettingSchemaItem[] | Record<string, ThemeSettingSchemaItem[]>
+
+export type SettingsSchema = Record<string, SettingsGroup>
+
+/** 将 schema（1 层或 2 层混合）扁平为所有设置项数组。 */
+export function flattenSchemaItems(schema: SettingsSchema | undefined): ThemeSettingSchemaItem[] {
+  if (!schema) return []
+  const out: ThemeSettingSchemaItem[] = []
+  for (const group of Object.values(schema)) {
+    if (Array.isArray(group)) {
+      out.push(...group)
+    } else if (group && typeof group === 'object') {
+      for (const items of Object.values(group)) out.push(...items)
+    }
+  }
+  return out
+}
 
 export type ThemePackageManifest = {
   slug: string
@@ -120,10 +137,27 @@ function validateSettingsSchema(value: unknown): SettingsSchema {
   const result: SettingsSchema = {}
 
   for (const [groupName, groupValue] of Object.entries(groups)) {
-    if (!Array.isArray(groupValue)) continue
+    if (Array.isArray(groupValue)) {
+      // 1 层分组：组 → 项数组
+      result[groupName] = validateItems(groupValue)
+      continue
+    }
+    if (groupValue && typeof groupValue === 'object') {
+      // 2 层分组：组 → 子组名 → 项数组
+      const sub: Record<string, ThemeSettingSchemaItem[]> = {}
+      for (const [subName, subValue] of Object.entries(groupValue as Record<string, unknown>)) {
+        if (Array.isArray(subValue)) sub[subName] = validateItems(subValue)
+      }
+      result[groupName] = sub
+    }
+  }
 
-    result[groupName] = groupValue.map((item) => {
-      const record = assertRecord(item, 'settingsSchema item')
+  return result
+}
+
+function validateItems(items: unknown[]): ThemeSettingSchemaItem[] {
+  return items.map((item) => {
+    const record = assertRecord(item, 'settingsSchema item')
       const type = record.type
 
       if (!['text', 'color', 'number', 'boolean', 'select', 'list', 'multiselect'].includes(String(type))) {
@@ -163,9 +197,6 @@ function validateSettingsSchema(value: unknown): SettingsSchema {
           : undefined,
       }
     })
-  }
-
-  return result
 }
 
 function validateManifest(raw: unknown, expectedSlug?: string): ThemePackageManifest {
