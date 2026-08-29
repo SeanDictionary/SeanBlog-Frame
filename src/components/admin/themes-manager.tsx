@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { CalloutCssEditor } from '@/components/admin/callout-css-editor'
 import { useAdminToast } from '@/components/admin/admin-toast-provider'
@@ -71,6 +72,20 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
   const [liveValues, setLiveValues] = useState<Record<string, unknown>>(() =>
     activeThemePackage ? buildLiveValues(activeThemePackage.settingsSchema, themeSettings) : {},
   )
+  // 二级分组折叠状态：默认全部展开
+  const [expandedSubs, setExpandedSubs] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {}
+    if (activeThemePackage) {
+      for (const group of Object.values(activeThemePackage.settingsSchema)) {
+        if (!Array.isArray(group)) {
+          for (const subName of Object.keys(group)) {
+            initial[subName] = true
+          }
+        }
+      }
+    }
+    return initial
+  })
   // 含级联隐藏的可见性映射：随 liveValues 变化重算
   const visibilityMap = activeThemePackage
     ? computeVisibility(activeThemePackage.settingsSchema, liveValues)
@@ -78,6 +93,10 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
 
   function updateValue(key: string, value: unknown) {
     setLiveValues((prev) => ({ ...prev, [key]: value }))
+  }
+
+  function toggleSub(subName: string) {
+    setExpandedSubs((prev) => ({ ...prev, [subName]: !prev[subName] }))
   }
 
   function applySetting(setting: Setting) {
@@ -321,13 +340,27 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
                 return (
                   <div key={groupName} className="mb-8">
                     <h3 className="mb-4 border-b border-neutral-200 pb-2 text-base font-semibold text-neutral-900 dark:border-neutral-800 dark:text-neutral-100">{groupName}</h3>
-                    <div className="space-y-6">
-                      {subs.map(([subName, items]) => (
-                        <div key={subName}>
-                          <h4 className="mb-3 text-sm font-semibold text-neutral-600 dark:text-neutral-400">{subName}</h4>
-                          <div className={itemRowsClass}>{items.map(row)}</div>
-                        </div>
-                      ))}
+                    <div className="space-y-4">
+                      {subs.map(([subName, items]) => {
+                        const expanded = expandedSubs[subName] !== false
+                        return (
+                          <div key={subName}>
+                            <button
+                              type="button"
+                              onClick={() => toggleSub(subName)}
+                              className="flex w-full items-center gap-2 text-left text-sm font-semibold text-neutral-600 transition-colors hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
+                            >
+                              {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                              <span>{subName}</span>
+                            </button>
+                            {expanded && (
+                              <div className="mt-3">
+                                <div className={itemRowsClass}>{items.map(row)}</div>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
                 )
