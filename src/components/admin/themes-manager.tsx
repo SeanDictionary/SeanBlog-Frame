@@ -156,6 +156,28 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
               }
             }
             newSettings[item.key] = selected
+          } else if (item.type === 'list') {
+            // 从 formData 收集 list 条目：${key}[i].field
+            const fields = item.itemFields ?? []
+            const re = new RegExp(`^${item.key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\[(\\d+)\\]\\.(.+)$`)
+            const buckets: Array<Record<string, string>> = []
+            for (const [fname, fvalue] of formData.entries()) {
+              const m = String(fname).match(re)
+              if (!m) continue
+              const idx = Number(m[1])
+              if (!buckets[idx]) buckets[idx] = {}
+              buckets[idx][m[2]] = String(fvalue)
+            }
+            const entries: Array<Record<string, string>> = []
+            for (const b of buckets) {
+              if (!b) continue
+              const row: Record<string, string> = {}
+              for (const f of fields) row[f.key] = b[f.key] ?? ''
+              entries.push(row)
+            }
+            newSettings[item.key] = entries
+          } else if (item.type === 'range' || item.type === 'number') {
+            newSettings[item.key] = Number(formData.get(item.key) ?? item.default ?? 0)
           } else {
             newSettings[item.key] = String(formData.get(item.key) ?? item.default ?? '')
           }
@@ -352,6 +374,8 @@ function SettingControl({ item, value, onChange }: { item: ThemeSettingSchemaIte
   if (item.type === 'color') return <ColorPicker name={item.key} value={String(value)} onChange={onChange} />
   if (item.type === 'multiselect') return <MultiselectField item={item} value={value} onChange={onChange} />
   if (item.type === 'list') return <ListField item={item} value={value} onChange={onChange} />
+  if (item.type === 'range') return <RangeSlider item={item} value={Number(value)} onChange={onChange} />
+  if (item.type === 'textarea') return <TextareaField name={item.key} value={String(value)} onChange={onChange} />
   if (item.type === 'select') {
     if (item.options && item.options.length <= 4) {
       return <RadioGroup name={item.key} options={item.options} value={String(value)} onChange={onChange} />
@@ -365,6 +389,39 @@ function SettingControl({ item, value, onChange }: { item: ThemeSettingSchemaIte
       defaultValue={String(value)}
       onChange={(e) => onChange(item.type === 'number' ? Number(e.target.value) : e.target.value)}
       className="h-10 w-full max-w-sm rounded-md border border-neutral-300 bg-white px-3 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+    />
+  )
+}
+
+function RangeSlider({ item, value, onChange }: { item: ThemeSettingSchemaItem; value: number; onChange: (value: number) => void }) {
+  const min = item.min ?? 0
+  const max = item.max ?? 100
+  const step = item.step ?? 1
+  return (
+    <div className="flex items-center gap-3">
+      <input
+        name={item.key}
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="h-2 max-w-sm flex-1 cursor-pointer appearance-none rounded-full bg-neutral-200 dark:bg-neutral-700"
+      />
+      <span className="w-14 shrink-0 text-right text-sm tabular-nums text-neutral-600 dark:text-neutral-400">{value}</span>
+    </div>
+  )
+}
+
+function TextareaField({ name, value, onChange }: { name: string; value: string; onChange: (value: string) => void }) {
+  return (
+    <textarea
+      name={name}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      rows={4}
+      className="w-full max-w-sm rounded-md border border-neutral-300 bg-white px-3 py-2 font-mono text-xs dark:border-neutral-700 dark:bg-neutral-900"
     />
   )
 }

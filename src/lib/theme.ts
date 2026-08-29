@@ -20,11 +20,15 @@ export type ThemeSettingSchemaItem = {
   key: string
   label: string
   description?: string
-  type: 'text' | 'color' | 'number' | 'boolean' | 'select' | 'list' | 'multiselect'
+  type: 'text' | 'color' | 'number' | 'boolean' | 'select' | 'list' | 'multiselect' | 'range' | 'textarea'
   default?: string | number | boolean | string[] | Array<Record<string, string>>
   cssVariable?: string
   options?: Array<{ label: string; value: string }>
   itemFields?: Array<{ key: string; label: string; type: 'text' | 'color' | 'number' | 'boolean' | 'select' }>
+  /** range 专用：最小/最大/步长 */
+  min?: number
+  max?: number
+  step?: number
   /** 后台表单显隐条件表达式（FormKit 风格 if）。引用其他设置 key，求值为假则该项不渲染、不参与保存。 */
   if?: string
 }
@@ -149,7 +153,7 @@ function validateItems(items: unknown[]): ThemeSettingSchemaItem[] {
     const record = assertRecord(item, 'settingsSchema item')
       const type = record.type
 
-      if (!['text', 'color', 'number', 'boolean', 'select', 'list', 'multiselect'].includes(String(type))) {
+      if (!['text', 'color', 'number', 'boolean', 'select', 'list', 'multiselect', 'range', 'textarea'].includes(String(type))) {
         throw badRequest('Theme settings schema contains an unsupported field type.', 'INVALID_THEME_MANIFEST')
       }
 
@@ -163,6 +167,9 @@ function validateItems(items: unknown[]): ThemeSettingSchemaItem[] {
           ? record.default
           : Array.isArray(record.default) ? record.default.filter((v: unknown) => typeof v === 'string') : undefined,
         cssVariable: typeof record.cssVariable === 'string' ? record.cssVariable : undefined,
+        min: typeof record.min === 'number' ? record.min : undefined,
+        max: typeof record.max === 'number' ? record.max : undefined,
+        step: typeof record.step === 'number' ? record.step : undefined,
         options: Array.isArray(record.options)
           ? record.options.map((option) => {
               const optionRecord = assertRecord(option, 'settingsSchema option')
