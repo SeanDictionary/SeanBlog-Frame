@@ -215,8 +215,10 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
         const data = await response.json()
         if (!response.ok) throw new Error(data.error?.message ?? '主题设置保存失败。')
 
-        setThemeSettingsState(newSettings)
-        setLiveValues(buildLiveValues(activeThemePackage.settingsSchema, newSettings))
+        // 保留隐藏项的现场值：保存时隐藏项不提交（服务端按原值合并），
+        // 客户端也需沿用其此前的 live 值，否则会被 schema 默认值覆盖、再次展开时显示默认值
+        setThemeSettingsState((prev) => ({ ...prev, ...newSettings }))
+        setLiveValues((prev) => buildLiveValues(activeThemePackage.settingsSchema, { ...prev, ...newSettings }))
         
         router.refresh()
       } catch (error) {
@@ -306,7 +308,7 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
 
       {activeThemePackage && (
         <Card padding="lg">
-          <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="sticky top-6 z-20 mb-5 flex flex-wrap items-start justify-between gap-4 rounded-md bg-white p-3 shadow-sm dark:bg-neutral-950">
             <div>
               <h2 className="font-semibold">{activeThemePackage.name} 设置</h2>
               <p className="mt-1 text-sm text-neutral-500">主题变量和提示框样式，随主题切换。</p>
@@ -316,7 +318,7 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
             )}
           </div>
           {Object.keys(activeThemePackage.settingsSchema).length > 0 && (
-            <form id="theme-settings-form" action={saveThemeSettings} className="mt-5">
+            <form id="theme-settings-form" action={saveThemeSettings}>
               {Object.entries(activeThemePackage.settingsSchema).map(([groupName, group]) => {
                 const row = (item: ThemeSettingSchemaItem) => (
                   <SettingRow key={item.key} item={item} value={themeSettingValue(liveValues, item)} onChange={updateValue} />
@@ -353,11 +355,9 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
                               {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                               <span>{subName}</span>
                             </button>
-                            {expanded && (
-                              <div className="mt-3">
-                                <div className={itemRowsClass}>{items.map(row)}</div>
-                              </div>
-                            )}
+                            <div className={expanded ? 'mt-3' : 'hidden'}>
+                              <div className={itemRowsClass}>{items.map(row)}</div>
+                            </div>
                           </div>
                         )
                       })}
