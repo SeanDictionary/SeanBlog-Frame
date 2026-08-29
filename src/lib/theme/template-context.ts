@@ -100,14 +100,32 @@ async function loadSidebarData(): Promise<SidebarData> {
   }
 }
 
-const HEADING_PATTERN = /<h([2-4])[^>]*id=["']([^"']+)["'][^>]*>([\s\S]*?)<\/h\1>/gi
+const HEADING_PATTERN = /<h([2-4])([^>]*)>([\s\S]*?)<\/h\1>/gi
+
+/** 生成标题锚点 id：优先用文本 slug，纯非 ASCII 文本回退为 toc-N */
+function slugify(text: string): string {
+  return text.toLowerCase().replace(/<[^>]*>/g, '').trim()
+    .replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+}
 
 function getHeadings(html: string) {
   const headings: Array<{ id: string; text: string; level: number }> = []
   const used = new Map<string, number>()
-  const contentHtml = html.replace(HEADING_PATTERN, (m, lvl: string, id: string, inner: string) => {
+  let fallbackIdx = 0
+  const contentHtml = html.replace(HEADING_PATTERN, (m, lvl: string, attrs: string, inner: string) => {
     const text = inner.replace(/<[^>]*>/g, '').trim()
-    if (id && text) headings.push({ id, text, level: Number(lvl) })
+    if (!text) return m
+    const existing = (attrs.match(/id=["']([^"']+)["']/i) || [])[1]
+    let id = existing || slugify(text) || `toc-${fallbackIdx++}`
+    // 去重：同名追加序号
+    if (!existing) {
+      const n = used.get(id) ?? 0
+      used.set(id, n + 1)
+      if (n > 0) id = `${id}-${n}`
+    }
+    headings.push({ id, text, level: Number(lvl) })
+    // 若原标签缺 id，回填进去（否则前端无法跳转锚点）
+    if (!existing) return `<h${lvl} id="${id}"${attrs}>${inner}</h${lvl}>`
     return m
   })
   return { contentHtml, headings }

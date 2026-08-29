@@ -233,7 +233,15 @@ settingsSchema:
       itemFields:                   # list 专有：每行子字段
         - { key: url, label: 链接, type: text }
       if: "sidebarPosition !== 'none'"  # 可选：条件显隐表达式
+      min: 0                          # range 专用
+      max: 50
+      step: 1
 ```
+
+**支持类型**：`text` `color` `number` `boolean` `select` `list` `multiselect` `range` `textarea`。
+- `range`：滑块，配 `min`/`max`/`step`，值存储为数字。
+- `textarea`：多行文本，适合 HTML 片段等。
+- `list`：多行条目，每行由 `itemFields` 组成（如导航项 link/label）；保存时按 `${key}[i].field` 收集。
 
 **分组层级**：组的值既可以是项数组（1 层），也可以是「子组名 → 项数组」（2 层），两种组可在同一 schema 混用。2 层适用于项较多的组（如布局、视觉），小组保持 1 层即可。
 
@@ -255,6 +263,8 @@ settingsSchema:
 ```
 
 后台按层级渲染（组 h3 → 子组 h4 → 项）；空组、空子组自动隐藏。
+
+**Handlebars helper**：`{{#limit arr 10}}...{{/limit}}` 限制遍历条数（用于「少量 + 更多」）；另有 `eq`/`ne`/`gt`/`or`/`not`/`format_date`/`truncate`/`asset`/`t`。
 
 **条件显隐 `if`**（FormKit/Halo 风格字符串，**不使用 eval**，内置安全迷你求值器）：
 
