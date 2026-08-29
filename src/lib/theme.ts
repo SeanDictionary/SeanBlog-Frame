@@ -34,19 +34,8 @@ export type SettingsGroup = ThemeSettingSchemaItem[] | Record<string, ThemeSetti
 
 export type SettingsSchema = Record<string, SettingsGroup>
 
-/** 将 schema（1 层或 2 层混合）扁平为所有设置项数组。 */
-export function flattenSchemaItems(schema: SettingsSchema | undefined): ThemeSettingSchemaItem[] {
-  if (!schema) return []
-  const out: ThemeSettingSchemaItem[] = []
-  for (const group of Object.values(schema)) {
-    if (Array.isArray(group)) {
-      out.push(...group)
-    } else if (group && typeof group === 'object') {
-      for (const items of Object.values(group)) out.push(...items)
-    }
-  }
-  return out
-}
+// flattenSchemaItems 实现位于 ./schema-utils（客户端安全），此处重导出供服务端使用
+export { flattenSchemaItems } from './theme/schema-utils'
 
 export type ThemePackageManifest = {
   slug: string

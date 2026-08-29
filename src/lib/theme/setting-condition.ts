@@ -19,7 +19,7 @@
  */
 
 import type { ThemeSettingSchemaItem, SettingsSchema } from '@/lib/theme'
-import { flattenSchemaItems } from '@/lib/theme'
+import { flattenSchemaItems } from '@/lib/theme/schema-utils'
 
 export class SettingConditionError extends Error {
   constructor(message: string, public expression: string, public position: number) {

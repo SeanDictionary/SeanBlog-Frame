@@ -7,7 +7,7 @@ import { CalloutCssEditor } from '@/components/admin/callout-css-editor'
 import { useAdminToast } from '@/components/admin/admin-toast-provider'
 import { DEFAULT_CALLOUT_CSS } from '@/lib/content/callout-css'
 import type { ThemeSettingSchemaItem, SettingsSchema, ThemePackageSummary } from '@/lib/theme'
-import { flattenSchemaItems } from '@/lib/theme'
+import { flattenSchemaItems } from '@/lib/theme/schema-utils'
 import { computeVisibility } from '@/lib/theme/setting-condition'
 
 type Setting = {
