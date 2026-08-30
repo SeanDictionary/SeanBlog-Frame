@@ -7,6 +7,7 @@ import { requireAdmin } from '@/lib/auth.utils'
 import { adminLogActor, recordOperation } from '@/lib/services/operation-log-service'
 import { getSiteSettingsMap } from '@/lib/services/setting-service'
 import { deleteTheme, exportThemePackage, readThemeManifest } from '@/lib/theme'
+import { buildThemeSettingsSnapshot, deleteThemeSettings } from '@/lib/services/theme-settings-service'
 import { assertThemeName, DEFAULT_THEME_NAME } from '@/lib/validations/theme'
 
 export async function GET(request: Request, { params }: { params: Promise<{ name: string }> }) {
@@ -15,6 +16,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ name
 
     const { name: rawName } = await params
     const name = rawName === 'default' ? DEFAULT_THEME_NAME : assertThemeName(rawName)
+    const includeSettings = new URL(request.url).searchParams.get('includeSettings') === 'true'
     const payload = await recordOperation({
       actor: adminLogActor(session),
       module: 'theme',
@@ -23,10 +25,17 @@ export async function GET(request: Request, { params }: { params: Promise<{ name
       targetId: name,
       summary: `导出主题包：${name}`,
       failureSummary: `导出主题包失败：${name}`,
+      metadata: { slug: name, includeSettings },
       request,
     }, async () => {
       const manifest = await readThemeManifest(name)
-      const zip = await exportThemePackage(name)
+      const extraEntries = includeSettings
+        ? [{
+            path: 'theme-settings.json',
+            content: Buffer.from(JSON.stringify(await buildThemeSettingsSnapshot(name), null, 2), 'utf8'),
+          }]
+        : []
+      const zip = await exportThemePackage(name, extraEntries)
       return { manifest, zip }
     })
 
@@ -67,6 +76,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ n
       }
 
       await deleteTheme(name)
+      await deleteThemeSettings(name)
     })
 
     revalidatePath('/(public)', 'layout')

@@ -551,7 +551,34 @@ helpers 全部平台内置，**主题不能注册自己的 helper**（安全沙�
 | 移动侧栏 | 主题 markup + `<button data-sb-sidebar-toggle>` |
 | 上下篇 | 主题自渲染 `navigation` 链接 |
 
-## 14. 风险与未决项
+### 7.2 主题设置快照、导入与导出
+
+主题设置的数据库原始值保存在 `ThemeCustomization.settings`，读取时按「数据库设置 > `theme.yaml` 默认值」合并。主题导出可通过 `GET /api/admin/themes/:name?includeSettings=true` 将当前主题的**全量有效设置**写入 ZIP 根目录的 `theme-settings.json`；它不是数据库 JSON 的简单复制，而是按当前 schema 合并默认值后过滤未知字段，确保导出时未主动修改但实际生效的默认配置也会被备份。
+
+设置快照格式为：
+
+```json
+{
+  "formatVersion": 1,
+  "theme": { "slug": "cardinal", "version": "3.3.13" },
+  "settingsVersion": 1,
+  "settingsSchemaHash": "sha256:...",
+  "exportedAt": "2026-01-01T00:00:00.000Z",
+  "settings": {}
+}
+```
+
+导入 ZIP 时 `theme-settings.json` 为可选文件。后台支持三种 `settingsMode`：
+
+- `ignore`：只安装主题文件，忽略设置快照；
+- `preserve`：当前主题已有 `ThemeCustomization` 时保留，没有时才应用快照；
+- `restore`：应用快照并覆盖当前主题设置。
+
+设置快照会校验格式版本、主题 slug、设置版本、schema hash、字段类型、select/multiselect 选项、range 范围、list 子字段以及 `calloutCustomCss`。schema 中新增字段不写入数据库，继续使用当前主题默认值；已删除或未知字段会被忽略并产生警告。快照版本低于当前主题版本时通过应用内迁移注册表逐版本迁移；没有迁移规则或快照版本更高时拒绝应用设置。迁移逻辑不执行主题包内任意代码。
+
+主题删除成功后同步删除对应的 `ThemeCustomization` 记录，并清理主题设置缓存。默认主题和当前正在使用的主题仍然禁止删除。
+
+以上能力由 `src/lib/theme/settings-snapshot.ts`、`src/lib/services/theme-settings-service.ts` 和主题管理 API 提供；主题包只需在后续版本中声明 `settingsVersion`，具体字段迁移规则由主题实现阶段补充。
 
 1. **平台增强脚本迁移成本**：评论提交、搜索弹窗需从 React 重写为 data-* 渐进增强脚本，工作量集中但一次到位。可先做最小可用（评论提交 + 搜索触发 + 深浅色），再迭代 TOC 高亮/侧栏开合。
 2. **交互一致性**：前台增强脚本与后台 React 体验需对齐（如表单校验、toast）。建议抽公共逻辑。
@@ -570,3 +597,9 @@ helpers 全部平台内置，**主题不能注册自己的 helper**（安全沙�
 - [ ] 评论、搜索、深浅色切换、移动侧栏在主题切换后仍可用（平台增强脚本与 API 不依赖主题）。
 - [ ] 恶意主题包（含 `require`、`<script>` 注入、路径穿越、超大 zip）被拒绝。
 - [ ] 预览页与前台渲染一致。
+
+### 16. 当前已实现的主题设置生命周期
+
+当前实现以 `theme.yaml.settingsSchema` 为设置结构来源，数据库中的 `ThemeCustomization.settings` 保存原始用户配置，读取时按「数据库设置 > schema 默认值」得到有效配置。主题导出支持 `?includeSettings=true`，将有效配置快照写入 ZIP 根目录的 `theme-settings.json`；导入支持 `ignore`、`preserve`、`restore` 三种 `settingsMode`。删除非默认且非当前主题时，会同步删除该主题的 `ThemeCustomization` 记录。
+
+`theme-settings.json` 使用 `formatVersion` 表示文件格式，使用 `settingsVersion` 表示主题设置 schema 版本，使用 `settingsSchemaHash` 检测设置结构变化。主题清单可声明 `settingsVersion`，没有声明时按 v1 兼容。设置迁移只允许由应用内注册的迁移函数执行，不执行主题包内任意脚本；当前主题的具体字段迁移规则在主题包接入阶段补充。

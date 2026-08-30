@@ -6,6 +6,7 @@ import Handlebars from 'handlebars'
 
 import { badRequest, conflict, notFound } from '@/lib/api/errors'
 import { assertThemeName, DEFAULT_THEME_NAME, validateThemeCss } from '@/lib/validations/theme'
+import { THEME_SETTINGS_FILENAME, type ThemeSettingsImportMode, type ThemeSettingsSnapshot } from '@/lib/theme/settings-snapshot'
 
 export const THEME_ENGINE = 'seanblog-theme'
 export const THEME_ENGINE_VERSION = 2
@@ -55,6 +56,7 @@ export type ThemePackageManifest = {
   }
   parts?: Record<string, ThemePart>
   settingsSchema?: SettingsSchema
+  settingsVersion?: number
   base?: string
 }
 
@@ -246,6 +248,15 @@ function validateManifest(raw: unknown, expectedSlug?: string): ThemePackageMani
         )
       : undefined,
     settingsSchema: validateSettingsSchema(manifest.settingsSchema),
+    settingsVersion: manifest.settingsVersion === undefined
+      ? undefined
+      : (() => {
+          const value = Number(manifest.settingsVersion)
+          if (!Number.isInteger(value) || value < 1) {
+            throw badRequest('Theme manifest settingsVersion must be a positive integer.', 'INVALID_THEME_MANIFEST')
+          }
+          return value
+        })(),
     base: typeof manifest.base === 'string' ? manifest.base : undefined,
   }
 }
@@ -531,7 +542,7 @@ export async function readThemeAsset(themeName: string, assetPath: string) {
   return readFile(resolveThemePath(name, assetPath))
 }
 
-export async function installThemePackageFromZip(file: File) {
+export async function installThemePackageFromZip(file: File, settingsMode: ThemeSettingsImportMode = 'preserve'): Promise<{ slug: string; manifest: ThemePackageManifest; settingsSnapshot?: ThemeSettingsSnapshot }> {
   const entries = parseZip(Buffer.from(await file.arrayBuffer()))
   const manifestEntry = entries.find((entry) => entry.path === themeManifestFilename)
 
@@ -548,12 +559,24 @@ export async function installThemePackageFromZip(file: File) {
     throw badRequest('Theme package contains an invalid theme.yaml manifest.', 'INVALID_THEME_MANIFEST')
   }
 
-  const files = entries.filter((entry) => entry.path !== themeManifestFilename)
+  const settingsEntry = entries.find((entry) => entry.path === THEME_SETTINGS_FILENAME)
+  let settingsSnapshot: ThemeSettingsSnapshot | undefined
+  if (settingsEntry && settingsMode !== 'ignore') {
+    let rawSnapshot: unknown
+    try {
+      rawSnapshot = JSON.parse(settingsEntry.content.toString('utf8'))
+    } catch {
+      throw badRequest('Theme settings snapshot contains invalid JSON.', 'INVALID_THEME_SETTINGS')
+    }
+    settingsSnapshot = (await import('./theme/settings-snapshot')).parseThemeSettingsSnapshot(rawSnapshot, manifest.slug)
+  }
+  const files = entries.filter((entry) => entry.path !== themeManifestFilename && entry.path !== THEME_SETTINGS_FILENAME)
 
   // Handlebars 模板语法预校验（fail-fast）
   await validateTemplatesSyntax(files)
 
-  return installThemePackageFromManifest(manifest, files)
+  const slug = await installThemePackageFromManifest(manifest, files)
+  return { slug, manifest, settingsSnapshot }
 }
 
 export async function installThemePackageFromManifest(manifest: ThemePackageManifest, files: Array<{ path: string; content: string | Buffer }>) {
@@ -592,10 +615,12 @@ export async function installThemePackageFromManifest(manifest: ThemePackageMani
   return slug
 }
 
-export async function exportThemePackage(themeName: string) {
+export async function exportThemePackage(themeName: string, extraEntries: ZipEntry[] = []) {
   const name = normalizeThemeName(themeName)
   if (!(await themeExists(name))) throw notFound('Theme package not found.')
-  return createZip(await walkThemeFiles(name))
+  const files = await walkThemeFiles(name)
+  const reservedPaths = new Set(extraEntries.map((entry) => entry.path))
+  return createZip([...files.filter((entry) => !reservedPaths.has(entry.path)), ...extraEntries])
 }
 
 export async function deleteTheme(themeName: string) {

@@ -5,7 +5,8 @@ import { requireSameOriginRequest } from '@/lib/api/request-guard'
 import { requireAdmin } from '@/lib/auth.utils'
 import { adminLogActor, recordOperation } from '@/lib/services/operation-log-service'
 import { saveThemeSettings } from '@/lib/services/theme-settings-service'
-import { flattenSchemaItems, normalizeThemeName, readThemeManifest } from '@/lib/theme'
+import { validateThemeSettingsValues } from '@/lib/theme/settings-snapshot'
+import { normalizeThemeName, readThemeManifest } from '@/lib/theme'
 
 export async function PUT(
   request: Request,
@@ -24,24 +25,9 @@ export async function PUT(
       return json({ error: { message: 'settings must be an object' } }, { status: 400 })
     }
 
-    // Validate settings against theme schema
+    // 后台保存与设置快照导入共用完整 schema 校验
     const manifest = await readThemeManifest(slug)
-    const schema = manifest.settingsSchema ?? {}
-    const allItems = flattenSchemaItems(schema)
-    for (const item of allItems) {
-      const value = settings[item.key]
-      if (value === undefined) continue
-
-      if (item.type === 'boolean' && typeof value !== 'boolean') {
-        return json({ error: { message: `${item.key} must be boolean` } }, { status: 400 })
-      }
-      if (item.type === 'select' && typeof value === 'string' && item.options && !item.options.some((o) => o.value === value)) {
-        return json({ error: { message: `${item.key} has invalid option: ${value}` } }, { status: 400 })
-      }
-      if (item.type === 'multiselect' && !Array.isArray(value)) {
-        return json({ error: { message: `${item.key} must be an array` } }, { status: 400 })
-      }
-    }
+    validateThemeSettingsValues(manifest.settingsSchema, settings)
 
     await recordOperation({
       actor: adminLogActor(session),

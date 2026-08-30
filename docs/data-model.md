@@ -268,6 +268,23 @@ model SiteSetting {
 }
 ```
 
+### 4.4b ThemeCustomization（主题自定义设置）
+
+```prisma
+model ThemeCustomization {
+  themeSlug String   @unique
+  settings  Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+```
+
+- `themeSlug` 对应主题包的 slug，每个主题独立保存一份站点级配置。
+- `settings` 保存数据库中的原始自定义值；读取主题时再与当前 `theme.yaml.settingsSchema` 的默认值合并。
+- 主题导出中的 `theme-settings.json` 不直接复制此 JSON，而是按当前 schema 生成全量有效设置快照，因此未显式保存但当前实际生效的默认值也会被包含。
+- 删除主题包时同步删除对应记录；默认主题和当前启用主题不可删除。
+- 导出快照的 `formatVersion`、`settingsVersion` 和 `settingsSchemaHash` 属于可移植配置文件元数据，不额外存入此表。
+
 ### 4.5 AnalyticsEvent（访问统计事件）
 
 ```prisma
@@ -380,3 +397,4 @@ model OperationLog {
 - 管理员账号通过 `scripts/initialize-admin.mjs` 在生产启动时确保存在，不再维护 Prisma seed 脚本
 - 生产首次部署时，`scripts/initialize-content.mjs` 会在文章表为空时创建一篇欢迎文章；已有文章时不会重复创建或覆盖内容
 - Prisma Client 类型在 `prisma generate` 后自动生成，由 `node_modules/` 忽略规则覆盖
+- 主题包设置快照的格式和版本不写入 `ThemeCustomization` 表：`ThemeCustomization.settings` 只保存当前主题的原始配置；`theme-settings.json` 携带 `formatVersion`、主题 `settingsVersion` 和 `settingsSchemaHash`，便于跨主题包版本迁移和校验。

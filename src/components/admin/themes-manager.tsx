@@ -30,6 +30,8 @@ type ApiResponse = {
   setting?: Setting
   settings?: Setting[]
   theme?: string
+  settingsApplied?: boolean
+  warnings?: string[]
 }
 
 function settingValue(settings: Setting[], key: string, fallback = '') {
@@ -64,6 +66,10 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [settings, setSettings] = useState(initialSettings)
   const [themes, setThemes] = useState(availableThemes)
+  const [importSettingsMode, setImportSettingsMode] = useState<'ignore' | 'preserve' | 'restore'>('preserve')
+  const [includeSettingsOnExport, setIncludeSettingsOnExport] = useState(false)
+  const [pendingImportFile, setPendingImportFile] = useState<File | null>(null)
+  const [exportTarget, setExportTarget] = useState<ThemePackageSummary | null>(null)
   const [themeSettingsState, setThemeSettingsState] = useState<Record<string, unknown>>(themeSettings)
   const [isPending, startTransition] = useTransition()
   const activeTheme = getActiveThemeSlug(settings)
@@ -230,10 +236,20 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
   function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    setPendingImportFile(file)
+    setImportSettingsMode('preserve')
+  }
+
+  function confirmImport() {
+    const file = pendingImportFile
+    if (!file) return
+    setPendingImportFile(null)
+    setImportSettingsMode('preserve')
     startTransition(async () => {
       try {
         const formData = new FormData()
         formData.append('file', file)
+        formData.append('settingsMode', importSettingsMode)
         const response = await fetch('/api/admin/themes', { method: 'POST', body: formData })
         const data = (await response.json()) as ApiResponse
 
@@ -244,13 +260,21 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
         const refreshed = await fetch('/api/admin/themes')
         const refreshedData = (await refreshed.json()) as { themes?: ThemePackageSummary[] }
         if (refreshedData.themes) setThemes(refreshedData.themes)
-        toast.success(`已导入主题包 ${data.theme}。`)
+        const warningText = data.warnings?.length ? `（${data.warnings.join('；')}）` : ''
+        const settingsText = data.settingsApplied ? '，已应用包内设置' : ''
+        toast.success(`已导入主题包 ${data.theme}${settingsText}${warningText}。`)
         if (fileInputRef.current) fileInputRef.current.value = ''
         router.refresh()
       } catch (error) {
         toast.error(error instanceof Error ? error.message : '主题包导入失败。')
       }
     })
+  }
+
+  function exportTheme(theme: ThemePackageSummary, includeSettings: boolean) {
+    setExportTarget(null)
+    const query = includeSettings ? '?includeSettings=true' : ''
+    window.location.href = `/api/admin/themes/${encodeURIComponent(theme.slug)}${query}`
   }
 
   function deleteTheme(theme: ThemePackageSummary) {
@@ -275,7 +299,7 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
     <div className="space-y-7">
       <Card padding="lg">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div><h2 className="font-semibold">主题包库</h2><p className="mt-1 text-sm text-neutral-500">导入、预览、启用、导出和卸载第三方主题包。主题必须包含 theme.json、模板、部件和资源目录。</p></div>
+          <div><h2 className="font-semibold">主题包库</h2><p className="mt-1 text-sm text-neutral-500">导入、预览、启用、导出和卸载第三方主题包。主题必须包含 theme.yaml、模板、部件和资源目录。</p></div>
           <button type="button" disabled={isPending} onClick={() => fileInputRef.current?.click()} className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium transition-colors hover:bg-neutral-100 disabled:opacity-60 dark:border-neutral-700 dark:hover:bg-neutral-800"><i className="fa-solid fa-upload mr-2 text-xs" />导入主题包</button>
           <input ref={fileInputRef} type="file" accept=".zip,application/zip" className="hidden" onChange={handleImportFile} />
         </div>
@@ -294,7 +318,7 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
                     <button type="button" disabled={isPending || theme.slug === activeTheme} onClick={() => saveSetting('activeTheme', theme.slug)} className="rounded bg-neutral-950 px-2 py-1 text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-950">启用</button>
                     {theme.slug !== 'seanblog-default' &&
                     <>
-                      <a href={`/api/admin/themes/${encodeURIComponent(theme.slug)}`} className="rounded border border-neutral-300 px-2 py-1 dark:border-neutral-700">导出</a>
+                      <button type="button" onClick={() => setExportTarget(theme)} className="rounded border border-neutral-300 px-2 py-1 dark:border-neutral-700">导出</button>
                       <button type="button" disabled={isPending || theme.slug === activeTheme} onClick={() => deleteTheme(theme)} className="rounded border border-red-200 px-2 py-1 text-red-600 disabled:opacity-50 dark:border-red-900/60">卸载</button>
                     </>}
                   </div>
@@ -383,7 +407,55 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
         </Card>
       )}
 
-
+      {exportTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="export-theme-title">
+          <div className="w-full max-w-md rounded-xl border border-neutral-200 bg-white p-6 shadow-xl dark:border-neutral-800 dark:bg-neutral-950">
+            <h2 id="export-theme-title" className="text-lg font-semibold">导出 {exportTarget.name}</h2>
+            <p className="mt-2 text-sm leading-6 text-neutral-500">选择是否将当前主题的全量有效设置一并导出。</p>
+            <div className="mt-5 space-y-3">
+              <label className="flex cursor-pointer gap-3 rounded-md border border-neutral-200 p-3 dark:border-neutral-800">
+                <input type="radio" name="export-settings-mode" checked={!includeSettingsOnExport} onChange={() => setIncludeSettingsOnExport(false)} />
+                <span><strong className="block text-sm font-medium">仅导出主题文件</strong><span className="mt-1 block text-xs text-neutral-500">适合发布和分享主题，不包含站点个性化设置。</span></span>
+              </label>
+              <label className="flex cursor-pointer gap-3 rounded-md border border-neutral-200 p-3 dark:border-neutral-800">
+                <input type="radio" name="export-settings-mode" checked={includeSettingsOnExport} onChange={() => setIncludeSettingsOnExport(true)} />
+                <span><strong className="block text-sm font-medium">主题文件 + 全量设置</strong><span className="mt-1 block text-xs text-neutral-500">适合备份和迁移，包含当前生效的完整设置快照。</span></span>
+              </label>
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button type="button" onClick={() => setExportTarget(null)} className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium dark:border-neutral-700">取消</button>
+              <button type="button" onClick={() => exportTheme(exportTarget, includeSettingsOnExport)} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white dark:bg-neutral-100 dark:text-neutral-950">开始导出</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {pendingImportFile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="import-theme-title">
+          <div className="w-full max-w-md rounded-xl border border-neutral-200 bg-white p-6 shadow-xl dark:border-neutral-800 dark:bg-neutral-950">
+            <h2 id="import-theme-title" className="text-lg font-semibold">导入主题包</h2>
+            <p className="mt-2 truncate text-sm text-neutral-500">文件：{pendingImportFile.name}</p>
+            <p className="mt-2 text-sm leading-6 text-neutral-500">若主题包包含 theme-settings.json，请选择设置处理方式。</p>
+            <div className="mt-5 space-y-3">
+              <label className="flex cursor-pointer gap-3 rounded-md border border-neutral-200 p-3 dark:border-neutral-800">
+                <input type="radio" name="import-settings-mode" value="ignore" checked={importSettingsMode === 'ignore'} onChange={() => setImportSettingsMode('ignore')} />
+                <span><strong className="block text-sm font-medium">仅导入主题文件</strong><span className="mt-1 block text-xs text-neutral-500">忽略包内设置，使用当前配置或主题默认值。</span></span>
+              </label>
+              <label className="flex cursor-pointer gap-3 rounded-md border border-neutral-200 p-3 dark:border-neutral-800">
+                <input type="radio" name="import-settings-mode" value="preserve" checked={importSettingsMode === 'preserve'} onChange={() => setImportSettingsMode('preserve')} />
+                <span><strong className="block text-sm font-medium">无当前配置时导入（推荐）</strong><span className="mt-1 block text-xs text-neutral-500">已有当前配置则保留；没有配置才恢复包内设置。</span></span>
+              </label>
+              <label className="flex cursor-pointer gap-3 rounded-md border border-red-200 p-3 dark:border-red-900/60">
+                <input type="radio" name="import-settings-mode" value="restore" checked={importSettingsMode === 'restore'} onChange={() => setImportSettingsMode('restore')} />
+                <span><strong className="block text-sm font-medium">恢复并覆盖当前配置</strong><span className="mt-1 block text-xs text-red-600 dark:text-red-400">会覆盖当前主题的用户设置，包括自定义 CSS。</span></span>
+              </label>
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button type="button" onClick={() => { setPendingImportFile(null); if (fileInputRef.current) fileInputRef.current.value = '' }} className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium dark:border-neutral-700">取消</button>
+              <button type="button" disabled={isPending} onClick={confirmImport} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950">{isPending ? '导入中…' : '开始导入'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
