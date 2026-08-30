@@ -6,6 +6,7 @@ author:
 description: 默认主题，内容优先、原生组件、柔和边框、低干扰交互。
 engine: seanblog-theme
 engineVersion: 2
+settingsVersion: 1
 assets:
   css: assets/theme.css
 settingsSchema:

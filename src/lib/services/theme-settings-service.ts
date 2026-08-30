@@ -157,10 +157,13 @@ export async function applyThemeSettingsSnapshot(
   const prepared = prepareThemeSettingsSnapshot(snapshot, manifest)
   const existingRow = await getPrisma().themeCustomization.findUnique({
     where: { themeSlug },
-    select: { themeSlug: true },
+    select: { settings: true },
   })
+  const existingSettings = existingRow?.settings
+  const hasExistingSettings = existingSettings && typeof existingSettings === 'object' && !Array.isArray(existingSettings)
+    && Object.keys(existingSettings as Record<string, unknown>).length > 0
 
-  if (mode === 'preserve' && existingRow) {
+  if (mode === 'preserve' && hasExistingSettings) {
     return { applied: false, warnings: prepared.warnings }
   }
 

@@ -592,6 +592,7 @@ helpers 全部平台内置，**主题不能注册自己的 helper**（安全沙�
 ## 15. 验收标准（实现完成后）
 
 - [ ] 上传一个 zip 主题包，后台立即出现并启用，前台即时切换，**无重新部署**。
+- [x] 主题包支持可选导出全量有效设置，并可在导入时选择忽略、保留当前配置或恢复覆盖。
 - [ ] 主题可通过模板任意定义布局、列表样式、侧栏、元信息显隐、配色，并经设置面板实时生效。
 - [ ] 前台首屏 HTML 含完整正文与结构（curl 可见），Lighthouse SEO ≥ 90。
 - [ ] 评论、搜索、深浅色切换、移动侧栏在主题切换后仍可用（平台增强脚本与 API 不依赖主题）。
@@ -602,4 +603,6 @@ helpers 全部平台内置，**主题不能注册自己的 helper**（安全沙�
 
 当前实现以 `theme.yaml.settingsSchema` 为设置结构来源，数据库中的 `ThemeCustomization.settings` 保存原始用户配置，读取时按「数据库设置 > schema 默认值」得到有效配置。主题导出支持 `?includeSettings=true`，将有效配置快照写入 ZIP 根目录的 `theme-settings.json`；导入支持 `ignore`、`preserve`、`restore` 三种 `settingsMode`。删除非默认且非当前主题时，会同步删除该主题的 `ThemeCustomization` 记录。
 
-`theme-settings.json` 使用 `formatVersion` 表示文件格式，使用 `settingsVersion` 表示主题设置 schema 版本，使用 `settingsSchemaHash` 检测设置结构变化。主题清单可声明 `settingsVersion`，没有声明时按 v1 兼容。设置迁移只允许由应用内注册的迁移函数执行，不执行主题包内任意脚本；当前主题的具体字段迁移规则在主题包接入阶段补充。
+Cardinal 当前声明 `settingsVersion: 2`，并提供 v1 → v2 迁移：旧 `heroStyle` 映射为新的 `heroWidth`/`heroHeight`，旧 `cardTitleColor=auto` 映射为 `follow`。
+
+`theme-settings.json` 使用 `formatVersion` 表示文件格式，使用 `settingsVersion` 表示主题设置 schema 版本，使用 `settingsSchemaHash` 检测设置结构变化。主题清单可声明 `settingsVersion`，没有声明时按 v1 兼容。设置迁移只允许由应用内注册的迁移函数执行，不执行主题包内任意脚本；Cardinal 当前已注册 v1 → v2 迁移规则。

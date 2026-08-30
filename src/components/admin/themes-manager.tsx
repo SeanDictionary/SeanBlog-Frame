@@ -318,7 +318,7 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
                     <button type="button" disabled={isPending || theme.slug === activeTheme} onClick={() => saveSetting('activeTheme', theme.slug)} className="rounded bg-neutral-950 px-2 py-1 text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-950">启用</button>
                     {theme.slug !== 'seanblog-default' &&
                     <>
-                      <button type="button" onClick={() => setExportTarget(theme)} className="rounded border border-neutral-300 px-2 py-1 dark:border-neutral-700">导出</button>
+                      <button type="button" onClick={() => { setIncludeSettingsOnExport(false); setExportTarget(theme) }} className="rounded border border-neutral-300 px-2 py-1 dark:border-neutral-700">导出</button>
                       <button type="button" disabled={isPending || theme.slug === activeTheme} onClick={() => deleteTheme(theme)} className="rounded border border-red-200 px-2 py-1 text-red-600 disabled:opacity-50 dark:border-red-900/60">卸载</button>
                     </>}
                   </div>
