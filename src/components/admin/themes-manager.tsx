@@ -494,7 +494,11 @@ function SelectDropdown({ name, options, value, onChange }: { name: string; opti
 }
 
 function ColorPicker({ name, value, onChange }: { name: string; value: string; onChange: (value: string) => void }) {
-  const presets = ['#cf829e', '#ff7a7a', '#3b82f6', '#22c55e', '#a855f7', '#f59e0b', '#6b7280', '#0f172a']
+  const presets = [
+    '#cf829e', '#b76e79', '#e4a6a0', '#c96f4a', '#d4a373', '#e0b04b',
+    '#9cb380', '#7f9c8a', '#5fa8a0', '#5e9fd4', '#5e72e4', '#8e65c9',
+    '#b48ead', '#8898aa', '#64748b', '#334155',
+  ]
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
