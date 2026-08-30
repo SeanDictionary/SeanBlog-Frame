@@ -168,6 +168,7 @@ model SiteSetting {
 model ThemeCustomization {
   themeSlug String   @unique
   settings  Json
+  settingsVersion Int @default(1)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

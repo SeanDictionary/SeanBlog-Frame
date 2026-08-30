@@ -553,7 +553,7 @@ helpers 全部平台内置，**主题不能注册自己的 helper**（安全沙�
 
 ### 7.2 主题设置快照、导入与导出
 
-主题设置的数据库原始值保存在 `ThemeCustomization.settings`，读取时按「数据库设置 > `theme.yaml` 默认值」合并。主题导出可通过 `GET /api/admin/themes/:name?includeSettings=true` 将当前主题的**全量有效设置**写入 ZIP 根目录的 `theme-settings.json`；它不是数据库 JSON 的简单复制，而是按当前 schema 合并默认值后过滤未知字段，确保导出时未主动修改但实际生效的默认配置也会被备份。
+主题设置的数据库原始值保存在 `ThemeCustomization.settings`，并由 `settingsVersion` 记录对应的 schema 版本；读取时按「数据库设置（先迁移到当前版本） > `theme.yaml` 默认值」合并。主题导出可通过 `GET /api/admin/themes/:name?includeSettings=true` 将当前主题的**全量有效设置**写入 ZIP 根目录的 `theme-settings.json`；它不是数据库 JSON 的简单复制，而是按当前 schema 合并默认值后过滤未知字段，确保导出时未主动修改但实际生效的默认配置也会被备份。
 
 设置快照格式为：
 

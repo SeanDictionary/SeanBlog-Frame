@@ -11,6 +11,8 @@ import { getPrisma } from '@/lib/prisma'
 import { flattenSchemaItems, readThemeManifest, type SettingsSchema } from '@/lib/theme'
 import {
   createThemeSettingsSnapshot,
+  getThemeSettingsVersion,
+  migrateThemeSettingsToManifest,
   prepareThemeSettingsSnapshot,
   type ThemeSettingsImportMode,
   type ThemeSettingsSnapshot,
@@ -55,11 +57,26 @@ async function fetchRawThemeSettings(themeSlug: string): Promise<Record<string, 
 /** 带缓存的读取：合并 settingsSchema 默认值 + 数据库自定义 */
 export const getThemeSettings = unstable_cache(
   async (themeSlug: string): Promise<Record<string, unknown>> => {
-    const [raw, manifest] = await Promise.all([
-      fetchRawThemeSettings(themeSlug),
+    const [row, manifest] = await Promise.all([
+      getPrisma().themeCustomization.findUnique({ where: { themeSlug } }),
       readThemeManifest(themeSlug).catch(() => null),
     ])
-    return mergeWithDefaults(manifest?.settingsSchema, raw)
+    const raw = row?.settings && typeof row.settings === 'object' && !Array.isArray(row.settings)
+      ? row.settings as Record<string, unknown>
+      : {}
+    const fromVersion = row?.settingsVersion ?? 1
+    const migrated = manifest
+      ? migrateThemeSettingsToManifest(raw, fromVersion, manifest)
+      : { settings: raw, version: fromVersion }
+    const effective = mergeWithDefaults(manifest?.settingsSchema, migrated.settings)
+
+    if (row && manifest && migrated.version !== fromVersion) {
+      await getPrisma().themeCustomization.update({
+        where: { themeSlug },
+        data: { settings: migrated.settings as any, settingsVersion: migrated.version },
+      })
+    }
+    return effective
   },
   ['theme-settings'],
   {
@@ -85,11 +102,25 @@ export async function getRawThemeSettings(themeSlug: string): Promise<Record<str
 
 /** 返回当前主题的有效设置（用户值 + 当前 schema 默认值）。 */
 export async function getEffectiveThemeSettings(themeSlug: string): Promise<Record<string, unknown>> {
-  const [raw, manifest] = await Promise.all([
-    fetchRawThemeSettings(themeSlug),
+  const [row, manifest] = await Promise.all([
+    getPrisma().themeCustomization.findUnique({ where: { themeSlug } }),
     readThemeManifest(themeSlug),
   ])
-  return mergeWithDefaults(manifest.settingsSchema, raw)
+  const raw = row?.settings && typeof row.settings === 'object' && !Array.isArray(row.settings)
+    ? row.settings as Record<string, unknown>
+    : {}
+  const fromVersion = row?.settingsVersion ?? 1
+  const migrated = migrateThemeSettingsToManifest(raw, fromVersion, manifest)
+  const effective = mergeWithDefaults(manifest.settingsSchema, migrated.settings)
+
+  if (row && migrated.version !== fromVersion) {
+    await getPrisma().themeCustomization.update({
+      where: { themeSlug },
+      data: { settings: migrated.settings as any, settingsVersion: migrated.version },
+    })
+    revalidateTag('theme-settings', 'default')
+  }
+  return effective
 }
 
 /** 生成主题导出用的全量有效设置快照。 */
@@ -134,10 +165,11 @@ export async function applyThemeSettingsSnapshot(
   }
 
   const settings = prepared.settings
+  const settingsVersion = getThemeSettingsVersion(manifest)
   await getPrisma().themeCustomization.upsert({
     where: { themeSlug },
-    update: { settings: settings as any },
-    create: { themeSlug, settings: settings as any },
+    update: { settings: settings as any, settingsVersion },
+    create: { themeSlug, settings: settings as any, settingsVersion },
   })
   revalidateTag('theme-settings', 'default')
   revalidatePath('/', 'layout')
@@ -147,13 +179,15 @@ export async function applyThemeSettingsSnapshot(
 /** 保存主题设置（写入数据库 + 失效缓存） */
 export async function saveThemeSettings(themeSlug: string, settings: Record<string, unknown>) {
   // 合并已有设置，避免部分更新覆盖全部
+  const manifest = await readThemeManifest(themeSlug)
   const existing = await fetchRawThemeSettings(themeSlug)
   const merged = { ...existing, ...settings }
+  const settingsVersion = getThemeSettingsVersion(manifest)
 
   await getPrisma().themeCustomization.upsert({
     where: { themeSlug },
-    update: { settings: merged as any },
-    create: { themeSlug, settings: merged as any },
+    update: { settings: merged as any, settingsVersion },
+    create: { themeSlug, settings: merged as any, settingsVersion },
   })
   revalidateTag('theme-settings', 'default')
   revalidatePath('/', 'layout')

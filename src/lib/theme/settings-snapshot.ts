@@ -42,8 +42,59 @@ export function registerThemeSettingsMigration(themeSlug: string, fromVersion: n
   migrations.set(themeSlug, byVersion)
 }
 
+function ensureBuiltInMigrations() {
+  if (migrations.has('cardinal')) return
+  registerThemeSettingsMigration('cardinal', 1, (settings) => {
+    const next = { ...settings }
+    const legacyHeroStyle = next.heroStyle
+
+    // 旧版 Hero 样式都在主栏内；仅旧 fullscreen 迁移为新的宽屏全屏模式。
+    if (next.heroWidth === undefined && typeof legacyHeroStyle === 'string') {
+      next.heroWidth = legacyHeroStyle === 'fullscreen' ? 'wide' : 'narrow'
+    }
+    if (next.heroHeight === undefined && legacyHeroStyle === 'fullscreen') {
+      next.heroHeight = 'fullscreen'
+    }
+    if (next.cardTitleColor === 'auto') next.cardTitleColor = 'follow'
+    delete next.heroStyle
+    return next
+  })
+}
+
+function getRegisteredMigration(themeSlug: string, fromVersion: number) {
+  ensureBuiltInMigrations()
+  return migrations.get(themeSlug)?.get(fromVersion)
+}
+
 export function getThemeSettingsVersion(manifest: Pick<ThemePackageManifest, 'settingsVersion'>) {
   return manifest.settingsVersion ?? DEFAULT_SETTINGS_SCHEMA_VERSION
+}
+
+export function migrateThemeSettingsToManifest(
+  settings: Record<string, unknown>,
+  fromVersion: number,
+  manifest: ThemePackageManifest,
+): { settings: Record<string, unknown>; version: number } {
+  ensureBuiltInMigrations()
+  const currentVersion = getThemeSettingsVersion(manifest)
+  let version = fromVersion
+  let migrated = { ...settings }
+
+  if (!Number.isInteger(version) || version < 1) {
+    throw badRequest('Theme settings version must be a positive integer.', 'INVALID_THEME_SETTINGS')
+  }
+  if (version > currentVersion) {
+    throw badRequest('Theme settings require a newer theme settings version.', 'UNSUPPORTED_THEME_SETTINGS_VERSION')
+  }
+  while (version < currentVersion) {
+    const migrate = getRegisteredMigration(manifest.slug, version)
+    if (!migrate) {
+      throw badRequest(`No migration is registered for ${manifest.slug} settings v${version} → v${version + 1}.`, 'THEME_SETTINGS_MIGRATION_REQUIRED')
+    }
+    migrated = migrate(migrated)
+    version += 1
+  }
+  return { settings: migrated, version }
 }
 
 function canonicalize(value: unknown): unknown {
@@ -226,7 +277,7 @@ export function prepareThemeSettingsSnapshot(snapshot: ThemeSettingsSnapshot, ma
     throw badRequest('Theme settings snapshot requires a newer theme settings version.', 'UNSUPPORTED_THEME_SETTINGS_VERSION')
   }
   while (version < currentVersion) {
-    const migrate = migrations.get(manifest.slug)?.get(version)
+    const migrate = getRegisteredMigration(manifest.slug, version)
     if (!migrate) {
       throw badRequest(`No migration is registered for ${manifest.slug} settings v${version} → v${version + 1}.`, 'THEME_SETTINGS_MIGRATION_REQUIRED')
     }
