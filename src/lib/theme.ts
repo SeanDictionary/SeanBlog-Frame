@@ -309,7 +309,7 @@ function parseZip(buffer: Buffer): ZipEntry[] {
   const eocd = findEndOfCentralDirectory(buffer)
   const entryCount = buffer.readUInt16LE(eocd + 10)
   const centralDirectoryOffset = buffer.readUInt32LE(eocd + 16)
-  const entries: ZipEntry[] = []
+  const rawEntries: ZipEntry[] = []
   let offset = centralDirectoryOffset
 
   if (entryCount > maxThemeFileCount) {
@@ -354,10 +354,29 @@ function parseZip(buffer: Buffer): ZipEntry[] {
       throw badRequest('Theme package uses an unsupported compression method.', 'INVALID_THEME_PACKAGE')
     }
 
-    entries.push({ path: filePath, content })
+    rawEntries.push({ path: filePath, content })
   }
 
-  return entries
+  // 支持 ZIP 内文件带外层目录（如 "cardinal/theme.yaml"）：
+  // 如果没有任何文件在根目录，但所有文件共享同一个前缀目录，则剥离该前缀。
+  const hasRootFile = rawEntries.some((entry) => !entry.path.includes('/'))
+  if (!hasRootFile) {
+    const dirNames = new Set(
+      rawEntries.map((entry) => {
+        const slashIndex = entry.path.indexOf('/')
+        return slashIndex === -1 ? '' : entry.path.slice(0, slashIndex)
+      }),
+    )
+    dirNames.delete('')
+    if (dirNames.size === 1) {
+      const prefix = `${[...dirNames][0]}/`
+      return rawEntries
+        .filter((entry) => entry.path.startsWith(prefix))
+        .map((entry) => ({ ...entry, path: entry.path.slice(prefix.length) }))
+    }
+  }
+
+  return rawEntries
 }
 
 function crc32(buffer: Buffer) {
