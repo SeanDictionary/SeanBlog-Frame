@@ -10,7 +10,6 @@ import { settingBulkUpdateSchema } from '@/lib/validations/cms'
 const settingScopeLabels = {
   analytics: '访问统计设置',
   'public-layout': 'Header / Footer 设置',
-  'object-storage': '对象存储设置',
   'site-info': '站点信息',
 } satisfies Record<string, string>
 

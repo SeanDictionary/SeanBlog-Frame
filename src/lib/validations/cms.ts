@@ -230,18 +230,6 @@ const publicLayoutSettingKeys = new Set([
   ...publicLayoutBooleanSettingKeys,
   ...publicLayoutStringSettingKeys,
 ])
-const mediaObjectStorageStringSettingKeys = new Set([
-  'mediaObjectStorageEndpoint',
-  'mediaObjectStorageBucket',
-  'mediaObjectStorageRegion',
-  'mediaObjectStoragePublicUrl',
-  'mediaObjectStorageAccessKeyId',
-  'mediaObjectStorageSecretAccessKey',
-])
-const mediaObjectStorageSettingKeys = new Set([
-  'mediaObjectStorageEnabled',
-  ...mediaObjectStorageStringSettingKeys,
-])
 const siteInfoSettingKeys = new Set([
   'siteName',
   'siteDescription',
@@ -250,7 +238,7 @@ const siteInfoSettingKeys = new Set([
 
 export const settingBulkUpdateSchema = z
   .object({
-    scope: z.enum(['analytics', 'public-layout', 'object-storage', 'site-info']),
+    scope: z.enum(['analytics', 'public-layout', 'site-info']),
     themeSlug: z.string().trim().min(1).max(64).optional(),
     updates: z.array(z.object({
       key: z.string().trim().min(1).max(120),
@@ -286,16 +274,6 @@ export const settingBulkUpdateSchema = z
           context.addIssue({ code: 'custom', path: ['updates', index, 'value'], message: 'Public layout toggle settings must be boolean.' })
         } else if (publicLayoutStringSettingKeys.has(update.key) && typeof update.value !== 'string') {
           context.addIssue({ code: 'custom', path: ['updates', index, 'value'], message: 'Public layout text settings must be strings.' })
-        }
-      }
-
-      if (input.scope === 'object-storage') {
-        if (!mediaObjectStorageSettingKeys.has(update.key)) {
-          context.addIssue({ code: 'custom', path: ['updates', index, 'key'], message: 'Setting key is not allowed for object storage scope.' })
-        } else if (update.key === 'mediaObjectStorageEnabled' && typeof update.value !== 'boolean') {
-          context.addIssue({ code: 'custom', path: ['updates', index, 'value'], message: 'Object storage enabled must be boolean.' })
-        } else if (mediaObjectStorageStringSettingKeys.has(update.key) && typeof update.value !== 'string') {
-          context.addIssue({ code: 'custom', path: ['updates', index, 'value'], message: 'Object storage text settings must be strings.' })
         }
       }
 

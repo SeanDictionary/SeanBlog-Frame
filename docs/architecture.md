@@ -30,8 +30,8 @@
  │                      │                      │
  │  ┌───────────────────▼───────────────────┐ │
  │  │      外部服务 (按阶段接入)              │ │
- │  │  Redis 缓存    S3 对象存储             │ │
- │  │  Meilisearch    Sentry 监控            │ │
+ │  │  Redis 缓存    Meilisearch             │ │
+ │  │  Sentry 监控            │ │
  │  └───────────────────────────────────────┘ │
  └────────────────────────────────────────────┘
 ```
@@ -91,7 +91,6 @@
 | `adminAuthService` | 管理员登录、密码重置与后台访问校验 |
 | `seoService` | sitemap 生成，robots 策略，结构化数据 JSON-LD 生成 |
 | `searchService` | 搜索统一接口（Phase 1：PG tsvector；Phase 2：Meilisearch） |
-| `storageService` | 图片上传/删除/URL 签名，对象存储抽象（Phase 1 本地，Phase 2 S3） |
 | `analytics-service.ts` | 分析统计核心逻辑（趋势、总览、访客、访问记录） |
 | `setting-service.ts` | 站点设置读写 |
 | `comment-moderation-rules.ts` | 评论审核规则 |
@@ -194,7 +193,7 @@ src/
 
 ### 7.3 图片存储
 
-`storageService` 封装图片上传和访问逻辑。MVP 先使用本地文件系统（`public/uploads/`），后续切换到 S3 / Cloudflare R2 / MinIO 时只需替换 `storageService` 实现。
+媒体上传直接写入本地文件系统 `public/uploads/media/`，删除媒体记录时同步删除对应本地文件；未引入对象存储抽象，后续确有 S3 / R2 / MinIO 需求时再以真实实现接入。文章中引用外部 `https://` 图片可直接写在 Markdown 中，无需登记到媒体库。
 
 ### 7.4 AI 功能
 

@@ -122,7 +122,7 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
     return data.setting
   }
 
-  async function persistSettings(scope: 'analytics' | 'public-layout' | 'theme-settings' | 'object-storage' | 'site-info', updates: SettingUpdate[]) {
+  async function persistSettings(scope: 'analytics' | 'public-layout' | 'theme-settings' | 'site-info', updates: SettingUpdate[]) {
     const response = await fetch('/api/admin/settings', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },

@@ -99,30 +99,6 @@ export function MediaManager({ initialMedia }: MediaManagerProps) {
     })
   }
 
-  function create(formData: FormData) {
-    startTransition(async () => {
-      setMessage(null)
-      try {
-        const payload = {
-          filename: String(formData.get('filename') ?? ''),
-          url: String(formData.get('url') ?? ''),
-          key: String(formData.get('key') ?? ''),
-          size: Number(formData.get('size') ?? 0),
-          mimeType: String(formData.get('mimeType') ?? ''),
-        }
-        const response = await fetch('/api/admin/media', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-        const data = (await response.json()) as MediaApiResponse
-        if (!response.ok || !data.media) throw new Error(data.error?.message ?? '登记失败。')
-        addMedia([data.media])
-        setMessage('媒体信息已登记。')
-        const form = document.getElementById('media-form')
-        if (form instanceof HTMLFormElement) form.reset()
-      } catch (error) {
-        setMessage(error instanceof Error ? error.message : '登记失败。')
-      }
-    })
-  }
-
   function remove(id: string) {
     if (!window.confirm('确认删除这条媒体记录吗？如果是本地上传文件，将同时删除 uploads 下对应文件。')) return
 
@@ -180,12 +156,6 @@ export function MediaManager({ initialMedia }: MediaManagerProps) {
           <button disabled={isPending} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950">上传图片</button>
         </form>
       </div>
-    </Card>
-
-    <Card padding="lg">
-      <h2 className="font-semibold">登记外部媒体资源</h2>
-      <p className="mt-1 text-sm text-neutral-500">用于手动登记对象存储或 CDN 上已经存在的媒体文件。</p>
-      <form id="media-form" action={create} className="mt-5 grid gap-4 sm:grid-cols-2"><label className="grid gap-1.5 text-sm">文件名<input name="filename" required className="h-10 rounded-md border border-neutral-300 bg-white px-3 outline-none dark:border-neutral-700 dark:bg-neutral-900" /></label><label className="grid gap-1.5 text-sm">存储 Key<input name="key" required className="h-10 rounded-md border border-neutral-300 bg-white px-3 outline-none dark:border-neutral-700 dark:bg-neutral-900" /></label><label className="grid gap-1.5 text-sm sm:col-span-2">URL<input name="url" required className="h-10 rounded-md border border-neutral-300 bg-white px-3 outline-none dark:border-neutral-700 dark:bg-neutral-900" /></label><label className="grid gap-1.5 text-sm">大小（字节）<input name="size" type="number" min="0" required className="h-10 rounded-md border border-neutral-300 bg-white px-3 outline-none dark:border-neutral-700 dark:bg-neutral-900" /></label><label className="grid gap-1.5 text-sm">MIME 类型<input name="mimeType" placeholder="image/png" required className="h-10 rounded-md border border-neutral-300 bg-white px-3 outline-none dark:border-neutral-700 dark:bg-neutral-900" /></label><div><button disabled={isPending} type="submit" className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950">登记资源</button></div></form>
     </Card>
 
     <Card padding="md">
