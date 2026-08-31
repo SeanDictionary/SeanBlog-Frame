@@ -641,10 +641,6 @@ export async function deleteTheme(themeName: string) {
   clearTemplateCache(name)
 }
 
-export async function ensureDefaultTheme() {
-  return themeExists(DEFAULT_THEME_NAME)
-}
-
 /** 安装期预校验所有 .hbs 模板语法 */
 async function validateTemplatesSyntax(files: Array<{ path: string; content: string | Buffer }>) {
   const hbsFiles = files.filter((f) => f.path.endsWith('.hbs'))

@@ -95,11 +95,6 @@ export async function getActiveThemeSettings(): Promise<{ themeSlug: string; set
   return { themeSlug: activeTheme, settings: themeSettings }
 }
 
-/** 从主题数据库读取原始用户设置（不含默认值）。 */
-export async function getRawThemeSettings(themeSlug: string): Promise<Record<string, unknown>> {
-  return fetchRawThemeSettings(themeSlug)
-}
-
 /** 返回当前主题的有效设置（用户值 + 当前 schema 默认值）。 */
 export async function getEffectiveThemeSettings(themeSlug: string): Promise<Record<string, unknown>> {
   const [row, manifest] = await Promise.all([
