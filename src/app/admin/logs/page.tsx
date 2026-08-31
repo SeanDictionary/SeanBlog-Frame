@@ -80,23 +80,72 @@ export default async function AdminLogsPage({ searchParams }: AdminLogsPageProps
           }
         />
         <div className="overflow-x-auto">
-          <table className="w-full min-w-250 text-left text-sm">
+          <table className="w-full text-left text-sm">
             <thead className="border-b border-neutral-200 text-xs text-neutral-500 dark:border-neutral-800">
-              <tr><th className="py-2 pr-4 font-medium">时间</th><th className="py-2 pr-4 font-medium">结果</th><th className="py-2 pr-4 font-medium">模块 / 操作</th><th className="py-2 pr-4 font-medium">操作人</th><th className="py-2 pr-4 font-medium">内容</th><th className="py-2 pr-4 font-medium">错误</th><th className="py-2 pr-4 font-medium">请求</th></tr>
+              <tr>
+                <th className="whitespace-nowrap py-2 pr-4 font-medium w-36">时间</th>
+                <th className="whitespace-nowrap py-2 pr-4 font-medium w-16">结果</th>
+                <th className="whitespace-nowrap py-2 pr-4 font-medium w-28">模块 / 操作</th>
+                <th className="whitespace-nowrap py-2 pr-4 font-medium w-24">操作人</th>
+                <th className="whitespace-nowrap py-2 pr-4 font-medium">内容</th>
+                <th className="whitespace-nowrap py-2 pr-4 font-medium w-48">错误</th>
+                <th className="whitespace-nowrap py-2 pr-4 font-medium w-48">请求</th>
+              </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100 dark:divide-neutral-900">
               {result.items.map((log) => {
                 const metadata = formatMetadata(log.metadata)
+                const actorDisplay = log.actorName ?? (log.actorType === 'visitor' ? '访客' : '系统')
+                const moduleAction = `${log.module}.${log.action}`
 
                 return (
-                  <tr key={log.id}>
-                    <td className="py-3 pr-4 align-top text-neutral-500">{formatDateTime(log.createdAt)}</td>
-                    <td className="py-3 pr-4 align-top"><Badge tone={resultBadgeTones[log.result]}>{resultLabels[log.result]}</Badge></td>
-                    <td className="py-3 pr-4 align-top"><span className="font-mono text-xs text-neutral-500">{log.module}</span><span className="mt-1 block">{log.action}</span></td>
-                    <td className="py-3 pr-4 align-top"><span>{log.actorName ?? (log.actorType === 'visitor' ? '访客' : '系统')}</span><span className="mt-1 block text-xs text-neutral-500">{log.actorType}</span></td>
-                    <td className="py-3 pr-4 align-top"><p>{log.summary}</p>{log.targetType && <p className="mt-1 font-mono text-xs text-neutral-500">{log.targetType}: {log.targetId ?? '-'}</p>}{metadata && <p className="mt-1 max-w-100 truncate font-mono text-xs text-neutral-500" title={metadata}>{metadata}</p>}</td>
-                    <td className="py-3 pr-4 align-top text-red-600 dark:text-red-300">{log.errorMessage ? <><span className="font-mono text-xs">{log.errorCode}</span><span className="mt-1 block">{log.errorMessage}</span></> : <span className="text-neutral-400">-</span>}</td>
-                    <td className="py-3 pr-4 align-top"><span className="font-mono text-xs text-neutral-500">{log.method ?? '-'}</span>{log.path && <span className="mt-1 block max-w-60 truncate font-mono text-xs text-neutral-500" title={log.path}>{log.path}</span>}</td>
+                  <tr key={log.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-900/50">
+                    <td className="whitespace-nowrap py-2 pr-4 font-mono text-xs text-neutral-500">{formatDateTime(log.createdAt)}</td>
+                    <td className="py-2 pr-4"><Badge tone={resultBadgeTones[log.result]}>{resultLabels[log.result]}</Badge></td>
+                    <td className="py-2 pr-4 font-mono text-xs text-neutral-600 dark:text-neutral-400">{moduleAction}</td>
+                    <td className="py-2 pr-4 text-xs">
+                      <span>{actorDisplay}</span>
+                      {log.actorType && <span className="ml-1 text-neutral-400">({log.actorType})</span>}
+                    </td>
+                    <td className="py-2 pr-4">
+                      <p className="text-neutral-800 dark:text-neutral-200">{log.summary}</p>
+                      {log.targetType && (
+                        <p className="mt-0.5 font-mono text-xs text-neutral-500">
+                          {log.targetType}: <span className="text-neutral-600 dark:text-neutral-400">{log.targetId ?? '-'}</span>
+                        </p>
+                      )}
+                      {metadata && (
+                        <details className="mt-1">
+                          <summary className="cursor-pointer font-mono text-xs text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300">
+                            元数据
+                          </summary>
+                          <pre className="mt-1 max-h-32 overflow-auto rounded bg-neutral-100 p-2 font-mono text-xs text-neutral-600 dark:bg-neutral-900 dark:text-neutral-400">
+                            {JSON.stringify(log.metadata, null, 2)}
+                          </pre>
+                        </details>
+                      )}
+                    </td>
+                    <td className="py-2 pr-4">
+                      {log.errorMessage ? (
+                        <div>
+                          {log.errorCode && <p className="font-mono text-xs text-red-600 dark:text-red-400">{log.errorCode}</p>}
+                          <p className="mt-0.5 text-xs text-red-600 dark:text-red-300">{log.errorMessage}</p>
+                        </div>
+                      ) : (
+                        <span className="text-neutral-400">-</span>
+                      )}
+                    </td>
+                    <td className="py-2 pr-4">
+                      {log.method || log.path ? (
+                        <div className="font-mono text-xs">
+                          {log.method && <span className="text-neutral-600 dark:text-neutral-400">{log.method}</span>}
+                          {log.method && log.path && <span className="mx-1 text-neutral-400">→</span>}
+                          {log.path && <span className="text-neutral-500 truncate block max-w-40" title={log.path}>{log.path}</span>}
+                        </div>
+                      ) : (
+                        <span className="text-neutral-400">-</span>
+                      )}
+                    </td>
                   </tr>
                 )
               })}
