@@ -590,6 +590,7 @@ function escapeCsv(value: unknown) {
 function visitToCsvRow(visit: AnalyticsVisitRecord) {
   return [
     visit.createdAt.toISOString(),
+    visit.visitorId ?? '',
     visit.path,
     visit.contentType,
     visit.contentLabel,
@@ -612,7 +613,7 @@ export async function exportAnalyticsVisitorsCsv(query: AnalyticsVisitorQuery) {
   const start = query.start ? startOfDay(query.start) : addDays(end, -DEFAULT_ANALYTICS_RANGE_DAYS)
   const result = await getAnalyticsVisitors({ ...query, start, end, page: 1, pageSize: 10000 })
   const rows = [
-    ['createdAt', 'path', 'contentType', 'content', 'country', 'ipAddress', 'operatingSystem', 'browser', 'durationSeconds', 'referrer', 'userAgent', 'browserFingerprint', 'hardware'],
+    ['createdAt', 'visitorId', 'path', 'contentType', 'content', 'country', 'ipAddress', 'operatingSystem', 'browser', 'durationSeconds', 'referrer', 'userAgent', 'browserFingerprint', 'hardware'],
     ...result.items.map(visitToCsvRow),
   ]
 
