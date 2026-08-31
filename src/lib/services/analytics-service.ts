@@ -27,6 +27,7 @@ export type AnalyticsVisitRecord = {
   contentType: string
   contentLabel: string
   contentSlug: string | null
+  visitorId: string | null
   country: string | null
   ipAddress: string | null
   userAgent: string | null
@@ -287,6 +288,7 @@ function serializeVisitRecord(event: AnalyticsEventWithContent): AnalyticsVisitR
     contentType: event.contentType,
     contentLabel: getContentLabel(event),
     contentSlug: getContentSlug(event),
+    visitorId: event.visitorId,
     country: event.country ?? (event.ipAddress == null ? '未采集' : isPrivateIp(event.ipAddress) ? '本地' : '未知'),
     ipAddress: event.ipAddress,
     userAgent: event.userAgent,
