@@ -21,7 +21,7 @@ function toDetailParts(value: string | null, labels: Record<string, string>): Ar
 }
 
 const FINGERPRINT_LABELS: Record<string, string> = { language: '语言', timezone: '时区', screenWidth: '屏幕宽度', screenHeight: '屏幕高度', devicePixelRatio: '像素比' }
-const HARDWARE_LABELS: Record<string, string> = { cores: 'CPU 核心数', memory: '内存', screenWidth: '屏幕宽度', screenHeight: '屏幕高度' }
+const HARDWARE_LABELS: Record<string, string> = { cores: 'CPU 核心数', memory: '内存', gpu: '显卡' }
 
 function StatItem({ label, value }: { label: string; value: string }) {
   return (

@@ -40,18 +40,42 @@
     }
   }
 
+  function getGpuInfo() {
+    try {
+      var canvas = document.createElement('canvas')
+      var gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
+      if (!gl) return null
+
+      var renderer = null
+      var vendor = null
+      var ext = gl.getExtension('WEBGL_debug_renderer_info')
+      if (ext) {
+        renderer = gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)
+        vendor = gl.getParameter(ext.UNMASKED_VENDOR_WEBGL)
+      }
+      if (!renderer) renderer = gl.getParameter(gl.RENDERER)
+      if (!vendor) vendor = gl.getParameter(gl.VENDOR)
+
+      var r = renderer ? String(renderer) : null
+      var v = vendor ? String(vendor) : null
+      if (r && v) return r + ' (' + v + ')'
+      return r || v
+    } catch (e) {
+      return null
+    }
+  }
+
   function getHardwareSummary() {
     try {
-      var data = {
-        screenWidth: window.screen.width,
-        screenHeight: window.screen.height,
-      }
+      var data = {}
       if (typeof navigator.hardwareConcurrency === 'number') {
         data.cores = navigator.hardwareConcurrency
       }
       if ('deviceMemory' in navigator && typeof navigator.deviceMemory === 'number') {
         data.memory = navigator.deviceMemory
       }
+      var gpu = getGpuInfo()
+      if (gpu) data.gpu = gpu
       return JSON.stringify(data)
     } catch (e) {
       return null

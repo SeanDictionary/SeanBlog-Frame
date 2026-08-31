@@ -41,8 +41,7 @@ const FINGERPRINT_LABELS: Record<string, string> = {
 const HARDWARE_LABELS: Record<string, string> = {
   cores: 'CPU 核心数',
   memory: '内存',
-  screenWidth: '屏幕宽度',
-  screenHeight: '屏幕高度',
+  gpu: '显卡',
 }
 
 function toDetailParts(
