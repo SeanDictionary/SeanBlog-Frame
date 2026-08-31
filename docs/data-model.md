@@ -253,9 +253,13 @@ model Media {
 说明：
 
 - 不设置 `userId`，因为媒体均由唯一管理员上传
-- 本地上传文件写入 `public/uploads/media/`，媒体库删除记录时会同步删除对应本地文件
-- 上传接口支持多文件图片上传和粘贴图片上传，保留原文件名并在冲突时自动追加序号
-- 媒体库支持多选批量删除，批量删除同样会清理本地上传文件
+- 支持任意类型文件上传（图片、视频、音频、文档、压缩包等），单文件上限 50 MB
+- 上传文件按 MIME 类型分类写入 `public/uploads/media/{category}/`（`category` ∈ images / videos / audio / documents / archives / other，由 `src/lib/media-category.ts` 统一分类），`key` 形如 `uploads/media/{category}/{filename}`
+- 文件名保留原文件名（清洗非法字符），冲突时自动追加序号；原文件名无扩展名时按 MIME 兜底补全
+- 上传入口支持多选、复制粘贴与拖拽到页面三种方式
+- 媒体库删除记录时会同步删除对应本地文件；批量删除同样清理本地文件
+- 媒体库支持按分类筛选（全部 / 图片 / 视频 / 音频 / 文档 / 压缩包 / 其他），并展示分类图标与标签
+- `width` / `height` 仅图片场景预留，当前未做尺寸探测，默认为 null
 
 ### 4.4 SiteSetting（站点设置）
 

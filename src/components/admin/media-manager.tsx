@@ -1,8 +1,10 @@
 'use client'
 
-import { useRef, useState, useTransition } from 'react'
+import { useMemo, useRef, useState, useTransition } from 'react'
 import { useAdminToast } from '@/components/admin/admin-toast-provider'
 import { Card } from '@/components/ui/card'
+import { MEDIA_CATEGORIES, categoryOf } from '@/lib/media-category'
+import type { MediaCategory } from '@/lib/media-category'
 
 type Media = {
   id: string
@@ -33,34 +35,49 @@ function formatSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-function getImageFiles(files: FileList | File[]) {
-  return Array.from(files).filter((file) => file.type.startsWith('image/'))
+function toFiles(list: FileList | File[]) {
+  return Array.from(list).filter((file): file is File => file instanceof File)
 }
 
 export function MediaManager({ initialMedia }: MediaManagerProps) {
   const toast = useAdminToast()
   const [media, setMedia] = useState(initialMedia)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [filter, setFilter] = useState<MediaCategory | 'all'>('all')
   const [isPending, startTransition] = useTransition()
   const [isDragging, setIsDragging] = useState(false)
   const dragCounter = useRef(0)
   const selectedCount = selectedIds.length
-  const allSelected = media.length > 0 && selectedIds.length === media.length
+
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<MediaCategory, number>()
+    for (const item of media) {
+      const key = categoryOf(item.mimeType).key
+      counts.set(key, (counts.get(key) ?? 0) + 1)
+    }
+    return counts
+  }, [media])
+
+  const visibleMedia = useMemo(
+    () => (filter === 'all' ? media : media.filter((item) => categoryOf(item.mimeType).key === filter)),
+    [media, filter],
+  )
+  const allSelected = visibleMedia.length > 0 && selectedIds.length === visibleMedia.length
 
   function addMedia(items: Media[]) {
     setMedia((previous) => [...items, ...previous.filter((existing) => !items.some((item) => item.id === existing.id))])
   }
 
-  async function uploadImageFiles(files: File[]) {
-    const images = getImageFiles(files)
+  async function uploadFiles(files: File[]) {
+    const filesToUpload = toFiles(files)
 
-    if (!images.length) {
-      toast.info('未发现可上传的图片。')
+    if (!filesToUpload.length) {
+      toast.info('未发现可上传的文件。')
       return
     }
 
     const formData = new FormData()
-    for (const file of images) formData.append('file', file)
+    for (const file of filesToUpload) formData.append('file', file)
 
     const response = await fetch('/api/admin/media/upload', { method: 'POST', body: formData })
     const data = (await response.json()) as MediaApiResponse
@@ -70,14 +87,14 @@ export function MediaManager({ initialMedia }: MediaManagerProps) {
     }
 
     addMedia(data.mediaItems)
-    toast.success(`已上传 ${data.mediaItems.length} 个媒体资源。`)
+    toast.success(`已上传 ${data.mediaItems.length} 个文件。`)
   }
 
   function upload(formData: FormData) {
     startTransition(async () => {
       try {
         const files = formData.getAll('file').filter((file): file is File => file instanceof File)
-        await uploadImageFiles(files)
+        await uploadFiles(files)
         const form = document.getElementById('media-upload-form')
         if (form instanceof HTMLFormElement) form.reset()
       } catch (error) {
@@ -87,28 +104,32 @@ export function MediaManager({ initialMedia }: MediaManagerProps) {
   }
 
   function handlePaste(event: React.ClipboardEvent<HTMLDivElement>) {
-    const images = getImageFiles(event.clipboardData.files)
-    if (!images.length) return
+    const files = toFiles(event.clipboardData.files)
+    if (!files.length) return
 
     event.preventDefault()
     startTransition(async () => {
       try {
-        await uploadImageFiles(images)
+        await uploadFiles(files)
       } catch (error) {
         toast.error(error instanceof Error ? error.message : '粘贴上传失败。')
       }
     })
   }
 
+  function hasFileTypes(dataTransfer: DataTransfer) {
+    return Array.from(dataTransfer.types).includes('Files')
+  }
+
   function handleDragEnter(event: React.DragEvent<HTMLDivElement>) {
-    if (!Array.from(event.dataTransfer.types).includes('Files')) return
+    if (!hasFileTypes(event.dataTransfer)) return
     event.preventDefault()
     dragCounter.current += 1
     setIsDragging(true)
   }
 
   function handleDragOver(event: React.DragEvent<HTMLDivElement>) {
-    if (!Array.from(event.dataTransfer.types).includes('Files')) return
+    if (!hasFileTypes(event.dataTransfer)) return
     event.preventDefault()
   }
 
@@ -119,15 +140,15 @@ export function MediaManager({ initialMedia }: MediaManagerProps) {
   }
 
   function handleDrop(event: React.DragEvent<HTMLDivElement>) {
-    if (!Array.from(event.dataTransfer.types).includes('Files')) return
+    if (!hasFileTypes(event.dataTransfer)) return
     event.preventDefault()
     dragCounter.current = 0
     setIsDragging(false)
 
-    const files = Array.from(event.dataTransfer.files).filter((file): file is File => file instanceof File)
+    const files = toFiles(event.dataTransfer.files)
     startTransition(async () => {
       try {
-        await uploadImageFiles(files)
+        await uploadFiles(files)
       } catch (error) {
         toast.error(error instanceof Error ? error.message : '拖拽上传失败。')
       }
@@ -189,11 +210,11 @@ export function MediaManager({ initialMedia }: MediaManagerProps) {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="max-w-2xl">
           <h2 className="font-semibold">上传媒体资源</h2>
-          <p className="mt-1 text-sm text-neutral-500">可以拖拽或复制粘贴以上传文件。文件名保留原文件名，冲突时自动追加序号。</p>
+          <p className="mt-1 text-sm text-neutral-500">支持任意类型文件上传，可多选、复制粘贴或拖拽到本页面上传，按文件类型分类保存。文件名保留原文件名，冲突时自动追加序号。</p>
         </div>
         <form id="media-upload-form" action={upload} className="flex flex-wrap items-center self-center gap-3">
-          <input name="file" type="file" accept="image/*" multiple className="max-w-72 text-sm" />
-          <button disabled={isPending} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950">上传图片</button>
+          <label className="grid gap-1.5 text-sm">选择文件<input name="file" type="file" multiple className="max-w-72 text-sm" /></label>
+          <button disabled={isPending} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950">上传文件</button>
         </form>
       </div>
     </Card>
@@ -202,19 +223,48 @@ export function MediaManager({ initialMedia }: MediaManagerProps) {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div><h2 className="font-semibold">媒体库</h2><p className="mt-1 text-sm text-neutral-500">选中多个资源后可批量删除。</p></div>
         <div className="flex flex-wrap items-center gap-3 text-sm">
-          <label className="inline-flex items-center gap-2"><input type="checkbox" checked={allSelected} onChange={(event) => setSelectedIds(event.target.checked ? media.map((item) => item.id) : [])} /> 全选</label>
+          <label className="inline-flex items-center gap-2"><input type="checkbox" checked={allSelected} onChange={(event) => setSelectedIds(event.target.checked ? visibleMedia.map((item) => item.id) : [])} /> 全选</label>
           <button type="button" disabled={isPending || selectedCount === 0} onClick={removeSelected} className="rounded-md border border-red-200 px-3 py-1.5 text-red-600 disabled:opacity-50 dark:border-red-900/60">批量删除{selectedCount ? `（${selectedCount}）` : ''}</button>
         </div>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{media.map((item) => <article key={item.id} className={`overflow-hidden rounded-lg border bg-white dark:bg-neutral-950 ${selectedIds.includes(item.id) ? 'border-blue-500 ring-2 ring-blue-100 dark:ring-blue-950' : 'border-neutral-200 dark:border-neutral-800'}`}><div className="flex items-center justify-between border-b border-neutral-100 px-3 py-2 text-sm dark:border-neutral-900"><label className="inline-flex items-center gap-2"><input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => toggleSelected(item.id)} /> 选择</label><button type="button" disabled={isPending} onClick={() => remove(item.id)} className="text-red-600 disabled:opacity-50">删除</button></div><a href={item.url} target="_blank" rel="noreferrer" className="grid aspect-video place-items-center bg-neutral-100 dark:bg-neutral-900">{item.mimeType.startsWith('image/') ? <img src={item.url} alt={item.filename} className="size-full object-cover" /> : <i className="fa-regular fa-file text-2xl text-neutral-400" />}</a><div className="p-4"><p className="truncate font-medium">{item.filename}</p><p className="mt-1 truncate font-mono text-xs text-neutral-500">{item.key}</p><p className="mt-1 text-xs text-neutral-500">{item.mimeType} · {formatSize(item.size)}</p></div></article>)}</div>
+
+      {categoryCounts.size > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-2 text-xs">
+          <button type="button" onClick={() => setFilter('all')} className={`rounded-full border px-3 py-1 transition-colors ${filter === 'all' ? 'border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-900' : 'border-neutral-300 text-neutral-600 hover:border-neutral-400 dark:border-neutral-700 dark:text-neutral-400'}`}>全部（{media.length}）</button>
+          {MEDIA_CATEGORIES.filter((category) => categoryCounts.has(category.key)).map((category) => (
+            <button key={category.key} type="button" onClick={() => setFilter(category.key)} className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 transition-colors ${filter === category.key ? 'border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-900' : 'border-neutral-300 text-neutral-600 hover:border-neutral-400 dark:border-neutral-700 dark:text-neutral-400'}`}>
+              <i className={category.icon} aria-hidden="true" />{category.label}（{categoryCounts.get(category.key)}）
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{visibleMedia.map((item) => {
+        const category = categoryOf(item.mimeType)
+        return <article key={item.id} className={`overflow-hidden rounded-lg border bg-white dark:bg-neutral-950 ${selectedIds.includes(item.id) ? 'border-blue-500 ring-2 ring-blue-100 dark:ring-blue-950' : 'border-neutral-200 dark:border-neutral-800'}`}>
+          <div className="flex items-center justify-between border-b border-neutral-100 px-3 py-2 text-sm dark:border-neutral-900">
+            <label className="inline-flex items-center gap-2"><input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => toggleSelected(item.id)} /> 选择</label>
+            <button type="button" disabled={isPending} onClick={() => remove(item.id)} className="text-red-600 disabled:opacity-50">删除</button>
+          </div>
+          <a href={item.url} target="_blank" rel="noreferrer" className="grid aspect-video place-items-center bg-neutral-100 dark:bg-neutral-900">
+            {item.mimeType.startsWith('image/') ? <img src={item.url} alt={item.filename} className="size-full object-cover" /> : <i className={`${category.icon} text-3xl text-neutral-400`} aria-hidden="true" />}
+          </a>
+          <div className="p-4">
+            <p className="truncate font-medium">{item.filename}</p>
+            <p className="mt-1 truncate font-mono text-xs text-neutral-500">{item.key}</p>
+            <p className="mt-1 text-xs text-neutral-500"><span className="inline-flex items-center gap-1"><i className={category.icon} aria-hidden="true" />{category.label}</span> · {item.mimeType} · {formatSize(item.size)}</p>
+          </div>
+        </article>
+      })}</div>
       {media.length === 0 && <div className="rounded-lg border border-dashed border-neutral-300 px-5 py-16 text-center text-sm text-neutral-500 dark:border-neutral-700">还没有上传媒体资源。</div>}
+      {media.length > 0 && visibleMedia.length === 0 && <div className="rounded-lg border border-dashed border-neutral-300 px-5 py-16 text-center text-sm text-neutral-500 dark:border-neutral-700">当前分类下暂无资源。</div>}
     </Card>
 
     {isDragging && (
       <div className="pointer-events-none fixed inset-0 z-40 grid place-items-center bg-blue-50/80 dark:bg-blue-950/60">
         <div className="rounded-xl border-2 border-dashed border-blue-400 bg-white px-10 py-8 text-center text-blue-600 shadow-lg dark:bg-neutral-900 dark:text-blue-300">
           <i className="fa-solid fa-cloud-arrow-up text-3xl" aria-hidden="true" />
-          <p className="mt-2 font-medium">松开鼠标以上传图片</p>
+          <p className="mt-2 font-medium">松开鼠标以上传文件</p>
         </div>
       </div>
     )}

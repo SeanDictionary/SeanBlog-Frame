@@ -5,28 +5,24 @@ import { badRequest } from '@/lib/api/errors'
 import { created, handleApiError } from '@/lib/api/response'
 import { requireSameOriginRequest } from '@/lib/api/request-guard'
 import { requireAdmin } from '@/lib/auth.utils'
+import { categorizeMimeType, fallbackExtension } from '@/lib/media-category'
 import { adminLogActor, recordOperation } from '@/lib/services/operation-log-service'
 import { createMedia } from '@/lib/services/media-service'
 
 export const runtime = 'nodejs'
 
-const MAX_UPLOAD_BYTES = 5 * 1024 * 1024
-const imageExtensions: Record<string, string> = {
-  'image/jpeg': 'jpg',
-  'image/png': 'png',
-  'image/webp': 'webp',
-  'image/gif': 'gif',
-  'image/avif': 'avif',
+const MAX_UPLOAD_BYTES = 50 * 1024 * 1024
+
+function sanitizeExtension(extension: string) {
+  const cleaned = extension.toLowerCase().replace(/[^a-z0-9]/g, '')
+  return cleaned.slice(0, 16)
 }
 
-function getImageExtension(mimeType: string) {
-  const extension = imageExtensions[mimeType]
-
-  if (!extension) {
-    throw badRequest('Only image uploads are supported.', 'UNSUPPORTED_MEDIA_TYPE')
-  }
-
-  return extension
+function resolveExtension(filename: string, mimeType: string) {
+  const original = path.extname(filename)
+  const cleaned = sanitizeExtension(original)
+  if (cleaned) return cleaned
+  return fallbackExtension(mimeType)
 }
 
 function normalizeBasename(filename: string, fallback: string) {
@@ -81,24 +77,27 @@ export async function POST(request: Request) {
       const files = formData.getAll('file')
 
       if (!files.length || !files.every((file): file is File => file instanceof File)) {
-        throw badRequest('At least one image file is required.', 'MISSING_FILE')
+        throw badRequest('At least one file is required.', 'MISSING_FILE')
       }
 
-      const uploadDirectory = path.join(process.cwd(), 'public', 'uploads', 'media')
       const uploaded = []
-
-      await mkdir(uploadDirectory, { recursive: true })
 
       for (const file of files) {
         if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
-          throw badRequest('Image file must be between 1 byte and 5 MB.', 'INVALID_FILE_SIZE')
+          throw badRequest('文件大小需在 1 字节至 50 MB 之间。', 'INVALID_FILE_SIZE')
         }
 
-        const extension = getImageExtension(file.type)
-        const basename = normalizeBasename(file.name, 'image')
+        const category = categorizeMimeType(file.type)
+        const extension = resolveExtension(file.name, file.type)
+        const basename = normalizeBasename(file.name, 'file')
+        const desiredFilename = extension ? `${basename}.${extension}` : basename
         const bytes = Buffer.from(await file.arrayBuffer())
-        const filename = await writeUniqueFile(uploadDirectory, `${basename}.${extension}`, bytes)
-        const key = `uploads/media/${filename}`
+        const uploadDirectory = path.join(process.cwd(), 'public', 'uploads', 'media', category)
+
+        await mkdir(uploadDirectory, { recursive: true })
+
+        const filename = await writeUniqueFile(uploadDirectory, desiredFilename, bytes)
+        const key = `uploads/media/${category}/${filename}`
         const url = `/${key}`
 
         writtenFiles.push(path.join(uploadDirectory, filename))
@@ -108,7 +107,7 @@ export async function POST(request: Request) {
           key,
           url,
           size: file.size,
-          mimeType: file.type,
+          mimeType: file.type || 'application/octet-stream',
         })
         uploaded.push(media)
       }
