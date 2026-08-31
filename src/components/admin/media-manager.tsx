@@ -187,12 +187,12 @@ export function MediaManager({ initialMedia }: MediaManagerProps) {
   >
     <Card padding="lg">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
+        <div className="max-w-2xl">
           <h2 className="font-semibold">上传媒体资源</h2>
-          <p className="mt-1 text-sm text-neutral-500">支持多选上传图片，也可以复制图片后聚焦本页面直接粘贴，或将图片拖拽到本页面上传。文件名保留原文件名，冲突时自动追加序号。</p>
+          <p className="mt-1 text-sm text-neutral-500">可以拖拽或复制粘贴以上传文件。文件名保留原文件名，冲突时自动追加序号。</p>
         </div>
-        <form id="media-upload-form" action={upload} className="flex flex-wrap items-end gap-3">
-          <label className="grid gap-1.5 text-sm">选择图片<input name="file" type="file" accept="image/*" multiple className="max-w-72 text-sm" /></label>
+        <form id="media-upload-form" action={upload} className="flex flex-wrap items-center gap-3">
+          <input name="file" type="file" accept="image/*" multiple className="max-w-72 text-sm" />
           <button disabled={isPending} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950">上传图片</button>
         </form>
       </div>

@@ -69,3 +69,6 @@ Thumbs.db
 # 第三方/自定义主题不纳入版本库（仅默认主题提交）
 /themes/*
 !/themes/seanblog-default
+
+# uploads
+/public/uploads/
