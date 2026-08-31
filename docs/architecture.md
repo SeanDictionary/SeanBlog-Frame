@@ -134,6 +134,8 @@
   → JSON Response
 ```
 
+公开页面由 `(public)/*/route.ts` 经 `render-service.ts` 渲染 Handlebars 主题模板返回 HTML。`render-service.ts` 预计算 `platform_enhance` ctx 字符串（包含 `enhance.js` 与 `analytics.js` 两个 `<script defer>`），主题模板通过 `{{{platform_enhance}}}` 输出，无需主题包单独引用。`/analytics.js` 为 vanilla 访问埋点脚本，在 `pagehide` / `visibilitychange→hidden` 时通过 `navigator.sendBeacon` 上报 `/api/analytics/events`，身份生成与 `src/lib/client/identity.ts` 共用 localStorage key 与 fingerprint/hardware 格式。
+
 ## 5. 认证与授权架构
 
 采用 Auth.js v5 + Credentials Provider + JWT session 策略，服务于唯一管理员登录：

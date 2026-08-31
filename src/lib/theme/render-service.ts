@@ -67,7 +67,7 @@ async function enrichCtx(ctx: Record<string, unknown>, slug: string): Promise<Re
     theme_css: cssBundle?.css ? `<style>${cssBundle.css}</style>` : '',
     callout_css: cssBundle?.calloutCss ? `<style>${cssBundle.calloutCss}</style>` : '',
     font_awesome: FONT_AWESOME,
-    platform_enhance: `<script src="/enhance.js" defer></script>`,
+    platform_enhance: `<script src="/enhance.js" defer></script><script src="/analytics.js" defer></script>`,
   }
 }
 

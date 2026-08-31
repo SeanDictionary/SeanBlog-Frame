@@ -327,7 +327,8 @@ model AnalyticsEvent {
 - `visitorId` 直接使用客户端生成的随机 UUID（localStorage），与 Visitor 表关联，用于访客去重
 - `ipAddress`、`userAgent` 由操作日志始终采集（不受分析隐私开关控制，用于管理审计）；`browserFingerprint`、`hardware` 由 `AdminIdentityBootstrap` 在后台通过 cookies（`sb-fp`/`sb-hw`）采集
 - `referrer` 等隐私字段默认不采集，仅在后台设置中显式开启后写入
-- 文章 `viewCount` / `visitorCount` 由前台 analytics tracker 写入事件时回写，避免页面元数据渲染和详情渲染重复增加浏览量
+- 文章 `viewCount` / `visitorCount` 由前台访问埋点脚本写入事件时回写，避免页面元数据渲染和详情渲染重复增加浏览量
+- 前台埋点由 `public/analytics.js`（vanilla，零依赖）实现，经 `render-service.ts` 的 `platform_enhance` 注入到所有公开主题页（与 `enhance.js` 一同加载）；身份生成与 `src/lib/client/identity.ts` 共用 localStorage key 与 fingerprint/hardware JSON 格式，保证评论与访问共享同一 visitorId
 - 后台统计页包含“总览”和“访问记录”子页：总览按天/周/月展示趋势、Top 文章、最近访问、分段访问量、来源地区和系统统计；访问记录按访问记录分页展示并支持 CSV 导出
 - 默认统计范围为 180 天（硬编码常量 `DEFAULT_ANALYTICS_RANGE_DAYS`），事件明细永久保存，不做保留清理
 
