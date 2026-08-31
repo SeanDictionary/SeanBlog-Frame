@@ -40,26 +40,29 @@
     }
   }
 
+  function normalizeGpu(raw) {
+    var s = String(raw).trim()
+    var angle = s.match(/^ANGLE\s*\((.*)\)$/i)
+    if (angle) s = angle[1].trim()
+    s = s.replace(/^[A-Za-z0-9]+,\s*/i, '')
+    s = s.replace(/\s*(Direct3D.*|OpenGL ES.*|OpenGL.*|Metal.*|Vulkan.*|, D3D.*)$/i, '')
+    s = s.replace(/\s*\(0x[0-9a-fA-F]+\)/g, '')
+    s = s.trim()
+    var meaningful = /\d|GeForce|Radeon|Arc|Iris|UHD|HD Graphics|Apple M|Apple GPU|Mali|Adreno/i
+    return meaningful.test(s) ? s : String(raw)
+  }
+
   function getGpuInfo() {
     try {
       var canvas = document.createElement('canvas')
       var gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
       if (!gl) return null
-
       var renderer = null
-      var vendor = null
       var ext = gl.getExtension('WEBGL_debug_renderer_info')
-      if (ext) {
-        renderer = gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)
-        vendor = gl.getParameter(ext.UNMASKED_VENDOR_WEBGL)
-      }
+      if (ext) renderer = gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)
       if (!renderer) renderer = gl.getParameter(gl.RENDERER)
-      if (!vendor) vendor = gl.getParameter(gl.VENDOR)
-
       var r = renderer ? String(renderer) : null
-      var v = vendor ? String(vendor) : null
-      if (r && v) return r + ' (' + v + ')'
-      return r || v
+      return r ? normalizeGpu(r) : null
     } catch (e) {
       return null
     }

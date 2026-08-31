@@ -326,7 +326,7 @@ model AnalyticsEvent {
 - `country` 由访问 IP 通过 ipinfo.io lite 接口查询（不依赖平台 geo 请求头）；需在后台“访问统计与隐私”设置 ipinfoToken，未设置 token 时不调用接口、地区留空
 - `visitorId` 直接使用客户端生成的随机 UUID（localStorage），与 Visitor 表关联，用于访客去重
 - `ipAddress`、`userAgent` 由操作日志始终采集（不受分析隐私开关控制，用于管理审计）；`browserFingerprint`、`hardware` 由 `AdminIdentityBootstrap` 在后台通过 cookies（`sb-fp`/`sb-hw`）采集
-- `browserFingerprint` 与 `hardware` 均为客户端生成的明文 JSON，按"显示环境"与"硬件算力"分栏：`browserFingerprint` = `{ language, timezone, screenWidth, screenHeight, devicePixelRatio }`（屏幕宽高只在指纹中保留一份）；`hardware` = `{ cores, memory, gpu }`，其中 `gpu` 由 WebGL（`WEBGL_debug_renderer_info` 的 UNMASKED_RENDERER/VENDOR，回退标准 RENDERER/VENDOR）探测，隐私模式或无 WebGL 时留空
+- `browserFingerprint` 与 `hardware` 均为客户端生成的明文 JSON，按"显示环境"与"硬件算力"分栏：`browserFingerprint` = `{ language, timezone, screenWidth, screenHeight, devicePixelRatio }`（屏幕宽高只在指纹中保留一份）；`hardware` = `{ cores, memory, gpu }`，其中 `gpu` 由 WebGL（`WEBGL_debug_renderer_info` 的 UNMASKED_RENDERER，回退标准 RENDERER）取得 renderer 后经 `normalizeGpu` 清洗为显卡型号（剥 `ANGLE(...)` 外壳、去后端后缀与 PCI ID），清洗失败时保留原始 renderer；隐私模式或无 WebGL 时留空
 - `referrer` 等隐私字段默认不采集，仅在后台设置中显式开启后写入
 - 文章 `viewCount` / `visitorCount` 由前台访问埋点脚本写入事件时回写，避免页面元数据渲染和详情渲染重复增加浏览量
 - 前台埋点由 `public/analytics.js`（vanilla，零依赖）实现，经 `render-service.ts` 的 `platform_enhance` 注入到所有公开主题页（与 `enhance.js` 一同加载）；身份生成与 `src/lib/client/identity.ts` 共用 localStorage key 与 fingerprint/hardware JSON 格式，保证评论与访问共享同一 visitorId

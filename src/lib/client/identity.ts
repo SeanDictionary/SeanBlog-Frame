@@ -27,9 +27,28 @@ export function getBrowserFingerprint(): string {
 }
 
 /**
- * 通过 WebGL 探测 GPU 型号。优先取 UNMASKED_RENDERER/VENDOR（更真实），
- * 不可用时回退到标准 RENDERER/VENDOR，再不行返回 null。
- * 隐私模式或无 WebGL 环境会返回 null，对应字段不会写入 hardware。
+ * 把 WebGL renderer 字符串清洗成干净的显卡型号。仅处理常见 NVIDIA/Intel/AMD
+ * 桌面与移动卡；解析不到有意义的型号时原样返回，避免丢信息。
+ *
+ * 清洗步骤：剥 ANGLE(...) 外壳 → 去开头重复的 "Vendor," → 去后端后缀
+ * (Direct3D / OpenGL / Metal / Vulkan / D3D 等) → 去 PCI ID (0x...)。
+ * 规范化后若不含数字或已知型号关键词，回退原始串（如 Apple Silicon）。
+ */
+function normalizeGpu(raw: string): string {
+  let s = raw.trim()
+  const angle = s.match(/^ANGLE\s*\((.*)\)$/i)
+  if (angle) s = angle[1].trim()
+  s = s.replace(/^[A-Za-z0-9]+,\s*/i, '')
+  s = s.replace(/\s*(Direct3D.*|OpenGL ES.*|OpenGL.*|Metal.*|Vulkan.*|, D3D.*)$/i, '')
+  s = s.replace(/\s*\(0x[0-9a-fA-F]+\)/g, '')
+  s = s.trim()
+  const meaningful = /\d|GeForce|Radeon|Arc|Iris|UHD|HD Graphics|Apple M|Apple GPU|Mali|Adreno/i
+  return meaningful.test(s) ? s : raw
+}
+
+/**
+ * 通过 WebGL 探测 GPU 型号。优先取 UNMASKED_RENDERER（更真实），
+ * 不可用时回退标准 RENDERER，再经 normalizeGpu 清洗；无 WebGL/隐私模式返回 null。
  */
 function getGpuInfo(): string | null {
   try {
@@ -38,19 +57,12 @@ function getGpuInfo(): string | null {
     if (!gl) return null
 
     let renderer: string | null = null
-    let vendor: string | null = null
     const ext = gl.getExtension('WEBGL_debug_renderer_info')
-    if (ext) {
-      renderer = gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)
-      vendor = gl.getParameter(ext.UNMASKED_VENDOR_WEBGL)
-    }
+    if (ext) renderer = gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)
     if (!renderer) renderer = gl.getParameter(gl.RENDERER)
-    if (!vendor) vendor = gl.getParameter(gl.VENDOR)
 
     const rendererStr = renderer ? String(renderer) : null
-    const vendorStr = vendor ? String(vendor) : null
-    if (rendererStr && vendorStr) return `${rendererStr} (${vendorStr})`
-    return rendererStr ?? vendorStr
+    return rendererStr ? normalizeGpu(rendererStr) : null
   } catch {
     return null
   }
