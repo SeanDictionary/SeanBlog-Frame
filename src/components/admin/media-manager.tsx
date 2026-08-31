@@ -191,7 +191,7 @@ export function MediaManager({ initialMedia }: MediaManagerProps) {
           <h2 className="font-semibold">上传媒体资源</h2>
           <p className="mt-1 text-sm text-neutral-500">可以拖拽或复制粘贴以上传文件。文件名保留原文件名，冲突时自动追加序号。</p>
         </div>
-        <form id="media-upload-form" action={upload} className="flex flex-wrap items-center gap-3">
+        <form id="media-upload-form" action={upload} className="flex flex-wrap items-center self-center gap-3">
           <input name="file" type="file" accept="image/*" multiple className="max-w-72 text-sm" />
           <button disabled={isPending} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950">上传图片</button>
         </form>
