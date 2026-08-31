@@ -1,4 +1,4 @@
-import { notFound } from '@/lib/api/errors'
+import { publicErrorResponse } from '@/lib/theme/public-error-page'
 import { renderThemePage } from '@/lib/theme/render-service'
 import { buildPostCtx } from '@/lib/theme/template-context'
 
@@ -14,6 +14,6 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
     if (error instanceof Error && error.name === 'ApiError') {
       return new Response('Article not found', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8' } })
     }
-    throw error
+    return publicErrorResponse(error)
   }
 }

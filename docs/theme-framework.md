@@ -127,6 +127,8 @@ my-theme/
 
 缺失模板自动 fallback 到 `base` 主题 → 默认主题 → 内置最小骨架，保证永不白屏。
 
+> 前台路由是返回整页 HTML 的 Route Handler，不走 React 渲染管线，因此 `error.tsx` 边界无法捕获其抛出的错误。当数据库不可用等异常发生时，`error.hbs` 自身也因依赖主题 CSS bundle（需查 DB）而无法渲染。为此前台 Route Handler 在最外层 try/catch，由 `src/lib/theme/public-error-page.ts` 生成一个脱离 DB/主题的自包含静态 HTML 回退页（复用默认主题 token 与 ErrorFallback 文案），DB 错误返回 503、其他错误返回 500，并输出可排查的错误码，保证前台「永不白屏」。
+
 ## 6. 清单 `theme.yaml`
 
 ```yaml
