@@ -6,6 +6,7 @@ import { ExportCsvButton, buildExportHref } from '@/components/ui/empty-state'
 import { formatDateTime } from '@/lib/format'
 import { listOperationLogs } from '@/lib/services/operation-log-service'
 import { operationLogQuerySchema } from '@/lib/validations/cms'
+import { LogsTable } from '@/components/admin/logs-table'
 
 type AdminLogsPageProps = {
   searchParams: Promise<Record<string, string | undefined>>
@@ -34,16 +35,6 @@ function buildHref(params: Record<string, string | undefined>, overrides: Record
 
   const query = searchParams.toString()
   return `/admin/logs${query ? `?${query}` : ''}`
-}
-
-function formatMetadata(value: unknown) {
-  if (!value) return null
-
-  try {
-    return JSON.stringify(value)
-  } catch {
-    return null
-  }
 }
 
 export default async function AdminLogsPage({ searchParams }: AdminLogsPageProps) {
@@ -79,80 +70,7 @@ export default async function AdminLogsPage({ searchParams }: AdminLogsPageProps
             <div className="flex gap-2 text-sm">{previousHref ? <a href={previousHref} className="rounded-md border border-neutral-300 px-3 py-1.5 dark:border-neutral-700">上一页</a> : <span className="rounded-md border border-neutral-200 px-3 py-1.5 text-neutral-400 dark:border-neutral-800">上一页</span>}{nextHref ? <a href={nextHref} className="rounded-md border border-neutral-300 px-3 py-1.5 dark:border-neutral-700">下一页</a> : <span className="rounded-md border border-neutral-200 px-3 py-1.5 text-neutral-400 dark:border-neutral-800">下一页</span>}</div>
           }
         />
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-neutral-200 text-xs text-neutral-500 dark:border-neutral-800">
-              <tr>
-                <th className="whitespace-nowrap py-2 pr-4 font-medium w-36">时间</th>
-                <th className="whitespace-nowrap py-2 pr-4 font-medium w-16">结果</th>
-                <th className="whitespace-nowrap py-2 pr-4 font-medium w-28">模块 / 操作</th>
-                <th className="whitespace-nowrap py-2 pr-4 font-medium w-24">操作人</th>
-                <th className="whitespace-nowrap py-2 pr-4 font-medium">内容</th>
-                <th className="whitespace-nowrap py-2 pr-4 font-medium w-48">错误</th>
-                <th className="whitespace-nowrap py-2 pr-4 font-medium w-48">请求</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-100 dark:divide-neutral-900">
-              {result.items.map((log) => {
-                const metadata = formatMetadata(log.metadata)
-                const actorDisplay = log.actorName ?? (log.actorType === 'visitor' ? '访客' : '系统')
-                const moduleAction = `${log.module}.${log.action}`
-
-                return (
-                  <tr key={log.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-900/50">
-                    <td className="whitespace-nowrap py-2 pr-4 font-mono text-xs text-neutral-500">{formatDateTime(log.createdAt)}</td>
-                    <td className="py-2 pr-4"><Badge tone={resultBadgeTones[log.result]}>{resultLabels[log.result]}</Badge></td>
-                    <td className="py-2 pr-4 font-mono text-xs text-neutral-600 dark:text-neutral-400">{moduleAction}</td>
-                    <td className="py-2 pr-4 text-xs">
-                      <span>{actorDisplay}</span>
-                      {log.actorType && <span className="ml-1 text-neutral-400">({log.actorType})</span>}
-                    </td>
-                    <td className="py-2 pr-4">
-                      <p className="text-neutral-800 dark:text-neutral-200">{log.summary}</p>
-                      {log.targetType && (
-                        <p className="mt-0.5 font-mono text-xs text-neutral-500">
-                          {log.targetType}: <span className="text-neutral-600 dark:text-neutral-400">{log.targetId ?? '-'}</span>
-                        </p>
-                      )}
-                      {metadata && (
-                        <details className="mt-1">
-                          <summary className="cursor-pointer font-mono text-xs text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300">
-                            元数据
-                          </summary>
-                          <pre className="mt-1 max-h-32 overflow-auto rounded bg-neutral-100 p-2 font-mono text-xs text-neutral-600 dark:bg-neutral-900 dark:text-neutral-400">
-                            {JSON.stringify(log.metadata, null, 2)}
-                          </pre>
-                        </details>
-                      )}
-                    </td>
-                    <td className="py-2 pr-4">
-                      {log.errorMessage ? (
-                        <div>
-                          {log.errorCode && <p className="font-mono text-xs text-red-600 dark:text-red-400">{log.errorCode}</p>}
-                          <p className="mt-0.5 text-xs text-red-600 dark:text-red-300">{log.errorMessage}</p>
-                        </div>
-                      ) : (
-                        <span className="text-neutral-400">-</span>
-                      )}
-                    </td>
-                    <td className="py-2 pr-4">
-                      {log.method || log.path ? (
-                        <div className="font-mono text-xs">
-                          {log.method && <span className="text-neutral-600 dark:text-neutral-400">{log.method}</span>}
-                          {log.method && log.path && <span className="mx-1 text-neutral-400">→</span>}
-                          {log.path && <span className="text-neutral-500 truncate block max-w-40" title={log.path}>{log.path}</span>}
-                        </div>
-                      ) : (
-                        <span className="text-neutral-400">-</span>
-                      )}
-                    </td>
-                  </tr>
-                )
-              })}
-              {result.items.length === 0 && <tr><td colSpan={7} className="py-10 text-center text-neutral-500">暂无操作日志。</td></tr>}
-            </tbody>
-          </table>
-        </div>
+        <LogsTable items={result.items} />
       </Card>
     </div>
   )

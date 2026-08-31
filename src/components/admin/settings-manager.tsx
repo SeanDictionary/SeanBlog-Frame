@@ -219,17 +219,31 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
             </div>
             <button type="submit" disabled={isPending} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-950">保存</button>
           </div>
-          <div className="grid gap-5">
+          <div className="grid gap-4">
             {['siteName', 'siteDescription', 'siteUrl'].map((key) => {
               const setting = settings.find((item) => item.key === key)
-              const isMultiline = key === 'siteDescription'
+              const currentValue = setting ? stringifyValue(setting.value) : ''
+              const displayValue = !currentValue
+                ? key === 'siteName'
+                  ? 'SeanBlog'
+                  : key === 'siteDescription'
+                    ? 'Personal blog powered by SeanBlog Frame.'
+                    : process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+                : currentValue
 
               return (
-                <div key={key} className="grid gap-2 sm:grid-cols-[10rem_1fr]">
-                  <label className="text-sm font-medium sm:pt-2.5">{key}</label>
-                  {isMultiline
-                    ? <textarea name={key} defaultValue={setting ? stringifyValue(setting.value) : ''} rows={2} className="rounded-md border border-neutral-300 bg-white p-3 text-sm outline-none dark:border-neutral-700 dark:bg-neutral-900" />
-                    : <input name={key} defaultValue={setting ? stringifyValue(setting.value) : ''} className="h-10 rounded-md border border-neutral-300 bg-white px-3 text-sm outline-none dark:border-neutral-700 dark:bg-neutral-900" />}
+                <div key={key} className="grid gap-1.5">
+                  <label className="text-sm font-medium">{key}</label>
+                  <input
+                    name={key}
+                    defaultValue={displayValue}
+                    className="h-10 rounded-md border border-neutral-300 bg-white px-3 text-sm outline-none dark:border-neutral-700 dark:bg-neutral-900"
+                  />
+                  <p className="text-xs text-neutral-500">
+                    {key === 'siteName' && '用于前台显示、SEO 标题和 RSS feed'}
+                    {key === 'siteDescription' && '用于 SEO meta description 和 RSS feed'}
+                    {key === 'siteUrl' && '用于 Sitemap、RSS 和文章绝对链接，生产环境务必正确配置'}
+                  </p>
                 </div>
               )
             })}
@@ -259,25 +273,44 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
             <button disabled={isPending} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-950">保存统计设置</button>
           </div>
           <div className="mt-5 grid gap-4">
-            <label className="grid gap-1.5 rounded-md border border-neutral-200 p-4 text-sm dark:border-neutral-800">
-              <span className="font-medium">操作日志保留天数</span>
-              <span className="text-xs text-neutral-500">默认 365 天。超过该天数的操作日志会被定期清理脚本删除；运行 <code className="font-mono">npm run logs:prune</code> 手动清理。</span>
-              <input name="operationLogRetentionDays" type="number" min="1" max={MAX_OPERATION_LOG_RETENTION_DAYS} value={operationLogRetentionDays} onChange={(event) => setOperationLogRetentionDays(Number(event.target.value))} className="mt-2 h-10 rounded-md border border-neutral-300 bg-white px-3 dark:border-neutral-700 dark:bg-neutral-900" />
-            </label>
-            <label className="grid gap-1.5 rounded-md border border-neutral-200 p-4 text-sm dark:border-neutral-800">
-              <span className="font-medium">ipinfo.io 访问令牌（可选）</span>
-              <span className="text-xs text-neutral-500">地区按访问 IP 通过 https://api.ipinfo.io/lite/ 查询。留空则不调用接口，地区留空。在 https://ipinfo.io 注册免费账号获取 token。</span>
-              <input name="ipinfoToken" type="password" value={ipinfoToken} onChange={(event) => setIpinfoToken(event.target.value)} autoComplete="off" className="mt-2 h-10 rounded-md border border-neutral-300 bg-white px-3 font-mono text-sm dark:border-neutral-700 dark:bg-neutral-900" />
-            </label>
-            {ANALYTICS_CONFIGS.map((item) => (
-              <label key={item.key} className="flex flex-wrap items-start justify-between gap-3 rounded-md border border-neutral-200 p-4 dark:border-neutral-800">
-                <span>
-                  <span className="block text-sm font-medium">{item.label}</span>
-                  <span className="mt-1 block text-xs text-neutral-500">{item.detail}</span>
-                </span>
-                <input name={item.key} type="checkbox" checked={analyticsSettings[item.key]} onChange={(event) => setAnalyticsSettings((previous) => ({ ...previous, [item.key]: event.target.checked }))} />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="grid gap-1.5 rounded-md border border-neutral-200 p-4 text-sm dark:border-neutral-800">
+                <span className="font-medium">操作日志保留天数</span>
+                <span className="text-xs text-neutral-500">默认 365 天。超过该天数的操作日志会被定期清理脚本删除；运行 <code className="font-mono">npm run logs:prune</code> 手动清理。</span>
+                <input name="operationLogRetentionDays" type="number" min="1" max={MAX_OPERATION_LOG_RETENTION_DAYS} value={operationLogRetentionDays} onChange={(event) => setOperationLogRetentionDays(Number(event.target.value))} className="mt-2 h-10 rounded-md border border-neutral-300 bg-white px-3 dark:border-neutral-700 dark:bg-neutral-900" />
               </label>
-            ))}
+              <label className="grid gap-1.5 rounded-md border border-neutral-200 p-4 text-sm dark:border-neutral-800">
+                <span className="font-medium">ipinfo.io 访问令牌（可选）</span>
+                <span className="text-xs text-neutral-500">地区按访问 IP 通过 https://api.ipinfo.io/lite/ 查询。留空则不调用接口，地区留空。在 https://ipinfo.io 注册免费账号获取 token。</span>
+                <input name="ipinfoToken" type="password" value={ipinfoToken} onChange={(event) => setIpinfoToken(event.target.value)} autoComplete="off" className="mt-2 h-10 rounded-md border border-neutral-300 bg-white px-3 font-mono text-sm dark:border-neutral-700 dark:bg-neutral-900" />
+              </label>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {ANALYTICS_CONFIGS.map((item) => (
+                <label key={item.key} className={`cursor-pointer rounded-full border px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                  analyticsSettings[item.key]
+                    ? 'border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950'
+                    : 'border-neutral-300 text-neutral-600 hover:border-neutral-400 dark:border-neutral-700 dark:text-neutral-400 dark:hover:border-neutral-600'
+                }`}>
+                  <input
+                    name={item.key}
+                    type="checkbox"
+                    checked={analyticsSettings[item.key]}
+                    onChange={(event) => setAnalyticsSettings((previous) => ({ ...previous, [item.key]: event.target.checked }))}
+                    className="sr-only"
+                  />
+                  {item.label}
+                </label>
+              ))}
+            </div>
+            <div className="space-y-2">
+              {ANALYTICS_CONFIGS.map((item) => (
+                <div key={item.key} className="flex items-start gap-2 text-xs text-neutral-500">
+                  <span className={`mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full ${analyticsSettings[item.key] ? 'bg-neutral-900 dark:bg-neutral-100' : 'bg-neutral-300 dark:bg-neutral-700'}`} />
+                  <span><span className="font-medium text-neutral-700 dark:text-neutral-300">{item.label}</span>：{item.detail}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </form>
       </Card>
