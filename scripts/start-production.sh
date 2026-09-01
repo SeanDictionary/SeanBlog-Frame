@@ -6,9 +6,9 @@ postgres_password=$(cat "$secrets_dir/postgres_password")
 export AUTH_SECRET=$(cat "$secrets_dir/auth_secret")
 export DATABASE_URL="postgresql://postgres:${postgres_password}@db:5432/seanblog_frame?schema=public"
 
-if [ ! -s ./themes/default/theme.css ]; then
-  mkdir -p ./themes/default
-  cp ./theme-seed/default/theme.css ./themes/default/theme.css
+if [ ! -s ./themes/seanblog-default/theme.yaml ]; then
+  mkdir -p ./themes/seanblog-default
+  cp -r ./theme-seed/seanblog-default/. ./themes/seanblog-default/
 fi
 
 npx prisma migrate deploy

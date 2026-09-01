@@ -28,7 +28,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/content ./content
 COPY --from=builder --chown=nextjs:nodejs /app/themes ./themes
-COPY --from=builder --chown=nextjs:nodejs /app/themes/default ./theme-seed/default
+COPY --from=builder --chown=nextjs:nodejs /app/themes/seanblog-default ./theme-seed/seanblog-default
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 RUN chmod +x ./scripts/start-production.sh
