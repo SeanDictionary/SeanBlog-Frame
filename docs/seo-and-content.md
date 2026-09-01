@@ -28,7 +28,8 @@ SEO 是个人博客的核心能力之一。本系统在设计上保证：
 
 - `remark-parse`：解析 Markdown
 - `remark-gfm`：支持 GFM 语法（表格、任务列表、删除线等）
-- `rehype-highlight`：代码块语法高亮（当前内置轻量 token 标记覆盖常见 JS/TS、JSON、HTML、CSS；后续可替换为 Shiki/Prism）
+- `@shikijs/rehype`（Shiki）：代码块语法高亮，双主题 `github-light`/`github-dark`，支持 Shiki 全部内置语言；暗色通过 `--shiki-dark` CSS 变量在 `[data-theme="dark"]` 下切换；语言标签由 transformer 在 `<pre>` 上写入 `language-<lang>` 类与 `data-language` 属性供主题渲染
+- `remark-math` + `rehype-katex`：数学公式渲染，支持 `$...$`（行内）和 `$$...$$`（块级）LaTeX 语法；KaTeX CSS 由框架内置注入
 - 编译结果按详情请求即时生成，可由缓存层缓存
 - 文章详情页 Server Component 使用经过转义的 HTML 输出渲染
 

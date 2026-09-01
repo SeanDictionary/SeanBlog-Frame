@@ -225,25 +225,11 @@ body {
     color: var(--color-text-tertiary);
   }
 
-  pre code .token-keyword,
-  pre code .token-selector,
-  pre code .token-tag {
-    color: #7c3aed;
-  }
-
-  pre code .token-string,
-  pre code .token-attr-value {
-    color: #15803d;
-  }
-
-  pre code .token-comment {
-    color: var(--color-text-tertiary);
-    font-style: italic;
-  }
-
-  pre code .token-function,
-  pre code .token-property {
-    color: #0369a1;
+  /* Shiki dark-mode token switch (light colors render inline from Shiki) */
+  [data-theme="dark"] .article-content .shiki,
+  [data-theme="dark"] .article-content .shiki span {
+    background-color: var(--shiki-dark-bg) !important;
+    color: var(--shiki-dark) !important;
   }
 
   code {

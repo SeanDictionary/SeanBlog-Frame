@@ -66,6 +66,7 @@ async function enrichCtx(ctx: Record<string, unknown>, slug: string): Promise<Re
     seo_head: buildSeoHead((ctx as any).seo),
     theme_css: cssBundle?.css ? `<style>${cssBundle.css}</style>` : '',
     callout_css: cssBundle?.calloutCss ? `<style>${cssBundle.calloutCss}</style>` : '',
+    katex_css_link: cssBundle?.katexCssLink || '',
     font_awesome: FONT_AWESOME,
     platform_enhance: `<script src="/enhance.js" defer></script><script src="/analytics.js" defer></script>`,
   }

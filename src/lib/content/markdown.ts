@@ -1,33 +1,17 @@
+import rehypeShiki from '@shikijs/rehype'
+import rehypeKatex from 'rehype-katex'
 import rehypeRaw from 'rehype-raw'
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize'
 import rehypeStringify from 'rehype-stringify'
 import remarkDirective from 'remark-directive'
 import remarkGithubAdmonitions from 'remark-github-admonitions-to-directives'
 import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
 import remarkParse from 'remark-parse'
 import remarkRehype from 'remark-rehype'
+import type { ShikiTransformer } from '@shikijs/types'
 import { visit } from 'unist-util-visit'
 import { unified } from 'unified'
-
-type HtmlNode = {
-  type?: string
-  tagName?: string
-  value?: string
-  properties?: Record<string, unknown>
-  children?: HtmlNode[]
-}
-
-type TokenNode = HtmlNode & { value?: string }
-
-type TokenMatch = {
-  index: number
-  text: string
-  className: string
-}
-
-const javascriptKeywords = new Set([
-  'async', 'await', 'break', 'case', 'catch', 'class', 'const', 'continue', 'default', 'else', 'export', 'extends', 'false', 'finally', 'for', 'from', 'function', 'if', 'import', 'in', 'interface', 'let', 'new', 'null', 'return', 'throw', 'true', 'try', 'type', 'undefined', 'var', 'while',
-])
 
 function getClassNames(value: unknown) {
   if (Array.isArray(value)) {
@@ -41,214 +25,23 @@ function getClassNames(value: unknown) {
   return []
 }
 
-function getCodeLanguage(node: HtmlNode) {
-  const code = node.children?.find((child) => child.type === 'element' && child.tagName === 'code')
-  const languageClass = getClassNames(code?.properties?.className).find((className) => className.startsWith('language-'))
+// --- Code block language label ---
+// Shiki highlights tokens with inline styles, but does not surface the
+// language name. This transformer adds `language-<lang>` class + `data-language`
+// attribute to <pre> so themes can render a language label via CSS
+// `::before { content: attr(data-language) }`.
 
-  return languageClass?.replace(/^language-/, '')
-}
+const PLAIN_LANGUAGES = new Set(['text', 'plaintext', 'ansi', ''])
 
-function textNode(value: string): TokenNode {
-  return { type: 'text', value }
-}
-
-function spanNode(className: string, value: string): TokenNode {
-  return {
-    type: 'element',
-    tagName: 'span',
-    properties: { className: [className] },
-    children: [textNode(value)],
-  }
-}
-
-function classifyJavascriptToken(value: string) {
-  if (value.startsWith('//') || value.startsWith('/*')) return 'token-comment'
-  if (value.startsWith('"') || value.startsWith("'") || value.startsWith('`')) return 'token-string'
-  if (/^\d/.test(value)) return 'token-number'
-  if (javascriptKeywords.has(value)) return 'token-keyword'
-  return 'token-function'
-}
-
-function getTokenPattern(language: string) {
-  if (/^(js|jsx|ts|tsx|javascript|typescript)$/.test(language)) {
-    return /\/\/[^\n]*|\/\*[\s\S]*?\*\/|`(?:\\.|[^`\\])*`|'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*"|\b(?:async|await|break|case|catch|class|const|continue|default|else|export|extends|false|finally|for|from|function|if|import|in|interface|let|new|null|return|throw|true|try|type|undefined|var|while)\b|\b[A-Za-z_$][\w$]*(?=\s*\()|\b\d+(?:\.\d+)?\b/g
-  }
-
-  if (/^(json|jsonc)$/.test(language)) {
-    return /"(?:\\.|[^"\\])*"(?=\s*:)|"(?:\\.|[^"\\])*"|\b(?:true|false|null)\b|-?\b\d+(?:\.\d+)?\b/g
-  }
-
-  if (/^(html|xml|svg)$/.test(language)) {
-    return /<!--[\s\S]*?-->|<\/?[A-Za-z][^>]*>|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g
-  }
-
-  if (/^(css|scss)$/.test(language)) {
-    return /\/\*[\s\S]*?\*\/|#[\da-fA-F]{3,8}\b|\b[-a-zA-Z]+(?=\s*:)|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\b\d+(?:\.\d+)?(?:px|rem|em|%|vh|vw)?\b/g
-  }
-
-  return null
-}
-
-function classifyToken(language: string, value: string) {
-  if (/^(js|jsx|ts|tsx|javascript|typescript)$/.test(language)) {
-    return classifyJavascriptToken(value)
-  }
-
-  if (/^(json|jsonc)$/.test(language)) {
-    if (value.startsWith('"') && /"$/.test(value) && /"(?=\s*:)/.test(value)) return 'token-property'
-    if (value.startsWith('"')) return 'token-string'
-    if (/^-?\d/.test(value)) return 'token-number'
-    return 'token-keyword'
-  }
-
-  if (/^(html|xml|svg)$/.test(language)) {
-    if (value.startsWith('<!--')) return 'token-comment'
-    if (value.startsWith('"') || value.startsWith("'")) return 'token-string'
-    return 'token-tag'
-  }
-
-  if (/^(css|scss)$/.test(language)) {
-    if (value.startsWith('/*')) return 'token-comment'
-    if (value.startsWith('"') || value.startsWith("'")) return 'token-string'
-    if (value.startsWith('#') || /^\d/.test(value)) return 'token-number'
-    return 'token-property'
-  }
-
-  return 'token-keyword'
-}
-
-function highlightCode(value: string, language: string): TokenNode[] {
-  const pattern = getTokenPattern(language)
-  if (!pattern) return [textNode(value)]
-
-  const matches: TokenMatch[] = []
-  let match: RegExpExecArray | null
-
-  while ((match = pattern.exec(value)) !== null) {
-    matches.push({ index: match.index, text: match[0], className: classifyToken(language, match[0]) })
-  }
-
-  if (!matches.length) return [textNode(value)]
-
-  const nodes: TokenNode[] = []
-  let cursor = 0
-
-  for (const token of matches) {
-    if (token.index > cursor) {
-      nodes.push(textNode(value.slice(cursor, token.index)))
-    }
-
-    nodes.push(spanNode(token.className, token.text))
-    cursor = token.index + token.text.length
-  }
-
-  if (cursor < value.length) {
-    nodes.push(textNode(value.slice(cursor)))
-  }
-
-  return nodes
-}
-
-function enhanceCodeBlock(node: HtmlNode) {
-  const code = node.children?.find((child) => child.type === 'element' && child.tagName === 'code')
-  const language = getCodeLanguage(node)
-
-  if (!code || !language) return
-
-  node.properties = {
-    ...node.properties,
-    className: [...new Set([...getClassNames(node.properties?.className), `language-${language}`])],
-    dataLanguage: language,
-  }
-
-  const codeText = code.children?.map((child) => child.value ?? '').join('') ?? ''
-  code.children = highlightCode(codeText, language)
-}
-
-function rehypeCodeBlockEnhancements() {
-  return (tree: HtmlNode) => {
-    function visitNode(node: HtmlNode) {
-      if (node.type === 'element' && node.tagName === 'pre') {
-        enhanceCodeBlock(node)
-      }
-
-      node.children?.forEach(visitNode)
-    }
-
-    visitNode(tree)
-  }
-}
-
-// --- Code block per-line wrapping ---
-// Wraps each visual line of a fenced code block in <span class="line"> so themes
-// can use CSS counters to show/hide line numbers. Runs after sanitize so the
-// `line` class is not stripped (sanitize only allows `token-*` on spans).
-
-function cloneElement(node: HtmlNode, children: HtmlNode[]): HtmlNode {
-  return {
-    type: 'element',
-    tagName: node.tagName,
-    properties: node.properties ? { ...node.properties } : {},
-    children,
-  }
-}
-
-function splitNodeByLines(node: HtmlNode): HtmlNode[][] {
-  if (node.type === 'text') {
-    const parts = (node.value ?? '').split('\n')
-    return parts.map((part) => (part === '' ? [] : [textNode(part)]))
-  }
-
-  if (node.type === 'element') {
-    const childLines = splitChildrenByLines(node.children)
-    return childLines.map((lineChildren) => [cloneElement(node, lineChildren)])
-  }
-
-  return [[node]]
-}
-
-function splitChildrenByLines(children: HtmlNode[] = []): HtmlNode[][] {
-  const lines: HtmlNode[][] = [[]]
-  for (const child of children) {
-    const childLines = splitNodeByLines(child)
-    for (let i = 0; i < childLines.length; i++) {
-      if (i > 0) lines.push([])
-      lines[lines.length - 1].push(...childLines[i])
-    }
-  }
-  return lines
-}
-
-function wrapCodeLines(children: HtmlNode[] = []): HtmlNode[] {
-  const lines = splitChildrenByLines(children)
-  while (lines.length > 1 && lines[lines.length - 1].length === 0) {
-    lines.pop()
-  }
-  return lines.map((lineChildren) => ({
-    type: 'element',
-    tagName: 'span',
-    properties: { className: ['line'] },
-    children: lineChildren,
-  }))
-}
-
-function rehypeCodeLineWrap() {
-  return (tree: HtmlNode) => {
-    function visitNode(node: HtmlNode) {
-      if (node.type === 'element' && node.tagName === 'pre') {
-        const code = node.children?.find(
-          (child) => child.type === 'element' && child.tagName === 'code',
-        )
-        if (code) {
-          code.children = wrapCodeLines(code.children)
-        }
-      }
-
-      node.children?.forEach(visitNode)
-    }
-
-    visitNode(tree)
-  }
+const languageLabelTransformer: ShikiTransformer = {
+  name: 'sb-language-label',
+  pre(node) {
+    const lang = this.options.lang
+    if (!lang || PLAIN_LANGUAGES.has(lang)) return
+    this.addClassToHast(node, `language-${lang}`)
+    node.properties = node.properties ?? {}
+    node.properties.dataLanguage = lang
+  },
 }
 
 // --- Admonition / Callout directive plugin ---
@@ -302,17 +95,19 @@ function getClassFromAttrs(attrs: Record<string, unknown>): string | null {
 const processor = unified()
   .use(remarkParse)
   .use(remarkGfm)
+  .use(remarkMath)
   .use(remarkGithubAdmonitions)
   .use(remarkDirective)
   .use(remarkCalloutDirectives)
   .use(remarkRehype, { allowDangerousHtml: true })
   .use(rehypeRaw)
-  .use(rehypeCodeBlockEnhancements)
+  .use(rehypeKatex)
   .use(rehypeSanitize, {
     ...defaultSchema,
     tagNames: [
       ...(defaultSchema.tagNames ?? []),
       'div', 'span', 'figure', 'figcaption', 'iframe', 'details', 'summary',
+      'math', 'semantics', 'annotation', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'msubsup', 'mfrac', 'msqrt', 'mroot', 'munder', 'mover', 'munderover', 'mtable', 'mtr', 'mtd', 'mtext', 'mspace', 'mphantom', 'menclose', 'mstyle', 'mpadded', 'merror', 'mglyph',
     ],
     attributes: {
       ...defaultSchema.attributes,
@@ -339,7 +134,14 @@ const processor = unified()
       ],
       span: [
         ...(defaultSchema.attributes?.span ?? []),
-        ['className', /^token-/],
+        ['className', /^.*/],
+      ],
+      math: [
+        'xmlns', 'display',
+        ['className', /^katex/],
+      ],
+      annotation: [
+        'encoding',
       ],
     },
     protocols: {
@@ -347,7 +149,15 @@ const processor = unified()
       src: ['http', 'https', 'data'],
     },
   })
-  .use(rehypeCodeLineWrap)
+  .use(rehypeShiki, {
+    // Dual themes: light colors render inline; dark colors ship as --shiki-dark
+    // CSS variables, switched by [data-theme="dark"] in the theme stylesheet.
+    themes: { light: 'github-light', dark: 'github-dark' },
+    defaultLanguage: 'text',
+    // sage is not bundled by Shiki; treat it as python for lattice-crypto writeups.
+    langAlias: { sage: 'python' },
+    transformers: [languageLabelTransformer],
+  })
   .use(rehypeStringify)
 
 export async function markdownToHtml(markdown: string) {

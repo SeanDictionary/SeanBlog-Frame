@@ -182,6 +182,7 @@ function EditorAccordionSection({ title, summary, defaultOpen = false, children 
 }
 
 export function ArticleEditor({ article, categories, tags }: ArticleEditorProps) {
+  const isEditing = Boolean(article?.id)
   const defaultCategoryId = categories.find((category) => category.slug === DEFAULT_CATEGORY_SLUG)?.id ?? ''
   const [form, setForm] = useState<FormState>(() => getInitialState(article, defaultCategoryId))
   const toast = useAdminToast()
@@ -755,7 +756,7 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
     return true
   }
 
-  function validateSchedule(mode: 'save' | 'publish') {
+  function validateSchedule(mode: 'save' | 'publish' | 'keep') {
     const now = Date.now()
     let publishedAt: string | null = null
     let publishTime: number | null = null
@@ -779,7 +780,7 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
     return { publishedAt }
   }
 
-  function submit(mode: 'save' | 'publish') {
+  function submit(mode: 'save' | 'publish' | 'keep') {
     setMessage(null)
 
     if (!validateRequiredFields()) return
@@ -797,7 +798,7 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
           excerpt: form.excerpt || null,
           contentMarkdown: form.contentMarkdown,
           coverImage: form.coverImage || null,
-          status: mode === 'publish' ? 'PUBLISHED' : 'DRAFT',
+          status: mode === 'publish' ? 'PUBLISHED' : mode === 'save' ? 'DRAFT' : form.status,
           commentsMode: form.commentsMode,
           categoryId,
           tagIds,
@@ -847,7 +848,7 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
           ))}
         </div>
         <button type="submit" disabled={isPending} className="rounded-full border border-neutral-300 bg-white/70 px-4 py-2 text-sm font-medium transition-colors hover:bg-white disabled:opacity-60 dark:border-neutral-700 dark:bg-neutral-950/70 dark:hover:bg-neutral-900">保存草稿</button>
-        <button type="button" onClick={() => submit('publish')} disabled={isPending} className="rounded-full bg-neutral-950 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950 dark:hover:bg-neutral-300">{isPending ? '正在保存…' : '发布文章'}</button>
+        <button type="button" onClick={() => submit(isEditing ? 'keep' : 'publish')} disabled={isPending} className="rounded-full bg-neutral-950 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950 dark:hover:bg-neutral-300">{isPending ? '正在保存…' : isEditing ? '保存文章' : '发布文章'}</button>
       </div>
 
       <main className="min-h-screen lg:mr-80 lg:h-screen lg:overflow-y-auto">
@@ -904,7 +905,7 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
               required
               rows={1}
               placeholder="从这里开始写正文…"
-              className={`col-start-1 row-start-1 min-h-[calc(100vh-20rem)] w-full resize-none overflow-hidden border-0 bg-transparent px-0 pb-24 font-mono text-base font-normal leading-8 text-neutral-900 outline-none placeholder:text-neutral-300 transition-all duration-300 ease-out focus:ring-0 dark:text-neutral-100 dark:placeholder:text-neutral-700 ${showPreview ? 'pointer-events-none -translate-y-3 opacity-0' : 'translate-y-0 opacity-100'}`}
+              className={`col-start-1 row-start-1 min-h-[calc(100vh-20rem)] w-full resize-none overflow-hidden border-0 bg-transparent px-0 pb-24 font-sans text-base font-normal leading-8 text-neutral-900 outline-none placeholder:text-neutral-300 transition-all duration-300 ease-out focus:ring-0 dark:text-neutral-100 dark:placeholder:text-neutral-700 ${showPreview ? 'pointer-events-none -translate-y-3 opacity-0' : 'translate-y-0 opacity-100'}`}
               aria-hidden={showPreview}
               tabIndex={showPreview ? -1 : undefined}
             />

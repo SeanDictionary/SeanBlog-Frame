@@ -4,6 +4,8 @@ import path from 'node:path'
 import { flattenSchemaItems, readThemeCss, readThemeManifest, type ThemeSettingSchemaItem } from '@/lib/theme'
 import { getActiveThemeSettings } from '@/lib/services/theme-settings-service'
 import { DEFAULT_CALLOUT_CSS } from '@/lib/content/callout-css'
+import { DEFAULT_HIGHLIGHT_CSS } from '@/lib/content/highlight-css'
+import { getKatexCssLink } from '@/lib/content/math-css'
 
 async function buildThemeOptionsCss(themeSlug: string, settings: Record<string, unknown>): Promise<string | null> {
   const manifest = await readThemeManifest(themeSlug).catch(() => null)
@@ -39,7 +41,7 @@ async function readThemeCalloutPreset(themeSlug: string): Promise<string | null>
  * Build the complete theme CSS bundle (theme stylesheet + settings variables + callout CSS).
  * Callout CSS resolution: per-theme custom setting → theme preset → default built-in.
  */
-export async function buildThemeCssBundle(): Promise<{ css: string; calloutCss: string } | null> {
+export async function buildThemeCssBundle(): Promise<{ css: string; calloutCss: string; katexCssLink: string } | null> {
   const { themeSlug, settings } = await getActiveThemeSettings()
 
   const customThemeCss = await readThemeCss(themeSlug).catch(() => null)
@@ -54,8 +56,9 @@ export async function buildThemeCssBundle(): Promise<{ css: string; calloutCss: 
   const calloutPreset = await readThemeCalloutPreset(themeSlug)
   const calloutCss = calloutCustom ?? calloutPreset ?? DEFAULT_CALLOUT_CSS
 
-  const css = [customThemeCss, themeOptionsCss].filter(Boolean).join('\n')
+  const css = [customThemeCss, themeOptionsCss, DEFAULT_HIGHLIGHT_CSS].filter(Boolean).join('\n')
+  const katexCssLink = getKatexCssLink()
 
-  if (!css && calloutCss === DEFAULT_CALLOUT_CSS) return null
-  return { css, calloutCss }
+  if (!customThemeCss && !themeOptionsCss && calloutCss === DEFAULT_CALLOUT_CSS) return null
+  return { css, calloutCss, katexCssLink }
 }

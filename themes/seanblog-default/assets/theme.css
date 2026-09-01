@@ -125,6 +125,20 @@ img { max-width: 100%; height: auto; display: block; }
 .sb-post-content pre { background: var(--color-bg-secondary); padding: 1rem 1.25rem; border-radius: var(--radius); overflow-x: auto; font-size: 0.85rem; line-height: 1.6; margin: 1.5rem 0; }
 .sb-post-content code { font-family: var(--font-mono); font-size: 0.875em; }
 .sb-post-content :not(pre) > code { background: var(--color-bg-secondary); padding: 0.15em 0.4em; border-radius: 4px; }
+
+/* Shiki code highlighting: language label + dark-mode token switch */
+.article-content pre[data-language]::before {
+  content: attr(data-language);
+  display: block;
+  margin-bottom: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+.article-content .shiki { margin: 1.5rem 0; }
+.article-content .shiki code { font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.6; }
 .sb-post-content img { border-radius: var(--radius); margin: 1.5rem 0; }
 .sb-post-content hr { border: none; border-top: 1px solid var(--color-border); margin: 2.5rem 0; }
 .sb-post-content table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.9rem; }
