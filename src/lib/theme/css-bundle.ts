@@ -15,12 +15,20 @@ async function buildThemeOptionsCss(themeSlug: string, settings: Record<string, 
   const items = flattenSchemaItems(schema)
   if (!items.length) return null
 
+  // cssVariable 名必须是合法 CSS 自定义属性（--foo-bar），防止名注入。
+  const varNamePattern = /^--[a-zA-Z0-9_-]+$/
+  // 值剥离 ; {} < > 与 url( / @ / expression，防止从 :root{--x: VALUE} 上下文
+  // 断裂注入任意 CSS（calloutCustomCss 已单独走 validateThemeCss，此处收口其余
+  // cssVariable 绑定的 color/text 等设置值）。
+  const sanitizeValue = (raw: string) =>
+    raw.replace(/[;{}<>]/g, '').replace(/url\(/gi, '').replace(/@/g, '').replace(/expression\(/gi, '')
+
   const variables = items
     .map((item: ThemeSettingSchemaItem) => {
-      if (!item.cssVariable) return null
+      if (!item.cssVariable || !varNamePattern.test(item.cssVariable)) return null
       const value = settings[item.key] ?? item.default
       if (typeof value !== 'string' && typeof value !== 'number') return null
-      return `${item.cssVariable}: ${value}`
+      return `${item.cssVariable}: ${sanitizeValue(String(value))}`
     })
     .filter((item): item is string => item !== null)
 
