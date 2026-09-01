@@ -9,6 +9,7 @@ x-build: &build
 services:
   secrets:
     build: *build
+    user: root
     entrypoint: ["node", "scripts/initialize-secrets.mjs"]
     restart: "no"
     volumes:
