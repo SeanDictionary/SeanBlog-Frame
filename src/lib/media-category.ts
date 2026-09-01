@@ -1,6 +1,8 @@
 // 媒体文件分类：前后端共用。后端按此分类决定存储子目录，
 // 前端按此分类展示图标与筛选标签。纯函数、无依赖、isomorphic。
 
+import { badRequest } from '@/lib/api/errors'
+
 export type MediaCategory = 'images' | 'videos' | 'audio' | 'documents' | 'archives' | 'other'
 
 export const MEDIA_CATEGORIES: Array<{ key: MediaCategory; label: string; icon: string }> = [
@@ -88,4 +90,64 @@ const fallbackExtensions: Record<string, string> = {
 
 export function fallbackExtension(mimeType: string): string {
   return fallbackExtensions[(mimeType || '').toLowerCase()] ?? ''
+}
+
+// --- 上传安全：扩展名白名单 + 危险内容签名检测 ---
+// 静态托管下，.html/.svg/.js 等会被浏览器作为可执行内容渲染（同源 XSS），
+// 故必须按扩展名白名单收口；再以字节签名检测改名伪装。
+
+const DANGEROUS_EXTENSIONS = new Set([
+  'html', 'htm', 'xhtml', 'svg', 'js', 'mjs', 'cjs', 'wasm', 'exe', 'msi', 'bat',
+  'cmd', 'sh', 'ps1', 'php', 'phtml', 'php3', 'php4', 'jsp', 'jspx', 'asp', 'aspx',
+  'asa', 'asax', 'cer', 'py', 'pl', 'rb', 'cgi', 'vbs', 'htaccess', 'jar', 'war',
+  'class', 'swf', 'htc', 'odc', 'svgz',
+])
+
+const ALLOWED_EXTENSIONS_BY_CATEGORY: Record<MediaCategory, Set<string>> = {
+  images: new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'bmp', 'ico']),
+  videos: new Set(['mp4', 'webm', 'mov', 'mkv', 'ogv']),
+  audio: new Set(['mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a', 'opus']),
+  documents: new Set(['pdf', 'txt', 'csv', 'md', 'json', 'xml', 'rtf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'odt', 'ods', 'odp']),
+  archives: new Set(['zip', 'tar', 'gz', 'bz2', 'xz', '7z', 'rar']),
+  other: new Set(['pdf', 'txt', 'csv', 'md', 'json', 'xml']), // other 类只放明显无害类型
+}
+
+/** 常见可执行 / 脚本内容的字节签名，用于拦改名伪装（不论声明的扩展名）。 */
+function looksLikeDangerousContent(bytes: Buffer): boolean {
+  if (bytes.length < 4) return false
+  // HTML / XML / SVG / 脚本首字节
+  const head = bytes.subarray(0, 32).toString('latin1')
+  if (/^\s*<(!doctype|html|svg|\?xml|script)/i.test(head)) return true
+  if (head.startsWith('#!')) return true // shell 脚本
+  // MZ -> PE 可执行（Windows .exe/.dll）
+  if (bytes[0] === 0x4d && bytes[1] === 0x5a) return true
+  // ELF 可执行
+  if (bytes[0] === 0x7f && bytes[1] === 0x45 && bytes[2] === 0x4c && bytes[3] === 0x46) return true
+  return false
+}
+
+/** 上传解析：由 MIME 确定分类，由文件名取扩展名，校验白名单与危险内容。 */
+export function resolveMediaUpload(filename: string, mimeType: string, bytes: Buffer): { category: MediaCategory; extension: string } {
+  const category = categorizeMimeType(mimeType)
+  const rawExt = filename.includes('.') ? filename.slice(filename.lastIndexOf('.') + 1) : ''
+  const extension = rawExt.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 16)
+
+  if (!extension) {
+    throw badRequest('File must have a recognized extension.', 'INVALID_FILE_TYPE')
+  }
+
+  if (DANGEROUS_EXTENSIONS.has(extension)) {
+    throw badRequest(`Uploading .${extension} files is not allowed.`, 'INVALID_FILE_TYPE')
+  }
+
+  const allowed = ALLOWED_EXTENSIONS_BY_CATEGORY[category]
+  if (!allowed.has(extension)) {
+    throw badRequest(`File extension .${extension} is not allowed for this category.`, 'INVALID_FILE_TYPE')
+  }
+
+  if (looksLikeDangerousContent(bytes)) {
+    throw badRequest('File content looks like an executable or markup document and was rejected.', 'INVALID_FILE_CONTENT')
+  }
+
+  return { category, extension }
 }

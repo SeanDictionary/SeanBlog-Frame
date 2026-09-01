@@ -216,12 +216,13 @@ export async function renderTemplate(opts: RenderOptions): Promise<string> {
 
   if (!fn) return renderBuiltinFallback(opts)
 
-  const bodyHtml = fn(ctx, { allowProtoPropertiesByDefault: true, allowProtoMethodsByDefault: true })
+  // ctx 全部为平台构建的普通对象（Prisma POJO + 字面量），无需放宽原型访问。
+  const bodyHtml = fn(ctx)
 
   if (!opts.layout) return bodyHtml
   const layoutFn = await getTemplate(opts.slug, opts.layout)
   if (!layoutFn) return bodyHtml
-  return layoutFn({ ...ctx, body: bodyHtml }, { allowProtoPropertiesByDefault: true, allowProtoMethodsByDefault: true })
+  return layoutFn({ ...ctx, body: bodyHtml })
 }
 
 function renderBuiltinFallback(opts: RenderOptions): string {

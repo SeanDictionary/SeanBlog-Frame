@@ -6,6 +6,7 @@ import { getActiveThemeSettings } from '@/lib/services/theme-settings-service'
 import { DEFAULT_CALLOUT_CSS } from '@/lib/content/callout-css'
 import { DEFAULT_HIGHLIGHT_CSS } from '@/lib/content/highlight-css'
 import { getKatexCssLink } from '@/lib/content/math-css'
+import { validateThemeCss } from '@/lib/validations/theme'
 
 async function buildThemeOptionsCss(themeSlug: string, settings: Record<string, unknown>): Promise<string | null> {
   const manifest = await readThemeManifest(themeSlug).catch(() => null)
@@ -50,9 +51,17 @@ export async function buildThemeCssBundle(): Promise<{ css: string; calloutCss: 
     ?? await buildThemeOptionsCss('seanblog-default', settings)
 
   // Callout CSS: per-theme custom → theme preset → default
-  const calloutCustom = typeof settings.calloutCustomCss === 'string' && (settings.calloutCustomCss as string).trim()
-    ? settings.calloutCustomCss as string
-    : null
+  // calloutCustomCss 是管理员自定义 CSS，直接注入 <style>，必须走与主题 CSS
+  // 相同的校验（拦 </style> / @import / !important / 远程 url() / < > 等），
+  // 非法则回退到主题 preset / 内置默认，绝不破坏渲染。
+  let calloutCustom: string | null = null
+  if (typeof settings.calloutCustomCss === 'string' && (settings.calloutCustomCss as string).trim()) {
+    try {
+      calloutCustom = validateThemeCss(settings.calloutCustomCss as string)
+    } catch {
+      calloutCustom = null
+    }
+  }
   const calloutPreset = await readThemeCalloutPreset(themeSlug)
   const calloutCss = calloutCustom ?? calloutPreset ?? DEFAULT_CALLOUT_CSS
 

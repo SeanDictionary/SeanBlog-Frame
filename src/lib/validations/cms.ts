@@ -52,6 +52,11 @@ const optionalEmailString = z.preprocess(
   z.string().trim().email().nullable().optional(),
 )
 
+const optionalUuidString = z.preprocess(
+  (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+  z.string().trim().uuid().nullable().optional(),
+)
+
 const optionalUrlString = z.preprocess(
   (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
   z
@@ -321,7 +326,7 @@ export const analyticsEventSchema = z
     path: z.string().trim().min(1).max(2048),
     contentType: z.enum(['page', 'article', 'category', 'tag']).default('page'),
     slug: optionalTrimmedString,
-    visitorId: optionalTrimmedString,
+    visitorId: optionalUuidString,
     referrer: optionalTrimmedString,
     browserFingerprint: optionalTrimmedString,
     hardware: optionalTrimmedString,

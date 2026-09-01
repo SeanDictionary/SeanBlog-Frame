@@ -16,6 +16,8 @@ const themeManifestFilename = 'theme.yaml'
 const themeCssFallbackPath = 'assets/theme.css'
 const maxThemePackageBytes = 2 * 1024 * 1024
 const maxThemeFileCount = 200
+const maxThemeUncompressedBytes = 20 * 1024 * 1024
+const maxThemeFileBytes = 2 * 1024 * 1024
 
 export type ThemeSettingSchemaItem = {
   key: string
@@ -354,7 +356,17 @@ function parseZip(buffer: Buffer): ZipEntry[] {
       throw badRequest('Theme package uses an unsupported compression method.', 'INVALID_THEME_PACKAGE')
     }
 
+    // 压缩炸弹防护：校验解压后体积（单文件与累计）
+    if (content.length > maxThemeFileBytes) {
+      throw badRequest('Theme package contains a file that is too large.', 'INVALID_THEME_PACKAGE')
+    }
+
     rawEntries.push({ path: filePath, content })
+  }
+
+  const totalUncompressed = rawEntries.reduce((sum, entry) => sum + entry.content.length, 0)
+  if (totalUncompressed > maxThemeUncompressedBytes) {
+    throw badRequest('Theme package expands to too much data.', 'INVALID_THEME_PACKAGE')
   }
 
   // 支持 ZIP 内文件带外层目录（如 "cardinal/theme.yaml"）：

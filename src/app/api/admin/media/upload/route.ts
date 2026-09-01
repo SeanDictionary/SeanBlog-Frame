@@ -5,25 +5,13 @@ import { badRequest } from '@/lib/api/errors'
 import { created, handleApiError } from '@/lib/api/response'
 import { requireSameOriginRequest } from '@/lib/api/request-guard'
 import { requireAdmin } from '@/lib/auth.utils'
-import { categorizeMimeType, fallbackExtension } from '@/lib/media-category'
+import { resolveMediaUpload } from '@/lib/media-category'
 import { adminLogActor, recordOperation } from '@/lib/services/operation-log-service'
 import { createMedia } from '@/lib/services/media-service'
 
 export const runtime = 'nodejs'
 
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024
-
-function sanitizeExtension(extension: string) {
-  const cleaned = extension.toLowerCase().replace(/[^a-z0-9]/g, '')
-  return cleaned.slice(0, 16)
-}
-
-function resolveExtension(filename: string, mimeType: string) {
-  const original = path.extname(filename)
-  const cleaned = sanitizeExtension(original)
-  if (cleaned) return cleaned
-  return fallbackExtension(mimeType)
-}
 
 function normalizeBasename(filename: string, fallback: string) {
   const parsed = path.parse(filename || fallback)
@@ -87,11 +75,10 @@ export async function POST(request: Request) {
           throw badRequest('文件大小需在 1 字节至 50 MB 之间。', 'INVALID_FILE_SIZE')
         }
 
-        const category = categorizeMimeType(file.type)
-        const extension = resolveExtension(file.name, file.type)
-        const basename = normalizeBasename(file.name, 'file')
-        const desiredFilename = extension ? `${basename}.${extension}` : basename
         const bytes = Buffer.from(await file.arrayBuffer())
+        const { category, extension } = resolveMediaUpload(file.name, file.type, bytes)
+        const basename = normalizeBasename(file.name, 'file')
+        const desiredFilename = `${basename}.${extension}`
         const uploadDirectory = path.join(process.cwd(), 'public', 'uploads', 'media', category)
 
         await mkdir(uploadDirectory, { recursive: true })

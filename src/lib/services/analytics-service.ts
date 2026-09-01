@@ -5,6 +5,7 @@ import type { Prisma } from '@prisma/client'
 import { getCountryByIp, isPrivateIp } from '@/lib/geoip'
 import { getPrisma } from '@/lib/prisma'
 import { pageMeta, paginate } from '@/lib/services/shared'
+import { getPublicArticleWhere } from '@/lib/services/article-visibility'
 import { getSiteSettingsMap } from '@/lib/services/setting-service'
 import type { AnalyticsEventInput, AnalyticsQuery, AnalyticsVisitorQuery } from '@/lib/validations/cms'
 
@@ -220,7 +221,9 @@ async function resolveContent(input: AnalyticsEventInput) {
   const prisma = getPrisma()
 
   if (input.contentType === 'article' && input.slug) {
-    const article = await prisma.article.findUnique({ where: { slug: input.slug }, select: { id: true, categoryId: true, tags: { select: { tagId: true } } } })
+    // 仅对公开可见（已发布且发布时间已到）的文章解析并回写浏览量，
+    // 避免攻击者用草稿 / 归档 / 未来发布文章的 slug 注水 viewCount。
+    const article = await prisma.article.findFirst({ where: { slug: input.slug, ...getPublicArticleWhere() }, select: { id: true, categoryId: true, tags: { select: { tagId: true } } } })
     return {
       articleId: article?.id ?? null,
       categoryId: article?.categoryId ?? null,

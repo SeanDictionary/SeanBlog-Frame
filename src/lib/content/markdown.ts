@@ -146,7 +146,8 @@ const processor = unified()
     },
     protocols: {
       ...defaultSchema.protocols,
-      src: ['http', 'https', 'data'],
+      // 仅允许 http/https 作为 src，阻止 data: iframe（data:text/html 可执行脚本）
+      src: ['http', 'https'],
     },
   })
   .use(rehypeShiki, {

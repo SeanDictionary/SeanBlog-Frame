@@ -6,7 +6,7 @@ export const DEFAULT_THEME_NAME = 'seanblog-default'
 export const THEME_NAME_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/
 export const MAX_THEME_CSS_BYTES = 100 * 1024
 
-const unsafeCssPattern = /<\/?style|[<>]|@import|!important/i
+const unsafeCssPattern = /<\/?style|[<>]|@import|!important|expression\(|javascript:|behavior:/i
 
 function assertDeclarations(rule: postcss.Rule) {
   rule.each((node) => {

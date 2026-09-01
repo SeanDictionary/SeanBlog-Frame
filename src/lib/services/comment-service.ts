@@ -66,7 +66,7 @@ function toAdminComment(comment: {
 }
 
 export async function createComment(input: CommentInput, request?: Request) {
-  if (!checkCommentRateLimit(getClientRateLimitIdentifier(request))) {
+  if (!checkCommentRateLimit(getClientRateLimitIdentifier(request, input.visitorId))) {
     throw tooManyRequests('Too many comments. Please try again later.')
   }
 

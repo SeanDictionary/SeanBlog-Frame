@@ -1,21 +1,24 @@
+import { tooManyRequests } from '@/lib/api/errors'
 import { handleApiError, json, parseJson } from '@/lib/api/response'
+import { checkAnalyticsRateLimit, extractIp, getClientRateLimitIdentifier } from '@/lib/api/rate-limit'
 import { createAnalyticsEvent } from '@/lib/services/analytics-service'
 import { recordOperationLog } from '@/lib/services/operation-log-service'
 import { analyticsEventSchema } from '@/lib/validations/cms'
-
-function getClientIp(request: Request) {
-  const forwardedFor = request.headers.get('x-forwarded-for')
-  if (forwardedFor) return forwardedFor.split(',')[0]?.trim() ?? null
-  return request.headers.get('x-real-ip')
-}
 
 export async function POST(request: Request) {
   try {
     const body = await parseJson(request)
     const input = analyticsEventSchema.parse(body)
 
+    // 限流：避免未认证端点被滥用注水浏览量 / 写放大。IP 不可用时回退 visitorId。
+    const identifier = getClientRateLimitIdentifier(request, input.visitorId)
+    if (!checkAnalyticsRateLimit(identifier)) {
+      throw tooManyRequests('Too many analytics events.')
+    }
+
     try {
-      const ipAddress = getClientIp(request)
+      // 仅在开启 TRUST_PROXY_HEADERS 时信任 x-forwarded-for，与 rate-limit 一致。
+      const ipAddress = extractIp(request)
       const result = await createAnalyticsEvent(input, {
         ipAddress,
         userAgent: request.headers.get('user-agent'),

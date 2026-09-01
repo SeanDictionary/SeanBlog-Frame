@@ -38,6 +38,14 @@ type SeoCtx = {
   jsonld?: unknown
 }
 
+function escapeJsonForScript(json: string) {
+  // JSON 字符串里转义 <、>、&，避免 </script> 提前结束 script 上下文；
+  // 浏览器 JSON 解析器仍会还原为原字符。用 fromCharCode(92) 构造反斜杠，
+  // 避免源码反斜杠转义歧义。
+  const backslash = String.fromCharCode(92)
+  return json.replace(/[<>&]/g, (c) => `${backslash}u${c.charCodeAt(0).toString(16).padStart(4, '0')}`)
+}
+
 function esc(s: string) {
   return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string))
 }
@@ -50,7 +58,7 @@ function buildSeoHead(seo: SeoCtx | undefined): string {
   if (seo.robots) lines.push(`<meta name="robots" content="${esc(seo.robots)}">`)
   if (seo.canonical) lines.push(`<link rel="canonical" href="${esc(seo.canonical)}">`)
   if (seo.og) for (const [k, v] of Object.entries(seo.og)) lines.push(`<meta property="${esc(k)}" content="${esc(v)}">`)
-  if (seo.jsonld) lines.push(`<script type="application/ld+json">${JSON.stringify(seo.jsonld)}</script>`)
+  if (seo.jsonld) lines.push(`<script type="application/ld+json">${escapeJsonForScript(JSON.stringify(seo.jsonld))}</script>`)
   lines.push(`<link rel="alternate" type="application/rss+xml" title="${esc(seo.title)}" href="/rss.xml">`)
   lines.push(`<link rel="sitemap" type="application/xml" href="/sitemap.xml">`)
   return lines.join('\n')
