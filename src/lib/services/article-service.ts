@@ -1035,8 +1035,14 @@ export async function importAdminArticles(input: ArticleImportInput) {
 
   const articles = []
 
-  for (const articleInput of input.articles) {
-    articles.push(await createArticle(articleInput))
+  try {
+    for (const articleInput of input.articles) {
+      articles.push(await createArticle(articleInput))
+    }
+  } catch (error) {
+    // 部分文章已创建（含正文文件），回滚已建项避免孤儿
+    await Promise.all(articles.map((article) => deleteArticle(article.id).catch(() => undefined)))
+    throw error
   }
 
   return { count: articles.length, articles }

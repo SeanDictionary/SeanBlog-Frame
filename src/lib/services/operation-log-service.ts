@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client'
 
 import { ApiError } from '@/lib/api/errors'
+import { extractIp } from '@/lib/api/rate-limit'
 import { isDatabaseError, getDatabaseErrorCode } from '@/lib/database-errors'
 import { getPrisma } from '@/lib/prisma'
 import { pageMeta, paginate } from '@/lib/services/shared'
@@ -54,12 +55,6 @@ function shouldRecordRequestDetails(policy: RequestDetailsPolicy | undefined) {
   return policy === 'admin' || policy === 'security'
 }
 
-function getClientIp(request?: Request) {
-  const forwardedFor = request?.headers.get('x-forwarded-for')
-  if (forwardedFor) return forwardedFor.split(',')[0]?.trim() ?? null
-  return request?.headers.get('x-real-ip') ?? null
-}
-
 const MAX_ERROR_MESSAGE_LENGTH = 500
 const MAX_METADATA_BYTES = 4096
 const MAX_METADATA_ARRAY_ITEMS = 100
@@ -81,8 +76,25 @@ const sensitiveMetadataKeys = new Set([
   'token',
 ])
 
+// 用子串匹配而非精确匹配，覆盖 camelCase / 拼接键名（如 adminToken、userPassword、apiKey）
+const sensitiveMetadataSubstrings = [
+  'password',
+  'secret',
+  'token',
+  'authorization',
+  'cookie',
+  'apikey',
+  'accesskey',
+  'refreshtoken',
+  'credential',
+  'privatekey',
+  'email',
+]
+
 function isSensitiveKey(key: string) {
-  return sensitiveMetadataKeys.has(key.toLowerCase())
+  const lowered = key.toLowerCase()
+  if (sensitiveMetadataKeys.has(lowered)) return true
+  return sensitiveMetadataSubstrings.some((substr) => lowered.includes(substr))
 }
 
 function clampArray<T>(array: T[]) {
@@ -189,7 +201,7 @@ export async function recordOperationLog(input: OperationLogInput) {
         errorCode,
         errorMessage,
         metadata: sanitizeMetadata(input.metadata) ?? undefined,
-        ipAddress: getClientIp(input.request),
+        ipAddress: extractIp(input.request),
         userAgent: input.request?.headers.get('user-agent') ?? null,
         browserFingerprint: getCookieValue(input.request, 'sb-fp'),
         hardware: getCookieValue(input.request, 'sb-hw'),

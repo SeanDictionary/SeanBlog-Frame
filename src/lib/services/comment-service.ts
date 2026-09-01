@@ -108,15 +108,12 @@ export async function createComment(input: CommentInput, request?: Request) {
 
   const visitorId = input.visitorId ?? null
   if (visitorId) {
-    const existing = await prisma.visitor.findUnique({ where: { visitorId } })
-    if (existing) {
-      await prisma.visitor.update({
-        where: { visitorId },
-        data: { lastSeenAt: new Date(), visitCount: { increment: 1 } },
-      })
-    } else {
-      await prisma.visitor.create({ data: { visitorId } })
-    }
+    // upsert 避免并发首访 findUnique+create 的 P2002 竞态丢失评论。
+    await prisma.visitor.upsert({
+      where: { visitorId },
+      create: { visitorId },
+      update: { lastSeenAt: new Date(), visitCount: { increment: 1 } },
+    })
   }
 
   const comment = await prisma.comment.create({

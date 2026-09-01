@@ -2,20 +2,15 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '@prisma/client'
 
 import { isDatabaseError } from '@/lib/database-errors'
+import { env } from '@/lib/env'
 
 const globalForPrisma = globalThis as typeof globalThis & {
   prisma?: PrismaClient
 }
 
 function createPrismaClient() {
-  const connectionString = process.env.DATABASE_URL
-
-  if (!connectionString) {
-    throw new Error('DATABASE_URL is not configured.')
-  }
-
   return new PrismaClient({
-    adapter: new PrismaPg({ connectionString }),
+    adapter: new PrismaPg({ connectionString: env.DATABASE_URL }),
     log: process.env.NODE_ENV === 'development' ? ['query', 'warn', 'error'] : ['error'],
   })
 }

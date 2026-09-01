@@ -427,41 +427,40 @@ export async function createAnalyticsEvent(input: AnalyticsEventInput, metadata:
   const visitorId = input.visitorId ?? null
   const country = await getCountryByIp(metadata.ipAddress, settings.ipinfoToken)
 
-  // Ensure the Visitor row exists before creating the event (FK). A new visitor
-  // is one we just inserted; reused visitors bump lastSeen/visitCount.
+  // Ensure the Visitor row exists before creating the event (FK)。用 upsert 避免并发
+  // 首访时 findUnique+create 的竞态（P2002 → 500 丢失事件）。
   if (visitorId) {
-    const existing = await prisma.visitor.findUnique({ where: { visitorId } })
-    if (existing) {
-      await prisma.visitor.update({
-        where: { visitorId },
-        data: { lastSeenAt: new Date(), visitCount: { increment: 1 } },
-      })
-    } else {
-      await prisma.visitor.create({ data: { visitorId } })
-    }
+    await prisma.visitor.upsert({
+      where: { visitorId },
+      create: { visitorId },
+      update: { lastSeenAt: new Date(), visitCount: { increment: 1 } },
+    })
   }
 
   const isNewArticleVisitor = content.articleId && visitorId
     ? await prisma.analyticsEvent.count({ where: { articleId: content.articleId, visitorId } }).then((count) => count === 0)
     : false
 
-  const event = await prisma.analyticsEvent.create({
-    data: {
-      path: input.path,
-      contentType: input.contentType,
-      ...content,
-      visitorId,
-      referrer: settings.analyticsCollectReferrer ? (input.referrer ?? '') : null,
-      country,
-      ipAddress: settings.analyticsCollectIp ? metadata.ipAddress : null,
-      userAgent: settings.analyticsCollectUserAgent ? metadata.userAgent : null,
-      browserFingerprint: settings.analyticsCollectFingerprint ? input.browserFingerprint : null,
-      hardware: settings.analyticsCollectHardware ? input.hardware : null,
-      durationSeconds: input.durationSeconds,
-    },
+  // 事件创建与每日统计增量放在同一事务，避免统计漂移（事件已存但 dailyStat 缺失）。
+  const event = await prisma.$transaction(async (tx) => {
+    const created = await tx.analyticsEvent.create({
+      data: {
+        path: input.path,
+        contentType: input.contentType,
+        ...content,
+        visitorId,
+        referrer: settings.analyticsCollectReferrer ? (input.referrer ?? '') : null,
+        country,
+        ipAddress: settings.analyticsCollectIp ? metadata.ipAddress : null,
+        userAgent: settings.analyticsCollectUserAgent ? metadata.userAgent : null,
+        browserFingerprint: settings.analyticsCollectFingerprint ? input.browserFingerprint : null,
+        hardware: settings.analyticsCollectHardware ? input.hardware : null,
+        durationSeconds: input.durationSeconds,
+      },
+    })
+    await incrementDailyStat(tx, content, created.createdAt)
+    return created
   })
-
-  await incrementDailyStat(prisma, content, event.createdAt)
 
   if (content.articleId) {
     await prisma.article.update({

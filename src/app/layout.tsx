@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import { cookies } from 'next/headers'
 import type { ReactNode } from 'react'
 
+import { siteUrl } from '@/lib/env'
 import { getActiveThemeSettings } from '@/lib/services/theme-settings-service'
 import './globals.css'
 
@@ -13,7 +14,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'),
+  metadataBase: new URL(siteUrl),
   title: {
     default: 'SeanBlog',
     template: '%s | SeanBlog',

@@ -43,7 +43,7 @@ function escapeJsonForScript(json: string) {
   // 浏览器 JSON 解析器仍会还原为原字符。用 fromCharCode(92) 构造反斜杠，
   // 避免源码反斜杠转义歧义。
   const backslash = String.fromCharCode(92)
-  return json.replace(/[<>&]/g, (c) => `${backslash}u${c.charCodeAt(0).toString(16).padStart(4, '0')}`)
+  return json.replace(/[<>&\u2028\u2029]/g, (c) => `${backslash}u${c.charCodeAt(0).toString(16).padStart(4, '0')}`)
 }
 
 function esc(s: string) {

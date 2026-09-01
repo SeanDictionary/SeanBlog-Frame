@@ -1,4 +1,5 @@
 import { forbidden } from '@/lib/api/errors'
+import { siteUrl } from '@/lib/env'
 
 const ALLOWED_FETCH_SITES = new Set(['same-origin', 'same-site', 'none'])
 
@@ -18,8 +19,7 @@ function getAllowedOrigins(request: Request) {
     origins.add(requestOrigin)
   }
 
-  const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL
-  const configuredOrigin = configuredSiteUrl ? safeNormalizeOrigin(configuredSiteUrl) : null
+  const configuredOrigin = siteUrl ? safeNormalizeOrigin(siteUrl) : null
 
   if (configuredOrigin) {
     origins.add(configuredOrigin)
