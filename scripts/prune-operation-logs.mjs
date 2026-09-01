@@ -1,19 +1,15 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '@prisma/client'
 
+import { resolveDatabaseUrl } from './db-url.mjs'
+
 const DEFAULT_OPERATION_LOG_RETENTION_DAYS = 365
 const MAX_OPERATION_LOG_RETENTION_DAYS = 3650
 const OPERATION_LOG_RETENTION_SETTING_KEY = 'operationLogRetentionDays'
 
 function createPrisma() {
-  const connectionString = process.env.DATABASE_URL
-
-  if (!connectionString) {
-    throw new Error('DATABASE_URL is not configured.')
-  }
-
   return new PrismaClient({
-    adapter: new PrismaPg({ connectionString }),
+    adapter: new PrismaPg({ connectionString: resolveDatabaseUrl() }),
   })
 }
 
