@@ -73,7 +73,10 @@ async function loadDir(dir: string, slug: string, isPartial: boolean) {
     if (isPartial) {
       getPartialMap(slug).set(name, src)
     } else {
-      getTemplateMap(slug).set(name, Handlebars.compile(src, { noEscape: true }))
+      // 默认开启 HTML 转义：{{var}} 输出会被转义，访客评论内容/作者/链接、
+      // 搜索词等不可信数据借此防存储型/反射型 XSS。可信 HTML（文章正文、
+      // seo_head、theme_css 等）在模板中用三花括号 {{{var}}} 显式输出。
+      getTemplateMap(slug).set(name, Handlebars.compile(src))
     }
   }
 }
