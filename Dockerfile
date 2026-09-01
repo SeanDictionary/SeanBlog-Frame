@@ -12,7 +12,10 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# NEXT_PUBLIC_* 在 next build 时烘妒进客户端 bundle，必须作为构建期参数传入，
+# content/ 在仓库中为运行时内容（gitignore），clone 后可能不存在；
+# 此处保证 builder 镜像内存在该目录，避免 runner 阶段 COPY 失败。运行时由命名卷覆盖。
+RUN mkdir -p /app/content
+# NEXT_PUBLIC_* 在 next build 时烘炉进客户端 bundle，必须作为构建期参数传入，
 # 否则客户端会恒为构建默认值（运行时 environment 无法覆盖已烘妒的客户端代码）。
 ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
