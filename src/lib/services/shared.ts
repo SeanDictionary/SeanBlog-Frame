@@ -167,6 +167,7 @@ export const adminArticleDetailSelect = {
   metaDescription: true,
   metaKeywords: true,
   isPinned: true,
+  isPage: true,
   publishedAt: true,
   viewCount: true,
   visitorCount: true,

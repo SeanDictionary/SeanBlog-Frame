@@ -115,6 +115,10 @@ function buildArticleData(input: ArticleInput | ArticleUpdateInput, options: { g
     data.isPinned = input.isPinned
   }
 
+  if (input.isPage !== undefined) {
+    data.isPage = input.isPage
+  }
+
   if (input.categoryId !== undefined) {
     data.categoryId = input.categoryId
   }
@@ -301,6 +305,7 @@ type ArticleArchiveMetadata = {
   metaDescription?: string | null
   metaKeywords?: string | null
   isPinned?: boolean
+  isPage?: boolean
   publishedAt?: string | null
   category?: { name: string; slug: string; description?: string | null } | null
   tags?: Array<{ name: string; slug: string; description?: string | null }>
@@ -408,6 +413,7 @@ function parseArchiveMetadata(value: unknown, metadataPath: string): ArticleArch
     metaDescription: normalizeOptionalString(record.metaDescription),
     metaKeywords: normalizeOptionalString(record.metaKeywords),
     isPinned: record.isPinned === true,
+    isPage: record.isPage === true,
     publishedAt: normalizeOptionalString(record.publishedAt),
     category: category
       ? {
@@ -619,6 +625,7 @@ function buildArchiveImportInput(metadata: ArticleArchiveMetadata, markdown: str
     metaDescription: metadata.metaDescription ?? null,
     metaKeywords: metadata.metaKeywords ?? null,
     isPinned: metadata.isPinned ?? false,
+    isPage: metadata.isPage ?? false,
     categoryId,
     tagIds,
     publishedAt: metadata.publishedAt ? new Date(metadata.publishedAt) : null,
@@ -746,6 +753,7 @@ async function collectArticleExportEntries(article: Awaited<ReturnType<typeof ge
     metaDescription: article.metaDescription,
     metaKeywords: article.metaKeywords,
     isPinned: article.isPinned,
+    isPage: article.isPage,
     publishedAt: article.publishedAt?.toISOString() ?? null,
     category: article.category
       ? {
@@ -813,11 +821,12 @@ async function articleMatchesQuery(
   return textIncludesAllSearchTerms(await readMarkdownFromStorage(article), searchTerms)
 }
 
-export async function listPublicArticles(input: { page: number; pageSize: number; category?: string; tag?: string; sort?: PublicArticleSort }): Promise<PaginatedPublicArticles> {
+export async function listPublicArticles(input: { page: number; pageSize: number; category?: string; tag?: string; sort?: PublicArticleSort; hidePages?: boolean }): Promise<PaginatedPublicArticles> {
   const prisma = getPrisma()
   const sort = input.sort ?? 'publishedAt'
   const where: Prisma.ArticleWhereInput = {
     ...getPublicArticleWhere(),
+    ...(input.hidePages ? { isPage: false } : {}),
     ...(input.category
       ? {
           category: {

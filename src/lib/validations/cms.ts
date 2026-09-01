@@ -101,6 +101,7 @@ export const articleInputSchema = z
     metaDescription: optionalTrimmedString,
     metaKeywords: optionalTrimmedString,
     isPinned: z.boolean().default(false),
+    isPage: z.boolean().default(false),
     categoryId: optionalTrimmedString,
     tagIds: tagIdsSchema.default([]),
     publishedAt: z.coerce.date().nullable().optional(),
@@ -120,6 +121,7 @@ export const articleUpdateSchema = articleInputSchema
     status: z.nativeEnum(ArticleStatus).optional(),
     commentsMode: z.enum(ARTICLE_COMMENTS_MODES).optional(),
     isPinned: z.boolean().optional(),
+    isPage: z.boolean().optional(),
     tagIds: tagIdsSchema.optional(),
   })
   .strict()

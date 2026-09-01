@@ -114,6 +114,7 @@ model Article {
   coverImage            String?
   status                ArticleStatus       @default(DRAFT)
   commentsMode          ArticleCommentsMode @default(ENABLED)
+  isPage                Boolean             @default(false)
 
   metaTitle             String?
   metaDescription       String?
@@ -148,6 +149,7 @@ model Article {
 - `viewCount` 使用数据库字段，后续可改用 Redis HLL 异步更新
 - `visitorCount` 预留给后台文章列表展示浏览人数，后续统计功能接入后由访问事件聚合更新
 - `isPinned` 配合 `publishedAt` 索引，用于首页置顶查询
+- `isPage` 区分「文章」与「页面」（默认 false 即文章）；页面与文章唯一区别是不出现在首页列表（含置顶区），详情页、分类/标签、搜索、sitemap、RSS 均与文章一致
 - `onDelete: SetNull` 在 Category 上，删除分类不会删除文章
 - 不保存 `authorId`，因为所有后台内容均由唯一管理员维护
 

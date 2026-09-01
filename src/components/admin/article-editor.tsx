@@ -33,6 +33,7 @@ type ArticleFormValues = {
   categoryId?: string | null
   tagIds?: string[]
   isPinned?: boolean
+  isPage?: boolean
   publishedAt?: Date | string | null
   updatedAt?: Date | string | null
   revisions?: ArticleRevisionSummary[]
@@ -93,6 +94,7 @@ type FormState = {
   commentsMode: ArticleCommentsMode
   categoryId: string
   isPinned: boolean
+  isPage: boolean
   publishedAt: string
   enableScheduledPublish: boolean
   metaTitle: string
@@ -145,6 +147,7 @@ function getInitialState(article?: ArticleFormValues, defaultCategoryId = ''): F
     commentsMode: article?.commentsMode ?? 'enabled',
     categoryId: article ? article.categoryId ?? '' : defaultCategoryId,
     isPinned: article?.isPinned ?? false,
+    isPage: article?.isPage ?? false,
     publishedAt: toDateTimeLocal(article?.publishedAt),
     enableScheduledPublish: article?.publishedAt ? new Date(article.publishedAt).getTime() > Date.now() : false,
     metaTitle: article?.metaTitle ?? '',
@@ -218,10 +221,11 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
     const publishedAt = form.publishedAt ? new Date(form.publishedAt).getTime() : null
 
     if (form.isPinned) labels.push('置顶')
+    if (form.isPage) labels.push('页面')
     if (form.enableScheduledPublish && publishedAt && publishedAt > now) labels.push('定时发布')
 
     return labels
-  }, [form.enableScheduledPublish, form.isPinned, form.publishedAt, form.status])
+  }, [form.enableScheduledPublish, form.isPinned, form.isPage, form.publishedAt, form.status])
 
   const showPreview = editorMode === 'preview'
   const selectedTagItems = useMemo(() => tagOptions.filter((tag) => selectedTags.has(tag.id)), [selectedTags, tagOptions])
@@ -803,6 +807,7 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
           categoryId,
           tagIds,
           isPinned: form.isPinned,
+          isPage: form.isPage,
           publishedAt: schedule.publishedAt,
           metaTitle: form.metaTitle || null,
           metaDescription: form.metaDescription || null,
@@ -924,6 +929,13 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
         <div className="px-4 pb-5 lg:h-[calc(100vh-5.5rem)] lg:overflow-y-auto">
 
           <EditorAccordionSection title="发布" summary="状态、评论、定时" defaultOpen>
+            <label className="grid gap-1.5 text-sm font-medium">
+              类型
+              <select name="isPage" value={form.isPage ? 'page' : 'article'} onChange={(event) => updateField('isPage', event.target.value === 'page')} className="h-10 rounded-md border border-neutral-300 bg-white px-3 font-normal outline-none dark:border-neutral-700 dark:bg-neutral-900">
+                <option value="article">文章（显示在首页列表）</option>
+                <option value="page">页面（不在首页列表显示）</option>
+              </select>
+            </label>
             <label className="grid gap-1.5 text-sm font-medium">
               评论
               <select name="commentsMode" value={form.commentsMode} onChange={(event) => updateField('commentsMode', event.target.value as ArticleCommentsMode)} className="h-10 rounded-md border border-neutral-300 bg-white px-3 font-normal outline-none dark:border-neutral-700 dark:bg-neutral-900">

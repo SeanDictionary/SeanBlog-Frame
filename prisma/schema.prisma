@@ -65,6 +65,7 @@ model Article {
   coverImage            String?
   status                ArticleStatus       @default(DRAFT)
   commentsMode          ArticleCommentsMode @default(ENABLED)
+  isPage                Boolean             @default(false)
   metaTitle             String?
   metaDescription       String?
   metaKeywords          String?

@@ -183,7 +183,7 @@ export async function buildHomeCtx(searchParams: { page?: string; sort?: string 
   const base = await baseCtx()
   const page = parsePage(searchParams.page)
   const sort = (searchParams.sort ?? 'publishedAt') as any
-  const result = await listPublicArticles({ page, pageSize: 12, sort })
+  const result = await listPublicArticles({ page, pageSize: 12, sort, hidePages: true })
   const pinned = page === 1 && sort === 'publishedAt' ? result.items.filter((a: any) => a.isPinned) : []
   // posts 始终含全部文章（含置顶），由主题决定是否单独展示置顶区；
   // 关闭置顶区时置顶文章按顺序混入列表。
