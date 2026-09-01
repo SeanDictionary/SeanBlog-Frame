@@ -15,6 +15,8 @@ pnpm-debug.log*
 Dockerfile
 .dockerignore
 docker-compose*.yml
+# dev 脚本不进生产镜像
+scripts/build-openapi.mjs
 docs
 README.md
 *.tsbuildinfo

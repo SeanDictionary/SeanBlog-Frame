@@ -12,6 +12,10 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# NEXT_PUBLIC_* 在 next build 时烘妒进客户端 bundle，必须作为构建期参数传入，
+# 否则客户端会恒为构建默认值（运行时 environment 无法覆盖已烘妒的客户端代码）。
+ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 RUN npx prisma generate
 RUN npm run build
 
@@ -33,6 +37,11 @@ COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 RUN chmod +x ./scripts/start-production.sh
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
+
+# 服务端读取 NEXT_PUBLIC_SITE_URL（seo_head/canonical）；带上构建期值，便于
+# docker run（非 compose）部署；compose 可用运行时 environment 覆盖。
+ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 
 USER nextjs
 EXPOSE 3000

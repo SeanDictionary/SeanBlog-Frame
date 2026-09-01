@@ -1,23 +1,29 @@
+x-build: &build
+  context: .
+  dockerfile: Dockerfile
+  args:
+    # NEXT_PUBLIC_* 为构建期变量；SITE_URL 可在 .env / 环境变量中覆盖。
+    # 未设置时默认 localhost:3000，仅适用于本地验证，正式部署务必设置真实域名。
+    NEXT_PUBLIC_SITE_URL: ${SITE_URL:-http://localhost:3000}
+
 services:
   secrets:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: *build
     entrypoint: ["node", "scripts/initialize-secrets.mjs"]
     restart: "no"
     volumes:
       - seanblog_secrets:/run/secrets
 
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: *build
     container_name: seanblog-app
     restart: unless-stopped
     entrypoint: ["/bin/sh", "scripts/start-production.sh"]
     environment:
-      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      NEXT_PUBLIC_SITE_URL: ${SITE_URL:-http://localhost:3000}
       SECRETS_DIRECTORY: /run/secrets
+      # 容器化部署默认位于反向代理后，信任 X-Forwarded-For 以正确限流与采集访客 IP
+      TRUST_PROXY_HEADERS: "true"
     ports:
       - "3000:3000"
     volumes:
@@ -29,6 +35,12 @@ services:
         condition: service_completed_successfully
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
   db:
     image: postgres:16-alpine
