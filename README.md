@@ -1,56 +1,75 @@
 # SeanBlog Frame
 
-一个面向长期使用的个人博客 CMS 项目，用于替代 WordPress。
+一个面向长期使用的个人博客 CMS 项目，用于替代 WordPress。基于 Next.js 单体全栈架构，前端、后台与 API 共享同一应用进程和类型系统。
 
-当前阶段仍处于策划与文档沉淀阶段，核心技术栈已确定为：
+## 技术栈
 
-- Next.js
-- PostgreSQL
-- Prisma
-- Auth.js
-- Docker
+- **框架**：Next.js 16（App Router + Turbopack，standalone 输出）
+- **语言**：TypeScript（strict）
+- **数据库**：PostgreSQL 16 + Prisma 7
+- **认证**：Auth.js v5（Credentials Provider + JWT session，单管理员模式）
+- **样式**：Tailwind CSS v4
+- **前台主题**：Handlebars 模板引擎 + 平台 data-* 渐进增强（详见 `docs/theme-framework.md`）
+- **内容**：Markdown（unified/remark/rehype）+ Shiki 代码高亮 + KaTeX 数学公式
+- **部署**：Docker / docker-compose（Next.js standalone + Postgres + 密钥初始化）
 
-## 项目定位
+## 主要能力
 
-这个项目的目标不是做一个“能发文章的 demo”，而是构建一个可长期维护、可逐步扩展、具备完整后台管理能力的生产级个人博客 CMS。
+- 文章（Markdown 文件存储 / 草稿 / 发布 / 归档 / 定时发布 / 置顶 / 修订历史 / ZIP 导入导出）
+- 分类、标签（slug 唯一性、批量操作）
+- 评论（嵌套回复、审核、黑名单规则、按文章关闭/只读）
+- 媒体库（任意类型文件上传，按 MIME 分类，多选 / 粘贴 / 拖拽）
+- 主题系统（运行时上传启用、设置 schema、预览、导入导出）
+- 访问分析（访客 / 访问记录、每日物化统计、GeoIP、CSV 导出、交互式趋势图）
+- 操作日志（含浏览器指纹 / 硬件特征，保留期可配，CSV 导出）
+- SEO（`seo_head` helper 注入 title/OG/canonical/JSON-LD、`sitemap.xml`、`robots.txt`、`/rss.xml`）
+- 后台概览仪表盘（统计卡片、文章热度、最近评论、趋势图）
 
-预期覆盖：
+## 快速开始
 
-- 个人博客前台
-- 后台管理系统
-- 内容生产与发布流程
-- 评论与审核机制
-- SEO 与内容分发能力
-- 后续 AI / 搜索 / 缓存扩展能力
+### 本地开发
+
+```bash
+npm install
+npx prisma migrate dev        # 初始化本地数据库
+node scripts/initialize-admin.mjs      # 创建/重置管理员账号并输出密码
+node scripts/initialize-content.mjs    # 文章表为空时创建欢迎文章
+npm run dev
+```
+
+需要 `.env.local`（参考字段：`DATABASE_URL`、`AUTH_SECRET`、`NEXT_PUBLIC_SITE_URL`）。
+
+### Docker 部署
+
+```bash
+docker compose up -d --build
+```
+
+`docker-compose.yml` 会自动：生成密钥（`secrets` 服务）→ 启动 Postgres → 启动应用（`start-production.sh` 执行 `prisma migrate deploy`、初始化管理员与内容、运行 `server.js`）。默认主题 `seanblog-default` 在镜像内随包发布，首次启动会种子到 `themes` volume。
+
+## 常用脚本
+
+| 命令 | 作用 |
+|------|------|
+| `npm run dev` | 本地开发 |
+| `npm run build` | 生产构建（standalone） |
+| `npm run typecheck` | 类型检查 |
+| `npm run db:migrate` | Prisma 迁移 |
+| `npm run admin:reset-password` | 重置管理员密码 |
+| `npm run logs:prune` | 清理过期操作日志 |
+| `node scripts/build-openapi.mjs` | 由实际路由重建 `docs/openapi.json` |
 
 ## 文档索引
 
-当前项目文档按产品、架构、数据、权限、SEO、路线图拆分维护：
+- [PRD - 产品需求](docs/prd.md)
+- [系统架构设计](docs/architecture.md)
+- [数据模型与数据库设计](docs/data-model.md)
+- [后台与权限设计](docs/admin-and-auth.md)
+- [SEO 与内容系统设计](docs/seo-and-content.md)
+- [主题框架设计](docs/theme-framework.md)
+- [OpenAPI 规范](docs/openapi.json)
+- [新增需求追踪](docs/新增需求.md)
 
-- [PRD](docs/prd.md)
-- [系统架构](docs/architecture.md)
-- [数据模型](docs/data-model.md)
-- [后台与权限](docs/admin-and-auth.md)
-- [SEO 与内容系统](docs/seo-and-content.md)
-- [开发路线图](docs/implementation-roadmap.md)
-- [OpenAPI 导入文件](docs/openapi.json)
+## 许可证
 
-## 当前阶段产出
-
-当前文档主要用于：
-
-- 明确产品目标与 MVP 边界
-- 固化核心技术决策
-- 为后续项目初始化与编码提供约束
-- 降低后续开发时需求和架构反复变动的成本
-
-## 下一步建议
-
-建议按以下顺序进入实现阶段：
-
-1. 初始化 Next.js App Router 项目
-2. 初始化 Prisma 与 PostgreSQL
-3. 建立 Auth.js 单管理员登录基线
-4. 完成文章、分类、标签的核心内容系统
-5. 完成博客前台与后台管理面板
-6. 补齐评论、SEO、部署与生产能力
+AGPL-3.0-only

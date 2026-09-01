@@ -23,12 +23,19 @@ enum ArticleStatus {
   PUBLISHED  // 已发布（公开）
   ARCHIVED   // 归档（URL 保留但不出现在列表中）
 }
+
+enum ArticleCommentsMode {
+  ENABLED     // 允许评论
+  READ_ONLY   // 只读（展示已有评论，禁止新评论）
+  DISABLED    // 关闭评论
+}
 ```
 
 说明：
 
 - 不定义 `UserRole`，因为后台只有唯一管理员
-- 评论状态枚举在评论系统进入 Phase 2 时再追加
+- `ArticleCommentsMode` 控制单篇文章评论区状态，覆盖站点级评论开关；默认 `ENABLED`
+- 评论状态枚举见下文 `CommentStatus`
 
 ## 3. 核心模型
 
@@ -105,7 +112,8 @@ model Article {
   legacyContentMarkdown String?       @map("contentMarkdown") // 迁移期回退来源
   legacyContentHtml     String?       @map("contentHtml")     // 迁移期回退来源
   coverImage            String?
-  status                ArticleStatus @default(DRAFT)
+  status                ArticleStatus       @default(DRAFT)
+  commentsMode          ArticleCommentsMode @default(ENABLED)
 
   metaTitle             String?
   metaDescription       String?
@@ -191,6 +199,7 @@ model Comment {
 
   guestName  String?
   guestEmail String?
+  guestLink  String?
 
   parentId   String?
   parent     Comment?     @relation("CommentReplies", fields: [parentId], references: [id], onDelete: SetNull)

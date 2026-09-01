@@ -3,7 +3,7 @@
   "info": {
     "title": "SeanBlog Frame 后端 API",
     "version": "0.1.0",
-    "description": "SeanBlog Frame 后端 API 的 OpenAPI 规范。项目采用单管理员模式：公开接口无需认证，/api/admin/* 接口需要有效的 Auth.js 会话 Cookie。文章 Markdown 保存在 content/articles/{articleId}/index.md；PostgreSQL 保存文章元数据和相对内容路径。"
+    "description": "SeanBlog Frame 后端 API 的 OpenAPI 规范。项目采用单管理员模式：公开接口无需认证，/api/admin/* 接口需要有效的 Auth.js 会话 Cookie。文章 Markdown 保存在 content/articles/{articleId}/index.md；PostgreSQL 保存文章元数据与相对内容路径。前台公开页面由 (public) 路由组通过 Handlebars 主题模板渲染为 HTML，不在本规范内。"
   },
   "servers": [
     {
@@ -17,48 +17,56 @@
   ],
   "tags": [
     {
-      "name": "公开文章",
-      "description": "供博客前台使用的无需认证文章列表、搜索和详情接口。"
-    },
-    {
-      "name": "公开分类与标签",
-      "description": "供前台导航和筛选使用的无需认证分类与标签接口。"
-    },
-    {
-      "name": "公开评论",
-      "description": "无需认证的访客评论提交接口；提交后评论会进入审核流程。"
-    },
-    {
-      "name": "内容分发",
-      "description": "RSS、站点地图、robots 等供爬虫和订阅使用的接口。"
-    },
-    {
-      "name": "后台文章管理",
-      "description": "供唯一管理员使用、需要认证的文章管理接口。"
-    },
-    {
-      "name": "后台分类与标签管理",
-      "description": "需要认证的分类和标签管理接口。"
-    },
-    {
-      "name": "后台评论审核",
-      "description": "需要认证的评论审核接口。"
-    },
-    {
-      "name": "后台媒体管理",
-      "description": "需要认证的媒体元数据管理接口。这些接口不上传二进制文件。"
-    },
-    {
-      "name": "后台站点设置",
-      "description": "需要认证的站点键值设置接口。"
+      "name": "公开访问",
+      "description": "无需认证的访客访问埋点、评论提交、搜索、健康检查与主题资源接口。"
     },
     {
       "name": "认证",
-      "description": "由 Auth.js 管理的单管理员账户认证接口。"
+      "description": "由 Auth.js 管理的单管理员账户认证相关接口。"
     },
     {
-      "name": "健康检查",
-      "description": "轻量级存活检查接口。"
+      "name": "内容分发",
+      "description": "RSS、站点地图、robots 等供爬虫与订阅器使用的运行时端点。"
+    },
+    {
+      "name": "后台文章管理",
+      "description": "需要管理员会话的文章 CRUD、批量操作、导入导出、预览、修订历史与发布/归档接口。"
+    },
+    {
+      "name": "后台分类管理",
+      "description": "需要管理员会话的分类 CRUD、slug 生成与批量操作接口。"
+    },
+    {
+      "name": "后台标签管理",
+      "description": "需要管理员会话的标签 CRUD、slug 生成与批量操作接口。"
+    },
+    {
+      "name": "后台评论审核",
+      "description": "需要管理员会话的评论列表、批量与单条审核及删除接口。"
+    },
+    {
+      "name": "后台媒体管理",
+      "description": "需要管理员会话的媒体列表、上传（multipart）与批量/单条删除接口。"
+    },
+    {
+      "name": "后台站点设置",
+      "description": "需要管理员会话的站点键值设置读写接口。"
+    },
+    {
+      "name": "后台主题管理",
+      "description": "需要管理员会话的主题列表、上传安装、详情/导出、删除与自定义设置保存接口。"
+    },
+    {
+      "name": "后台操作日志",
+      "description": "需要管理员会话的操作日志查询与 CSV 导出接口。"
+    },
+    {
+      "name": "后台分析导出",
+      "description": "需要管理员会话的访客/访问记录 CSV 导出接口。"
+    },
+    {
+      "name": "后台工具",
+      "description": "需要管理员会话的辅助校验接口（主题 CSS 校验）。"
     }
   ],
   "components": {
@@ -1942,741 +1950,10 @@
     }
   },
   "paths": {
-    "/api/auth/signin": {
-      "get": {
-        "tags": [
-          "Auth"
-        ],
-        "summary": "Auth.js 登录入口",
-        "description": "由 Auth.js 管理的单管理员登录入口/页面。具体 HTML 和重定向行为由 Auth.js 管理。",
-        "responses": {
-          "200": {
-            "description": "Auth.js 登录页面或响应，内容类型由 Auth.js 管理。"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "operationId": "authSignIn"
-      }
-    },
-    "/api/auth/providers": {
-      "get": {
-        "tags": [
-          "Auth"
-        ],
-        "summary": "获取 Auth.js Provider 列表",
-        "description": "返回 Auth.js Provider 注册表。当前后端仅暴露 username=admin 使用的 Credentials Provider。",
-        "responses": {
-          "200": {
-            "description": "由 Auth.js 管理的 Provider 注册表响应。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "operationId": "authProviders"
-      }
-    },
-    "/api/auth/error": {
-      "get": {
-        "tags": [
-          "Auth"
-        ],
-        "summary": "Auth.js 错误入口",
-        "description": "由 Auth.js 管理的认证失败错误入口/页面。具体响应结构由 Auth.js 管理。",
-        "responses": {
-          "200": {
-            "description": "Auth.js 错误页面或响应，内容类型由 Auth.js 管理。"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "operationId": "authError"
-      }
-    },
-    "/api/auth/session": {
-      "get": {
-        "tags": [
-          "Auth"
-        ],
-        "summary": "获取当前 Auth.js 会话",
-        "description": "存在有效 Auth.js 会话 Cookie 时返回当前会话；未认证请求按 Auth.js 的空/null 会话语义返回。",
-        "responses": {
-          "200": {
-            "description": "由 Auth.js 管理的当前会话对象或空/null 会话响应。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "operationId": "authSession"
-      }
-    },
-    "/api/auth/csrf": {
-      "get": {
-        "tags": [
-          "Auth"
-        ],
-        "summary": "获取 Auth.js CSRF token",
-        "description": "返回供 Auth.js 表单 POST 请求使用的 CSRF token。",
-        "responses": {
-          "200": {
-            "description": "由 Auth.js 管理的 CSRF token 响应。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "csrfToken": {
-                      "type": "string"
-                    }
-                  },
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "operationId": "authCsrf"
-      }
-    },
-    "/api/auth/signout": {
-      "post": {
-        "tags": [
-          "Auth"
-        ],
-        "summary": "Auth.js 退出登录",
-        "description": "退出当前管理员会话。Auth.js 可能要求 CSRF 表单语义，并会根据请求方式返回重定向。",
-        "responses": {
-          "200": {
-            "description": "由 Auth.js 管理的退出登录响应。"
-          },
-          "302": {
-            "description": "由 Auth.js 管理的重定向响应。"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "operationId": "authSignOut"
-      }
-    },
-    "/api/auth/callback/credentials": {
-      "post": {
-        "tags": [
-          "Auth"
-        ],
-        "summary": "Credentials 登录回调",
-        "description": "Auth.js Credentials Provider 回调。使用 Auth.js 表单语义提交 username=admin 和 password。无效凭据通常遵循 Auth.js 的回调/重定向行为，而非本应用错误响应格式。",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "username",
-                  "password"
-                ],
-                "properties": {
-                  "username": {
-                    "type": "string",
-                    "const": "admin"
-                  },
-                  "password": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "csrfToken": {
-                    "type": "string"
-                  },
-                  "callbackUrl": {
-                    "type": "string"
-                  }
-                },
-                "additionalProperties": true
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "由 Auth.js 管理的 Credentials 回调响应。"
-          },
-          "302": {
-            "description": "由 Auth.js 管理的重定向响应。"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "operationId": "authCredentialsCallback"
-      }
-    },
-    "/api/health": {
-      "get": {
-        "tags": [
-          "Health"
-        ],
-        "summary": "健康检查",
-        "responses": {
-          "200": {
-            "description": "应用存活状态。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "const": "ok"
-                    }
-                  },
-                  "required": [
-                    "status"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "operationId": "healthCheck",
-        "description": "轻量级存活检查。固定返回 { status: \"ok\" }。"
-      }
-    },
-    "/api/articles": {
-      "get": {
-        "tags": [
-          "Public Articles"
-        ],
-        "summary": "获取已发布文章摘要列表",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Page"
-          },
-          {
-            "$ref": "#/components/parameters/PageSize"
-          },
-          {
-            "name": "category",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "minLength": 1
-            },
-            "description": "分类 slug 筛选条件。空查询值按未传处理。",
-            "allowEmptyValue": true
-          },
-          {
-            "name": "tag",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "minLength": 1
-            },
-            "description": "标签 slug 筛选条件。空查询值按未传处理。",
-            "allowEmptyValue": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "分页公开文章摘要。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "items",
-                    "meta"
-                  ],
-                  "properties": {
-                    "items": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/PublicArticleSummary"
-                      },
-                      "description": "当前页结果项。"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/PageMeta",
-                      "description": "分页元数据。"
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/ValidationError"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "description": "仅返回状态为 PUBLISHED 且 publishedAt 非空的文章。结果先按 isPinned 降序，再按 publishedAt 降序排列。category 和 tag 筛选使用 slug；未知 slug 返回空列表而非 404。列表项会刻意省略文章正文和仅限后台的字段。",
-        "operationId": "listPublishedArticles"
-      }
-    },
-    "/api/articles/{slug}": {
-      "get": {
-        "tags": [
-          "Public Articles"
-        ],
-        "summary": "按 slug 获取已发布文章详情",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Slug"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "带渲染 HTML 正文和公开安全评论的已发布文章详情。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "article"
-                  ],
-                  "properties": {
-                    "article": {
-                      "$ref": "#/components/schemas/PublicArticleDetail",
-                      "description": "本操作的文章资源。"
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "operationId": "getPublishedArticleBySlug",
-        "description": "按 slug 返回一篇 PUBLISHED 文章。响应从文件化 Markdown 源文渲染 contentHtml，仅暴露公开安全的评论。"
-      }
-    },
-    "/api/search": {
-      "get": {
-        "tags": [
-          "Public Articles"
-        ],
-        "summary": "搜索已发布文章摘要",
-        "parameters": [
-          {
-            "name": "q",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1
-            },
-            "description": "必填搜索关键词。空值非法并返回 400。",
-            "allowEmptyValue": false
-          },
-          {
-            "$ref": "#/components/parameters/Page"
-          },
-          {
-            "$ref": "#/components/parameters/PageSize"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "分页公开文章搜索结果。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "items",
-                    "meta"
-                  ],
-                  "properties": {
-                    "items": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/PublicArticleSummary"
-                      },
-                      "description": "当前页结果项。"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/PageMeta",
-                      "description": "分页元数据。"
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/ValidationError"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "description": "按标题、摘要和文件化 Markdown 源文搜索 PUBLISHED 文章。应用会先读取候选 Markdown 文件再筛选；结果按 publishedAt 降序排列，并返回公开摘要 DTO。",
-        "operationId": "searchPublishedArticles"
-      }
-    },
-    "/api/categories": {
-      "get": {
-        "tags": [
-          "Public Taxonomy"
-        ],
-        "summary": "获取分类列表",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Page"
-          },
-          {
-            "$ref": "#/components/parameters/PageSize"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "分页分类列表。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "items",
-                    "meta"
-                  ],
-                  "properties": {
-                    "items": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Category"
-                      }
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/PageMeta"
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/ValidationError"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "operationId": "listPublicCategories",
-        "description": "返回至少关联一篇已发布文章的分类，先按 sortOrder 升序，再按 name 升序排列。_count.articles 仅统计已发布文章。"
-      }
-    },
-    "/api/categories/{slug}": {
-      "get": {
-        "tags": [
-          "Public Taxonomy"
-        ],
-        "summary": "按 slug 获取分类详情",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Slug"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "分类详情。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "category"
-                  ],
-                  "properties": {
-                    "category": {
-                      "$ref": "#/components/schemas/Category",
-                      "description": "本操作的分类资源。"
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "operationId": "getCategoryBySlug",
-        "description": "按 slug 返回一个至少关联一篇已发布文章的分类。_count.articles 仅统计已发布文章。"
-      }
-    },
-    "/api/tags": {
-      "get": {
-        "tags": [
-          "Public Taxonomy"
-        ],
-        "summary": "获取标签列表",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Page"
-          },
-          {
-            "$ref": "#/components/parameters/PageSize"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "分页标签列表。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "items",
-                    "meta"
-                  ],
-                  "properties": {
-                    "items": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Tag"
-                      }
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/PageMeta"
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/ValidationError"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "operationId": "listPublicTags",
-        "description": "返回至少关联一篇已发布文章的标签，按 name 升序排列。_count.articles 仅统计已发布文章。"
-      }
-    },
-    "/api/tags/{slug}": {
-      "get": {
-        "tags": [
-          "Public Taxonomy"
-        ],
-        "summary": "按 slug 获取标签详情",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Slug"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "标签详情。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "tag"
-                  ],
-                  "properties": {
-                    "tag": {
-                      "$ref": "#/components/schemas/Tag",
-                      "description": "本操作的标签资源。"
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "operationId": "getTagBySlug",
-        "description": "按 slug 返回一个至少关联一篇已发布文章的标签。_count.articles 仅统计已发布文章。"
-      }
-    },
-    "/api/comments": {
-      "post": {
-        "tags": [
-          "Public Comments"
-        ],
-        "summary": "创建访客评论",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CommentInput"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "已创建评论，默认等待审核。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "comment"
-                  ],
-                  "properties": {
-                    "comment": {
-                      "$ref": "#/components/schemas/PublicCommentReceipt",
-                      "description": "本操作的评论资源。"
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/ValidationError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "429": {
-            "description": "当前 IP 在一分钟内的评论提交次数超过限制。"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "operationId": "createGuestComment",
-        "description": "为任意已存在文章 ID 创建访客评论。新评论默认进入 PENDING 审核。parentId 必须属于同一篇文章。服务端要求 x-forwarded-for 或 x-real-ip 之一来记录客户端 IP，并保存 user-agent；这些值不会在公开响应中返回。同一 IP 在一分钟内最多可创建 5 条评论。"
-      }
-    },
-    "/rss.xml": {
-      "get": {
-        "tags": [
-          "Content Distribution"
-        ],
-        "summary": "RSS 2.0 订阅源",
-        "responses": {
-          "200": {
-            "description": "RSS 订阅 XML。",
-            "content": {
-              "application/rss+xml": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "operationId": "getRssFeed",
-        "description": "为最新 50 篇状态为 PUBLISHED 且 publishedAt 非空的文章返回 RSS 2.0 XML。条目字段包括 title、link、guid、description 和 pubDate；XML 值会被转义。频道 title/description/link 来自 siteName、siteDescription 和 siteUrl 设置，并有环境变量/默认值回退。"
-      }
-    },
-    "/sitemap.xml": {
-      "get": {
-        "tags": [
-          "Content Distribution"
-        ],
-        "summary": "动态站点地图",
-        "responses": {
-          "200": {
-            "description": "站点地图 XML。",
-            "content": {
-              "application/xml": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "operationId": "getSitemap",
-        "description": "返回首页、全部状态为 PUBLISHED 且 publishedAt 非空的文章、全部分类和全部标签的 XML 站点地图条目。文章优先级为 0.8、更新频率为每周；分类/标签优先级为 0.5、更新频率为每周；首页优先级为 1、更新频率为每天。基础 URL 来自 siteUrl 设置，或回退到 NEXT_PUBLIC_SITE_URL/默认值。"
-      }
-    },
-    "/robots.txt": {
-      "get": {
-        "tags": [
-          "Content Distribution"
-        ],
-        "summary": "获取 robots.txt",
-        "responses": {
-          "200": {
-            "description": "robots.txt 文本。",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "operationId": "getRobotsTxt",
-        "description": "返回 robots.txt：允许 /，禁止 /admin/，并指向 /sitemap.xml。基础 URL 来自 NEXT_PUBLIC_SITE_URL 或 localhost 回退值，而不是数据库中的 siteUrl 设置。"
-      }
-    },
     "/api/admin/articles": {
       "get": {
         "tags": [
-          "Admin Articles"
+          "后台文章管理"
         ],
         "summary": "后台获取文章列表",
         "security": [
@@ -2684,6 +1961,44 @@
             "adminSession": []
           }
         ],
+        "responses": {
+          "200": {
+            "description": "后台文章分页列表。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AdminArticleSummary"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PageMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
         "parameters": [
           {
             "$ref": "#/components/parameters/Page"
@@ -2697,7 +2012,7 @@
             "schema": {
               "$ref": "#/components/schemas/ArticleStatus"
             },
-            "description": "文章状态筛选条件。空查询值按未传处理。",
+            "description": "文章状态筛选，空值视为未传。",
             "allowEmptyValue": true
           },
           {
@@ -2706,7 +2021,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "分类 slug 筛选条件。空查询值按未传处理。",
+            "description": "分类 slug 筛选。",
             "allowEmptyValue": true
           },
           {
@@ -2715,7 +2030,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "标签 slug 筛选条件。空查询值按未传处理。",
+            "description": "标签 slug 筛选。",
             "allowEmptyValue": true
           },
           {
@@ -2724,35 +2039,53 @@
             "schema": {
               "type": "string"
             },
-            "description": "搜索关键词。空查询值按未传处理。",
+            "description": "关键词筛选。",
             "allowEmptyValue": true
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "排序字段（publishedAt / updatedAt / viewCount / visitorCount / commentCount）。",
+            "allowEmptyValue": true
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            },
+            "description": "排序方向。",
+            "allowEmptyValue": true
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "后台文章管理"
+        ],
+        "summary": "后台新建文章",
+        "security": [
+          {
+            "adminSession": []
           }
         ],
         "responses": {
           "200": {
-            "description": "后台文章列表。",
+            "description": "操作成功。"
+          },
+          "201": {
+            "description": "创建成功，返回文章详情。",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "items",
-                    "meta"
-                  ],
-                  "properties": {
-                    "items": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/AdminArticleSummary"
-                      },
-                      "description": "当前页结果项。"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/PageMeta",
-                      "description": "分页元数据。"
-                    }
-                  },
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/AdminArticleDetail"
                 }
               }
             }
@@ -2763,25 +2096,19 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
           }
         },
-        "description": "需要认证的分页文章摘要。q 会匹配标题、摘要和文件化 Markdown 内容；当前 Markdown 搜索由应用读取候选文件完成。空查询值按未传处理。",
-        "operationId": "listAdminArticles"
-      },
-      "post": {
-        "tags": [
-          "Admin Articles"
-        ],
-        "summary": "创建文章",
-        "security": [
-          {
-            "adminSession": []
-          }
-        ],
         "requestBody": {
           "required": true,
+          "description": "请求体。",
           "content": {
             "application/json": {
               "schema": {
@@ -2789,137 +2116,32 @@
               }
             }
           }
-        },
-        "responses": {
-          "201": {
-            "description": "文章创建成功。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "article"
-                  ],
-                  "properties": {
-                    "article": {
-                      "$ref": "#/components/schemas/AdminArticleDetail",
-                      "description": "本操作的文章资源。"
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/ValidationError"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "operationId": "createAdminArticle",
-        "description": "在 PostgreSQL 创建文章元数据，并将 contentMarkdown 写入 content/articles/{articleId}/index.md。返回从新文件读取 Markdown 的可编辑详情 DTO。"
+        }
       }
     },
-    "/api/admin/articles/{id}": {
+    "/api/admin/articles/slug": {
       "get": {
         "tags": [
-          "Admin Articles"
+          "后台文章管理"
         ],
-        "summary": "获取后台文章详情",
+        "summary": "生成或校验文章 slug",
         "security": [
           {
             "adminSession": []
           }
         ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Id"
-          }
-        ],
         "responses": {
           "200": {
-            "description": "包含修订摘要的文章详情。",
+            "description": "可用的 slug。",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "article"
-                  ],
                   "properties": {
-                    "article": {
-                      "$ref": "#/components/schemas/AdminArticleDetail",
-                      "description": "本操作的文章资源。"
+                    "slug": {
+                      "type": "string"
                     }
-                  },
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "operationId": "getAdminArticle",
-        "description": "从文章文件读取可编辑 Markdown，并连同文章元数据和修订摘要返回派生 HTML。"
-      },
-      "patch": {
-        "tags": [
-          "Admin Articles"
-        ],
-        "summary": "更新文章",
-        "security": [
-          {
-            "adminSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Id"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ArticleUpdateInput"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "文章更新成功。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "article"
-                  ],
-                  "properties": {
-                    "article": {
-                      "$ref": "#/components/schemas/AdminArticleDetail",
-                      "description": "本操作的文章资源。"
-                    }
-                  },
-                  "additionalProperties": false
+                  }
                 }
               }
             }
@@ -2940,78 +2162,57 @@
             "$ref": "#/components/responses/InternalServerError"
           }
         },
-        "operationId": "updateAdminArticle",
-        "description": "更新文章元数据；传入 contentMarkdown 时替换 Markdown 文件。响应从当前文件读取 Markdown 并返回派生 HTML。"
-      },
-      "delete": {
-        "tags": [
-          "Admin Articles"
-        ],
-        "summary": "删除文章",
-        "security": [
-          {
-            "adminSession": []
-          }
-        ],
         "parameters": [
           {
-            "$ref": "#/components/parameters/Id"
+            "name": "title",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "文章标题，用于生成 slug。"
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "当前文章 id（编辑时排除自身做唯一性校验）。",
+            "allowEmptyValue": true
           }
-        ],
-        "responses": {
-          "204": {
-            "$ref": "#/components/responses/NoContent"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "operationId": "deleteAdminArticle",
-        "description": "需要认证的硬删除文章接口。关联的文章-标签关系、评论和修订会通过级联关系一并删除。"
+        ]
       }
     },
-    "/api/admin/articles/{id}/publish": {
+    "/api/admin/articles/bulk": {
       "post": {
         "tags": [
-          "Admin Articles"
+          "后台文章管理"
         ],
-        "summary": "发布文章",
+        "summary": "批量操作文章（删除 / 归档 / 取消归档）",
         "security": [
           {
             "adminSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Id"
           }
         ],
         "responses": {
           "200": {
-            "description": "文章已发布。",
+            "description": "受影响条数。",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "article"
-                  ],
                   "properties": {
-                    "article": {
-                      "$ref": "#/components/schemas/AdminArticleDetail",
-                      "description": "本操作的文章资源。"
+                    "count": {
+                      "type": "integer"
                     }
-                  },
-                  "additionalProperties": false
+                  }
                 }
               }
             }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
@@ -3019,71 +2220,32 @@
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
           }
         },
-        "operationId": "publishAdminArticle",
-        "description": "将文章标记为 PUBLISHED，不修改其 Markdown 源文。返回可编辑详情 DTO。"
-      }
-    },
-    "/api/admin/articles/{id}/archive": {
-      "post": {
-        "tags": [
-          "Admin Articles"
-        ],
-        "summary": "归档文章",
-        "security": [
-          {
-            "adminSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Id"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "文章已归档。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "article"
-                  ],
-                  "properties": {
-                    "article": {
-                      "$ref": "#/components/schemas/AdminArticleDetail",
-                      "description": "本操作的文章资源。"
-                    }
-                  },
-                  "additionalProperties": false
-                }
+        "requestBody": {
+          "required": true,
+          "description": "请求体。",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArticleBulkActionInput"
               }
             }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
           }
-        },
-        "operationId": "archiveAdminArticle",
-        "description": "将文章标记为 ARCHIVED，不修改其 Markdown 源文。返回可编辑详情 DTO。"
+        }
       }
     },
-    "/api/admin/categories": {
+    "/api/admin/articles/export": {
       "get": {
         "tags": [
-          "Admin Taxonomy"
+          "后台文章管理"
         ],
-        "summary": "后台获取分类列表",
+        "summary": "导出文章为 ZIP 文章包",
         "security": [
           {
             "adminSession": []
@@ -3091,138 +2253,12 @@
         ],
         "responses": {
           "200": {
-            "description": "分类列表。",
+            "description": "ZIP 文章包。",
             "content": {
-              "application/json": {
+              "application/zip": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "categories"
-                  ],
-                  "properties": {
-                    "categories": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Category"
-                      }
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "operationId": "listAdminCategories",
-        "description": "需要认证的全部分类查询接口，先按 sortOrder 升序，再按 name 升序排列。_count.articles 统计全部关联文章，包含草稿和已归档文章。"
-      },
-      "post": {
-        "tags": [
-          "Admin Taxonomy"
-        ],
-        "summary": "创建分类",
-        "security": [
-          {
-            "adminSession": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CategoryInput"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "分类创建成功。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "category"
-                  ],
-                  "properties": {
-                    "category": {
-                      "$ref": "#/components/schemas/Category",
-                      "description": "本操作的分类资源。"
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/ValidationError"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "operationId": "createAdminCategory",
-        "description": "需要认证的创建分类接口。省略 slug 时从 name 生成；sortOrder 默认 0。name 和 slug 都必须唯一。"
-      }
-    },
-    "/api/admin/categories/{id}": {
-      "patch": {
-        "tags": [
-          "Admin Taxonomy"
-        ],
-        "summary": "更新分类",
-        "security": [
-          {
-            "adminSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Id"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CategoryUpdateInput"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "分类更新成功。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "category"
-                  ],
-                  "properties": {
-                    "category": {
-                      "$ref": "#/components/schemas/Category",
-                      "description": "本操作的分类资源。"
-                    }
-                  },
-                  "additionalProperties": false
+                  "type": "string",
+                  "format": "binary"
                 }
               }
             }
@@ -3243,518 +2279,45 @@
             "$ref": "#/components/responses/InternalServerError"
           }
         },
-        "operationId": "updateAdminCategory",
-        "description": "需要认证的分类局部更新接口。省略字段保持不变。更新 name 不会修改 slug，除非显式传入 slug。"
-      },
-      "delete": {
-        "tags": [
-          "Admin Taxonomy"
-        ],
-        "summary": "删除分类",
-        "security": [
-          {
-            "adminSession": []
-          }
-        ],
         "parameters": [
           {
-            "$ref": "#/components/parameters/Id"
-          }
-        ],
-        "responses": {
-          "204": {
-            "$ref": "#/components/responses/NoContent"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "operationId": "deleteAdminCategory",
-        "description": "需要认证的删除分类记录接口。该分类下文章不会被删除；数据库关系会将其 categoryId 设为 null。"
-      }
-    },
-    "/api/admin/tags": {
-      "get": {
-        "tags": [
-          "Admin Taxonomy"
-        ],
-        "summary": "后台获取标签列表",
-        "security": [
-          {
-            "adminSession": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "标签列表。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "tags"
-                  ],
-                  "properties": {
-                    "tags": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Tag"
-                      }
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "operationId": "listAdminTags",
-        "description": "需要认证的全部标签查询接口，按 name 升序排列。_count.articles 统计全部关联文章，包含草稿和已归档文章。"
-      },
-      "post": {
-        "tags": [
-          "Admin Taxonomy"
-        ],
-        "summary": "创建标签",
-        "security": [
-          {
-            "adminSession": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TagInput"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "标签创建成功。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "tag"
-                  ],
-                  "properties": {
-                    "tag": {
-                      "$ref": "#/components/schemas/Tag",
-                      "description": "本操作的标签资源。"
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/ValidationError"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "operationId": "createAdminTag",
-        "description": "需要认证的创建标签接口。省略 slug 时从 name 生成。name 和 slug 都必须唯一。"
-      }
-    },
-    "/api/admin/tags/{id}": {
-      "patch": {
-        "tags": [
-          "Admin Taxonomy"
-        ],
-        "summary": "更新标签",
-        "security": [
-          {
-            "adminSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Id"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TagUpdateInput"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "标签更新成功。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "tag"
-                  ],
-                  "properties": {
-                    "tag": {
-                      "$ref": "#/components/schemas/Tag",
-                      "description": "本操作的标签资源。"
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/ValidationError"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "operationId": "updateAdminTag",
-        "description": "需要认证的标签局部更新接口。省略字段保持不变。更新 name 不会修改 slug，除非显式传入 slug。"
-      },
-      "delete": {
-        "tags": [
-          "Admin Taxonomy"
-        ],
-        "summary": "删除标签",
-        "security": [
-          {
-            "adminSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Id"
-          }
-        ],
-        "responses": {
-          "204": {
-            "$ref": "#/components/responses/NoContent"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "operationId": "deleteAdminTag",
-        "description": "需要认证的删除标签记录及文章-标签关联行接口。文章本身不会被删除。"
-      }
-    },
-    "/api/admin/comments": {
-      "get": {
-        "tags": [
-          "Admin Comments"
-        ],
-        "summary": "获取评论审核列表",
-        "security": [
-          {
-            "adminSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Page"
-          },
-          {
-            "$ref": "#/components/parameters/PageSize"
+            "name": "ids",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "逗号分隔的文章 id 列表；不传则按全部导出。",
+            "allowEmptyValue": true
           },
           {
             "name": "status",
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/CommentStatus"
+              "$ref": "#/components/schemas/ArticleStatus"
             },
-            "description": "评论状态筛选条件。空查询值按未传处理。",
-            "allowEmptyValue": true
-          },
-          {
-            "name": "articleId",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            },
-            "description": "文章 ID 筛选条件。空查询值按未传处理。",
             "allowEmptyValue": true
           }
-        ],
-        "responses": {
-          "200": {
-            "description": "评论列表。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "items",
-                    "meta"
-                  ],
-                  "properties": {
-                    "items": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/AdminComment"
-                      },
-                      "description": "当前页结果项。"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/PageMeta",
-                      "description": "分页元数据。"
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/ValidationError"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "description": "需要认证的分页评论查询接口，按 createdAt 降序排列。筛选条件为 status 枚举和 articleId。列表项包含精简文章对象 { id, title, slug }，不包含嵌套回复、IP 或 userAgent。空查询值按未传处理。",
-        "operationId": "listAdminComments"
+        ]
       }
     },
-    "/api/admin/comments/{id}": {
-      "patch": {
-        "tags": [
-          "Admin Comments"
-        ],
-        "summary": "审核评论",
-        "security": [
-          {
-            "adminSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Id"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CommentModerationInput"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "评论更新成功。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "comment"
-                  ],
-                  "properties": {
-                    "comment": {
-                      "$ref": "#/components/schemas/AdminComment",
-                      "description": "本操作的评论资源。"
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/ValidationError"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "operationId": "moderateAdminComment",
-        "description": "需要认证的评论审核接口，更新评论状态和垃圾标记。省略 isSpam 时由 status 推导：仅 SPAM 为 true，其他状态为 false。"
-      },
-      "delete": {
-        "tags": [
-          "Admin Comments"
-        ],
-        "summary": "将评论移入回收站",
-        "security": [
-          {
-            "adminSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Id"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "评论已移入回收站。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "comment"
-                  ],
-                  "properties": {
-                    "comment": {
-                      "$ref": "#/components/schemas/AdminComment",
-                      "description": "本操作的评论资源。"
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "operationId": "trashAdminComment",
-        "description": "需要认证的软删除接口。将 status 设为 TRASHED；由于省略 isSpam，会将 isSpam 设为 false。返回更新后的后台评论 DTO。"
-      }
-    },
-    "/api/admin/media": {
-      "get": {
-        "tags": [
-          "Admin Media"
-        ],
-        "summary": "获取媒体记录列表",
-        "security": [
-          {
-            "adminSession": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "媒体列表。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "media"
-                  ],
-                  "properties": {
-                    "media": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Media"
-                      },
-                      "description": "本操作的媒体元数据资源。"
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "operationId": "listAdminMedia",
-        "description": "需要认证的全部媒体元数据查询接口，按 createdAt 降序排列。当前列表未分页。"
-      },
+    "/api/admin/articles/import": {
       "post": {
         "tags": [
-          "Admin Media"
+          "后台文章管理"
         ],
-        "summary": "创建媒体元数据记录",
+        "summary": "导入 ZIP 文章包",
         "security": [
           {
             "adminSession": []
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MediaInput"
-              }
-            }
-          }
-        },
         "responses": {
-          "201": {
-            "description": "媒体记录创建成功。",
+          "200": {
+            "description": "导入结果。",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "media"
-                  ],
-                  "properties": {
-                    "media": {
-                      "$ref": "#/components/schemas/Media",
-                      "description": "本操作的媒体元数据资源。"
-                    }
-                  },
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ArticleImportInput"
                 }
               }
             }
@@ -3764,6 +2327,9 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -3772,228 +2338,39 @@
             "$ref": "#/components/responses/InternalServerError"
           }
         },
-        "operationId": "createAdminMedia",
-        "description": "需要认证的媒体元数据创建接口，仅创建元数据记录，不上传二进制数据。key 必须唯一；url 和 key 都是普通字符串，不会与存储系统进行存在性校验。"
-      }
-    },
-    "/api/admin/media/{id}": {
-      "delete": {
-        "tags": [
-          "Admin Media"
-        ],
-        "summary": "删除媒体元数据记录",
-        "security": [
-          {
-            "adminSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Id"
-          }
-        ],
-        "responses": {
-          "204": {
-            "$ref": "#/components/responses/NoContent"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "operationId": "deleteAdminMedia",
-        "description": "需要认证的媒体删除接口，仅删除数据库媒体元数据记录，不删除存储中的底层文件/对象。"
-      }
-    },
-    "/api/admin/settings": {
-      "get": {
-        "tags": [
-          "Admin Settings"
-        ],
-        "summary": "获取站点设置列表",
-        "security": [
-          {
-            "adminSession": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "站点设置列表。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "settings"
-                  ],
-                  "properties": {
-                    "settings": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/SiteSetting"
-                      },
-                      "description": "全部站点设置，按 key 升序排列。"
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "operationId": "listAdminSettings",
-        "description": "需要认证的全部站点设置查询接口，按 key 升序排列。值会在可能时通过 JSON.parse 反序列化。"
-      }
-    },
-    "/api/admin/settings/{key}": {
-      "get": {
-        "tags": [
-          "Admin Settings"
-        ],
-        "summary": "获取单个站点设置",
-        "security": [
-          {
-            "adminSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/SettingKey"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "站点设置或 null。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "setting"
-                  ],
-                  "properties": {
-                    "setting": {
-                      "anyOf": [
-                        {
-                          "$ref": "#/components/schemas/SiteSetting"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ],
-                      "description": "站点设置资源；GET 查询不存在的键时为 null。"
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "operationId": "getAdminSetting",
-        "description": "需要认证的按任意 key 查询单个设置接口。键不存在时返回 { setting: null } 和 HTTP 200，而非 404。"
-      },
-      "put": {
-        "tags": [
-          "Admin Settings"
-        ],
-        "summary": "创建或更新站点设置",
-        "security": [
-          {
-            "adminSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/SettingKey"
-          }
-        ],
         "requestBody": {
           "required": true,
+          "description": "multipart/form-data，字段 file 为 .zip 文章包。",
           "content": {
-            "application/json": {
+            "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/SettingInput"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "站点设置已创建或更新。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "setting"
-                  ],
-                  "properties": {
-                    "setting": {
-                      "$ref": "#/components/schemas/SiteSetting",
-                      "description": "站点设置资源；GET 查询不存在的键时为 null。"
-                    }
-                  },
-                  "additionalProperties": false
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/ValidationError"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
           }
-        },
-        "operationId": "upsertAdminSetting",
-        "description": "需要认证的任意设置键创建或更新接口。非字符串值写入时会 JSON 序列化；字符串原样保存，但若看起来像 JSON 字面量，读取时可能反序列化为非字符串。"
+        }
       }
     },
     "/api/admin/articles/preview": {
       "post": {
         "tags": [
-          "Admin Articles"
+          "后台文章管理"
         ],
-        "summary": "预览 Markdown",
+        "summary": "预览 Markdown 渲染（复用主题 CSS）",
         "security": [
           {
             "adminSession": []
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MarkdownPreviewInput"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "Markdown 预览 HTML。",
+            "description": "渲染结果。",
             "content": {
               "application/json": {
                 "schema": {
@@ -4008,112 +2385,47 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "operationId": "previewAdminArticleMarkdown",
-        "description": "供后台文章编辑器实时预览使用。服务端复用正式 Markdown 编译、代码块标记和 HTML 清洗逻辑。"
-      }
-    },
-    "/api/admin/articles/{id}/revisions/{revisionId}": {
-      "get": {
-        "tags": [
-          "Admin Articles"
-        ],
-        "summary": "获取文章历史版本详情",
-        "security": [
-          {
-            "adminSession": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Id"
-          },
-          {
-            "name": "revisionId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1
-            },
-            "description": "文章修订版本 ID。"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "文章历史版本详情。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "revision"
-                  ],
-                  "properties": {
-                    "revision": {
-                      "$ref": "#/components/schemas/ArticleRevisionDetail"
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
           }
         },
-        "operationId": "getAdminArticleRevision",
-        "description": "读取指定文章的历史版本 Markdown 和派生 HTML，供后台编辑器恢复到当前编辑区；不会直接修改文章。"
+        "requestBody": {
+          "required": true,
+          "description": "请求体。",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkdownPreviewInput"
+              }
+            }
+          }
+        }
       }
     },
-    "/api/admin/articles/bulk": {
-      "post": {
+    "/api/admin/articles/{id}": {
+      "get": {
         "tags": [
-          "Admin Articles"
+          "后台文章管理"
         ],
-        "summary": "批量操作文章",
+        "summary": "后台获取文章详情",
         "security": [
           {
             "adminSession": []
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ArticleBulkActionInput"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "批量操作结果。",
+            "description": "文章详情。",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "count"
-                  ],
-                  "properties": {
-                    "count": {
-                      "type": "integer",
-                      "minimum": 0
-                    }
-                  },
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/AdminArticleDetail"
                 }
               }
             }
@@ -4124,25 +2436,997 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
           }
         },
-        "operationId": "bulkUpdateAdminArticles",
-        "description": "支持批量发布、设为草稿、归档和删除。删除操作会同步清理文章内容文件。"
-      }
-    },
-    "/api/admin/articles/export": {
-      "get": {
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ]
+      },
+      "patch": {
         "tags": [
-          "Admin Articles"
+          "后台文章管理"
         ],
-        "summary": "导出文章 JSON",
+        "summary": "后台更新文章",
         "security": [
           {
             "adminSession": []
           }
         ],
+        "responses": {
+          "200": {
+            "description": "更新后的文章详情。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminArticleDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "请求体。",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArticleUpdateInput"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "后台文章管理"
+        ],
+        "summary": "删除文章（同步删除正文文件与媒体引用）",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。"
+          },
+          "204": {
+            "$ref": "#/components/responses/NoContent"
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ]
+      }
+    },
+    "/api/admin/articles/{id}/archive": {
+      "post": {
+        "tags": [
+          "后台文章管理"
+        ],
+        "summary": "归档文章",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "归档后的文章详情。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminArticleDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ]
+      }
+    },
+    "/api/admin/articles/{id}/publish": {
+      "post": {
+        "tags": [
+          "后台文章管理"
+        ],
+        "summary": "发布 / 取消发布文章（支持定时发布）",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "发布状态更新后的文章详情。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminArticleDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ]
+      }
+    },
+    "/api/admin/articles/{id}/revisions/{revisionId}": {
+      "get": {
+        "tags": [
+          "后台文章管理"
+        ],
+        "summary": "获取文章历史修订详情",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "修订版本详情。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleRevisionDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          },
+          {
+            "name": "revisionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "修订版本 id。"
+          }
+        ]
+      }
+    },
+    "/api/admin/categories": {
+      "get": {
+        "tags": [
+          "后台分类管理"
+        ],
+        "summary": "后台获取分类列表",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Category"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PageMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Page"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "allowEmptyValue": true
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "后台分类管理"
+        ],
+        "summary": "新建分类",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。"
+          },
+          "201": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Category"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "请求体。",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/categories/slug": {
+      "get": {
+        "tags": [
+          "后台分类管理"
+        ],
+        "summary": "生成或校验分类 slug",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "slug": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "title",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "allowEmptyValue": true
+          }
+        ]
+      }
+    },
+    "/api/admin/categories/bulk": {
+      "post": {
+        "tags": [
+          "后台分类管理"
+        ],
+        "summary": "批量删除分类",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "批量操作。",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "ids"
+                ],
+                "properties": {
+                  "ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/categories/{id}": {
+      "patch": {
+        "tags": [
+          "后台分类管理"
+        ],
+        "summary": "更新分类",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Category"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "请求体。",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryUpdateInput"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "后台分类管理"
+        ],
+        "summary": "删除分类（文章的 categoryId 置空）",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。"
+          },
+          "204": {
+            "$ref": "#/components/responses/NoContent"
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ]
+      }
+    },
+    "/api/admin/tags": {
+      "get": {
+        "tags": [
+          "后台标签管理"
+        ],
+        "summary": "后台获取标签列表",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Tag"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PageMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Page"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "allowEmptyValue": true
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "后台标签管理"
+        ],
+        "summary": "新建标签",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。"
+          },
+          "201": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Tag"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "请求体。",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TagInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/tags/slug": {
+      "get": {
+        "tags": [
+          "后台标签管理"
+        ],
+        "summary": "生成或校验标签 slug",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "slug": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "title",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "allowEmptyValue": true
+          }
+        ]
+      }
+    },
+    "/api/admin/tags/bulk": {
+      "post": {
+        "tags": [
+          "后台标签管理"
+        ],
+        "summary": "批量删除标签",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "批量操作。",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "ids"
+                ],
+                "properties": {
+                  "ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/tags/{id}": {
+      "patch": {
+        "tags": [
+          "后台标签管理"
+        ],
+        "summary": "更新标签",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Tag"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "请求体。",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TagUpdateInput"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "后台标签管理"
+        ],
+        "summary": "删除标签（自动清理 ArticleTag 关联）",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。"
+          },
+          "204": {
+            "$ref": "#/components/responses/NoContent"
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ]
+      }
+    },
+    "/api/admin/comments": {
+      "get": {
+        "tags": [
+          "后台评论审核"
+        ],
+        "summary": "后台获取评论列表",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AdminComment"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PageMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
         "parameters": [
           {
             "$ref": "#/components/parameters/Page"
@@ -4154,27 +3438,16 @@
             "name": "status",
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/ArticleStatus"
+              "$ref": "#/components/schemas/CommentStatus"
             },
-            "description": "文章状态筛选条件。空查询值按未传处理。",
             "allowEmptyValue": true
           },
           {
-            "name": "category",
+            "name": "articleId",
             "in": "query",
             "schema": {
               "type": "string"
             },
-            "description": "分类 slug 筛选条件。空查询值按未传处理。",
-            "allowEmptyValue": true
-          },
-          {
-            "name": "tag",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            },
-            "description": "标签 slug 筛选条件。空查询值按未传处理。",
             "allowEmptyValue": true
           },
           {
@@ -4183,77 +3456,34 @@
             "schema": {
               "type": "string"
             },
-            "description": "搜索关键词。空查询值按未传处理。",
             "allowEmptyValue": true
           }
-        ],
-        "responses": {
-          "200": {
-            "description": "文章导出 JSON 文件。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ArticleExportResult"
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "operationId": "exportAdminArticles",
-        "description": "按当前筛选条件导出最多 100 篇文章，返回可再次导入的 JSON。"
+        ]
       }
     },
-    "/api/admin/articles/import": {
-      "post": {
+    "/api/admin/comments/bulk": {
+      "patch": {
         "tags": [
-          "Admin Articles"
+          "后台评论审核"
         ],
-        "summary": "导入文章 JSON",
+        "summary": "批量审核评论",
         "security": [
           {
             "adminSession": []
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ArticleImportInput"
-              }
-            }
-          }
-        },
         "responses": {
-          "201": {
-            "description": "文章导入结果。",
+          "200": {
+            "description": "操作成功。",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "count",
-                    "articles"
-                  ],
                   "properties": {
                     "count": {
-                      "type": "integer",
-                      "minimum": 0
-                    },
-                    "articles": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/AdminArticleDetail"
-                      }
+                      "type": "integer"
                     }
-                  },
-                  "additionalProperties": false
+                  }
                 }
               }
             }
@@ -4263,6 +3493,9 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
@@ -4271,33 +3504,37 @@
             "$ref": "#/components/responses/InternalServerError"
           }
         },
-        "operationId": "importAdminArticles",
-        "description": "导入一篇或多篇文章。若 slug 已存在，会自动追加 import 后缀避免冲突。"
-      }
-    },
-    "/api/analytics/events": {
-      "post": {
-        "tags": [
-          "Analytics"
-        ],
-        "summary": "记录公开访问事件",
         "requestBody": {
           "required": true,
+          "description": "请求体。",
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AnalyticsEventInput"
+                "$ref": "#/components/schemas/CommentModerationInput"
               }
             }
           }
-        },
+        }
+      }
+    },
+    "/api/admin/comments/{id}": {
+      "patch": {
+        "tags": [
+          "后台评论审核"
+        ],
+        "summary": "审核单条评论",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
         "responses": {
           "200": {
-            "description": "访问事件写入或跳过结果。",
+            "description": "操作成功。",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AnalyticsEventReceipt"
+                  "$ref": "#/components/schemas/AdminComment"
                 }
               }
             }
@@ -4305,71 +3542,972 @@
           "400": {
             "$ref": "#/components/responses/ValidationError"
           },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
           }
         },
-        "operationId": "createAnalyticsEvent",
-        "description": "公开页面 tracker 在页面离开或路由切换时调用。默认只保存匿名访问数据；IP、UA、来源 URL、浏览器指纹和硬件信息需后台显式开启才会保存。"
-      }
-    },
-    "/api/admin/analytics/export": {
-      "get": {
-        "tags": [
-          "Admin Analytics"
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
         ],
-        "summary": "导出访问统计 CSV",
+        "requestBody": {
+          "required": true,
+          "description": "请求体。",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommentModerationInput"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "后台评论审核"
+        ],
+        "summary": "删除评论（软删 → TRASHED）",
         "security": [
           {
             "adminSession": []
           }
         ],
+        "responses": {
+          "200": {
+            "description": "操作成功。"
+          },
+          "204": {
+            "$ref": "#/components/responses/NoContent"
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
         "parameters": [
           {
-            "name": "start",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "date"
-            },
-            "description": "开始日期。"
-          },
+            "$ref": "#/components/parameters/Id"
+          }
+        ]
+      }
+    },
+    "/api/admin/logs": {
+      "get": {
+        "tags": [
+          "后台操作日志"
+        ],
+        "summary": "查询操作日志列表",
+        "security": [
           {
-            "name": "end",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "date"
-            },
-            "description": "结束日期。"
-          },
-          {
-            "name": "dimension",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "all",
-                "article",
-                "category",
-                "tag"
-              ],
-              "default": "all"
-            },
-            "description": "筛选维度。"
-          },
-          {
-            "name": "slug",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            },
-            "description": "文章/分类/标签 slug。"
+            "adminSession": []
           }
         ],
         "responses": {
           "200": {
-            "description": "CSV 导出文件。",
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PageMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Page"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          },
+          {
+            "name": "module",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "allowEmptyValue": true
+          },
+          {
+            "name": "result",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "SUCCESS",
+                "FAILURE"
+              ]
+            },
+            "allowEmptyValue": true
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "allowEmptyValue": true
+          }
+        ]
+      }
+    },
+    "/api/admin/logs/export": {
+      "get": {
+        "tags": [
+          "后台操作日志"
+        ],
+        "summary": "导出操作日志 CSV",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "UTF-8 BOM CSV。",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "module",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "allowEmptyValue": true
+          },
+          {
+            "name": "result",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "SUCCESS",
+                "FAILURE"
+              ]
+            },
+            "allowEmptyValue": true
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "allowEmptyValue": true
+          }
+        ]
+      }
+    },
+    "/api/admin/media": {
+      "get": {
+        "tags": [
+          "后台媒体管理"
+        ],
+        "summary": "获取媒体列表",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Media"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PageMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Page"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "images",
+                "videos",
+                "audio",
+                "documents",
+                "archives",
+                "other"
+              ]
+            },
+            "allowEmptyValue": true
+          }
+        ]
+      }
+    },
+    "/api/admin/media/upload": {
+      "post": {
+        "tags": [
+          "后台媒体管理"
+        ],
+        "summary": "上传媒体文件（支持多选 / 粘贴 / 拖拽）",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。"
+          },
+          "201": {
+            "description": "上传结果（首个媒体记录）。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Media"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "multipart/form-data，字段 files 为一个或多个文件。",
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "files": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/media/bulk": {
+      "delete": {
+        "tags": [
+          "后台媒体管理"
+        ],
+        "summary": "批量删除媒体（同步删除本地文件）",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "批量删除。",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "ids"
+                ],
+                "properties": {
+                  "ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/media/{id}": {
+      "delete": {
+        "tags": [
+          "后台媒体管理"
+        ],
+        "summary": "删除单个媒体（同步删除本地文件）",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。"
+          },
+          "204": {
+            "$ref": "#/components/responses/NoContent"
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ]
+      }
+    },
+    "/api/admin/settings": {
+      "get": {
+        "tags": [
+          "后台站点设置"
+        ],
+        "summary": "读取站点设置（可按 scope 过滤）",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "键值映射对象。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "scope",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "site-info",
+                "analytics",
+                "public-layout",
+                "theme-settings"
+              ]
+            },
+            "allowEmptyValue": true
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "后台站点设置"
+        ],
+        "summary": "保存站点设置（按 scope 分组）",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "保存成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "请求体。",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SettingInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/settings/{key}": {
+      "get": {
+        "tags": [
+          "后台站点设置"
+        ],
+        "summary": "读取单个站点设置",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteSetting"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SettingKey"
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "后台站点设置"
+        ],
+        "summary": "更新单个站点设置",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteSetting"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SettingKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "请求体。",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SettingInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/themes": {
+      "get": {
+        "tags": [
+          "后台主题管理"
+        ],
+        "summary": "获取已安装主题列表",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "主题清单数组。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "后台主题管理"
+        ],
+        "summary": "上传安装主题 ZIP 包",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。"
+          },
+          "201": {
+            "description": "安装成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "multipart/form-data，字段 file 为主题 .zip。",
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/themes/{name}": {
+      "get": {
+        "tags": [
+          "后台主题管理"
+        ],
+        "summary": "获取主题详情 / 导出主题 ZIP",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "主题详情 JSON 或 ZIP 主题包。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              },
+              "application/zip": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "主题 slug。"
+          },
+          {
+            "name": "includeSettings",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "allowEmptyValue": true,
+            "description": "导出时是否附带全量有效设置快照。"
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "后台主题管理"
+        ],
+        "summary": "删除主题（默认与当前启用主题不可删）",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功。"
+          },
+          "204": {
+            "$ref": "#/components/responses/NoContent"
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/admin/themes/{name}/settings": {
+      "put": {
+        "tags": [
+          "后台主题管理"
+        ],
+        "summary": "保存主题自定义设置",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "保存成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "主题设置键值。",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/analytics/visitors/export": {
+      "get": {
+        "tags": [
+          "后台分析导出"
+        ],
+        "summary": "导出访客 / 访问记录 CSV",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "UTF-8 BOM CSV。",
             "content": {
               "text/csv": {
                 "schema": {
@@ -4378,15 +4516,478 @@
               }
             }
           },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
           }
         },
-        "operationId": "exportAdminAnalyticsCsv",
-        "description": "按日期范围和内容维度导出访问事件明细 CSV。"
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "visitors",
+                "visits"
+              ]
+            },
+            "allowEmptyValue": true,
+            "description": "导出维度。"
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "allowEmptyValue": true
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "allowEmptyValue": true
+          }
+        ]
+      }
+    },
+    "/api/admin/validate-css": {
+      "post": {
+        "tags": [
+          "后台工具"
+        ],
+        "summary": "校验主题 CSS 安全规则",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "校验结果。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "valid": {
+                      "type": "boolean"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "待校验 CSS。",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "css"
+                ],
+                "properties": {
+                  "css": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analytics/events": {
+      "post": {
+        "tags": [
+          "公开访问"
+        ],
+        "summary": "上报访问事件（sendBeacon，pagehide/visibilitychange）",
+        "responses": {
+          "200": {
+            "description": "操作成功。"
+          },
+          "202": {
+            "description": "已接受。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsEventReceipt"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "请求体。",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalyticsEventInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/comments": {
+      "post": {
+        "tags": [
+          "公开访问"
+        ],
+        "summary": "提交访客评论（进入审核流程）",
+        "responses": {
+          "200": {
+            "description": "操作成功。"
+          },
+          "201": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicCommentReceipt"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "description": "触发限流。"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "请求体。",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommentInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "tags": [
+          "公开访问"
+        ],
+        "summary": "健康检查",
+        "responses": {
+          "200": {
+            "description": "存活状态。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/search": {
+      "get": {
+        "tags": [
+          "公开访问"
+        ],
+        "summary": "公开搜索（空格或 + 拆分多关键词，全部命中）",
+        "responses": {
+          "200": {
+            "description": "操作成功。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PublicArticleSummary"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PageMeta"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Page"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          }
+        ]
+      }
+    },
+    "/api/themes/{name}/asset": {
+      "get": {
+        "tags": [
+          "公开访问"
+        ],
+        "summary": "主题资源（CSS / JS / 图片），带版本指纹",
+        "responses": {
+          "200": {
+            "description": "主题资源文件。",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        },
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "v",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "allowEmptyValue": true
+          }
+        ]
+      }
+    },
+    "/api/auth/csrf": {
+      "get": {
+        "tags": [
+          "认证"
+        ],
+        "summary": "获取 CSRF token",
+        "responses": {
+          "200": {
+            "description": "操作成功。"
+          }
+        }
+      }
+    },
+    "/api/auth/session": {
+      "get": {
+        "tags": [
+          "认证"
+        ],
+        "summary": "获取当前会话",
+        "responses": {
+          "200": {
+            "description": "操作成功。"
+          }
+        }
+      }
+    },
+    "/api/auth/providers": {
+      "get": {
+        "tags": [
+          "认证"
+        ],
+        "summary": "列出认证 provider",
+        "responses": {
+          "200": {
+            "description": "操作成功。"
+          }
+        }
+      }
+    },
+    "/api/auth/signin": {
+      "post": {
+        "tags": [
+          "认证"
+        ],
+        "summary": "管理员登录（Credentials Provider）",
+        "responses": {
+          "200": {
+            "description": "操作成功。"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/auth/signout": {
+      "post": {
+        "tags": [
+          "认证"
+        ],
+        "summary": "登出",
+        "responses": {
+          "200": {
+            "description": "操作成功。"
+          }
+        }
+      }
+    },
+    "/api/auth/callback/credentials": {
+      "post": {
+        "tags": [
+          "认证"
+        ],
+        "summary": "Credentials 回调",
+        "responses": {
+          "200": {
+            "description": "操作成功。"
+          }
+        }
+      }
+    },
+    "/api/auth/error": {
+      "get": {
+        "tags": [
+          "认证"
+        ],
+        "summary": "认证错误页",
+        "responses": {
+          "200": {
+            "description": "操作成功。"
+          }
+        }
+      }
+    },
+    "/robots.txt": {
+      "get": {
+        "tags": [
+          "内容分发"
+        ],
+        "summary": "robots.txt（禁用 /admin，指向 sitemap）",
+        "responses": {
+          "200": {
+            "description": "text/plain。",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sitemap.xml": {
+      "get": {
+        "tags": [
+          "内容分发"
+        ],
+        "summary": "动态站点地图（首页 / 文章 / 分类 / 标签）",
+        "responses": {
+          "200": {
+            "description": "application/xml。",
+            "content": {
+              "application/xml": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rss.xml": {
+      "get": {
+        "tags": [
+          "内容分发"
+        ],
+        "summary": "RSS feed（已发布文章倒序）",
+        "responses": {
+          "200": {
+            "description": "application/rss+xml。",
+            "content": {
+              "application/rss+xml": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
       }
     }
   }

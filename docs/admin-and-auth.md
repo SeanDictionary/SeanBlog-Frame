@@ -118,13 +118,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
 ```typescript
 // proxy.ts
+import NextAuth from 'next-auth'
 import { NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+
+import { authConfig } from '@/lib/auth.config'
+
+const { auth } = NextAuth(authConfig)
 
 export default auth((request) => {
   if (!request.auth?.user?.id) {
-    const loginUrl = new URL('/api/auth/signin', request.url)
-    loginUrl.searchParams.set('callbackUrl', request.nextUrl.pathname)
+    const loginUrl = new URL('/login', request.url)
+    const callbackUrl = `${request.nextUrl.pathname}${request.nextUrl.search}`
+    loginUrl.searchParams.set('callbackUrl', callbackUrl)
     return NextResponse.redirect(loginUrl)
   }
 
@@ -192,7 +197,7 @@ export async function isAdminAuthenticated() {
 | `/admin/visitors` | 已登录管理员 | 访客记录（按访客维度分页展示，支持 CSV 导出） |
 | `/admin/visitors/[visitorId]` | 已登录管理员 | 访客详情页 |
 | `/admin/taxonomy` | 已登录管理员 | 分类与标签管理 |
-| `/admin/personalization` | 已登录管理员 | 主题库与个性化设置 |
+| `/admin/themes` | 已登录管理员 | 主题库与主题自定义设置 |
 | `/admin/articles` | 已登录管理员 | 文章列表 |
 | `/admin/articles/new` | 已登录管理员 | 新建文章 |
 | `/admin/articles/[id]/edit` | 已登录管理员 | 编辑文章 |

@@ -31,7 +31,7 @@ SEO 是个人博客的核心能力之一。本系统在设计上保证：
 - `@shikijs/rehype`（Shiki）：代码块语法高亮，双主题 `github-light`/`github-dark`，支持 Shiki 全部内置语言；暗色通过 `--shiki-dark` CSS 变量在 `[data-theme="dark"]` 下切换；语言标签由 transformer 在 `<pre>` 上写入 `language-<lang>` 类与 `data-language` 属性供主题渲染
 - `remark-math` + `rehype-katex`：数学公式渲染，支持 `$...$`（行内）和 `$$...$$`（块级）LaTeX 语法；KaTeX CSS 由框架内置注入
 - 编译结果按详情请求即时生成，可由缓存层缓存
-- 文章详情页 Server Component 使用经过转义的 HTML 输出渲染
+- 文章详情页由 `(public)` 路由组的 Route Handler 调用 `ThemeRenderService.render('post', ctx)` 渲染 Handlebars 主题模板输出整页 HTML；SEO 头部（title / meta / OG / canonical / JSON-LD）由 `{{{seo_head}}}` helper 注入到 `default.hbs` 的 `<head>`，不再使用 Next.js `generateMetadata`（详见 `theme-framework.md`）
 
 ### 2.3 文章状态流转
 
@@ -57,7 +57,7 @@ DRAFT → PUBLISHED → ARCHIVED
 
 ### 3.1 每页面 metadata 生成
 
-每个公开页面 Server Component 均通过 `generateMetadata` 提供页面级 metadata：
+公开页面由 Route Handler 经主题渲染服务输出整页 HTML，页面级 metadata 由 `{{{seo_head}}}` Handlebars helper 注入到 `default.hbs` 的 `<head>`，等价于 `generateMetadata` 的能力。上下文由 `src/lib/theme/template-context.ts` 构建：
 
 **文章详情页**：
 
@@ -177,21 +177,22 @@ export default function robots(): MetadataRoute.Robots {
 - `/rss.xml`（或 `/feed.xml`）
 - 包含文章标题、摘要、发布日期、作者、链接
 - 按发布时间倒序排列最近 N 篇文章
-- 通过 ISR `revalidate` 定期更新
+- 由 Route Handler 动态生成，每次请求即时构建
 
 ## 8. 渲染策略
 
 不同页面采用不同的渲染策略以平衡性能和内容新鲜度：
 
-| 页面类型 | 策略 | revalidate | 说明 |
-|----------|------|------------|------|
-| 首页（文章列表） | ISR | 300s | 新文章发布后最多 5 分钟上线；未来发布时间由公开查询实时过滤 |
-| 文章详情页 | ISR + generateStaticParams | 600s | 热门文章预渲染，冷门文章首次访问时渲染 |
-| 分类归档页 | ISR | 300s | 新增文章后更新 |
-| 标签归档页 | ISR | 300s | 同上 |
-| 搜索结果页 | SSR | 不缓存 | 搜索结果实时性要求高 |
-| sitemap.xml | 动态生成 | 按需 | 每次请求动态生成 |
-| robots.txt | 静态生成 | - | 内容变化极少 |
+| 页面类型 | 策略 | 缓存 | 说明 |
+|----------|------|------|------|
+| 首页（文章列表） | 动态渲染（Route Handler + 主题模板） | 按主题 / slug tag（`unstable_cache`） | 公开查询实时过滤未来发布时间的文章；置顶与排序在 service 层完成 |
+| 文章详情页 | 动态渲染（Route Handler + 主题模板） | 按主题 + slug tag | 正文即时渲染 Markdown；预览接口复用同一渲染管线与主题 CSS |
+| 分类归档页 | 动态渲染 | 按主题 tag | 同上 |
+| 标签归档页 | 动态渲染 | 按主题 tag | 同上 |
+| 搜索结果页 | 动态渲染 | 不缓存 | 空格 / `+` 拆分多关键词，全部命中；标题 / 摘要高亮 |
+| sitemap.xml | 动态生成（`export const dynamic = 'force-dynamic'`） | 按请求 | `sitemap.ts` 每请求查询已发布文章 / 分类 / 标签 |
+| robots.txt | 静态约定 | - | `robots.ts` 生成 |
+| rss.xml | 动态生成 | 按请求 | 已发布文章倒序 |
 
 ## 9. 图片与 SEO
 
@@ -215,13 +216,13 @@ export default function robots(): MetadataRoute.Robots {
 
 MVP 完成时应确认以下 SEO 要点均覆盖：
 
-- [ ] 首页、文章页、分类页、标签页有独立 `title` 和 `description`
-- [ ] 文章页有 `og:title`, `og:description`, `og:image`, `og:type=article`
-- [ ] 文章页有 `canonical` URL
-- [ ] 文章页有 `BlogPosting` JSON-LD
-- [ ] `sitemap.xml` 包含所有已发布文章、分类、标签
-- [ ] `robots.txt` 禁止 `/admin`，指向 sitemap
-- [ ] 后台 `/admin` 路径返回 `X-Robots-Tag: noindex`
-- [ ] 前端使用语义化 HTML 标签
-- [ ] 图片有 alt 文本
-- [ ] 页面在禁用 JS 的情况下仍可读取主要内容（渐进增强）
+- [x] 首页、文章页、分类页、标签页有独立 `title` 和 `description`（由 `seo_head` helper 注入）
+- [x] 文章页有 `og:title`, `og:description`, `og:image`, `og:type=article`
+- [x] 文章页有 `canonical` URL
+- [x] 文章页有 `BlogPosting` JSON-LD
+- [x] `sitemap.xml` 包含所有已发布文章、分类、标签
+- [x] `robots.txt` 禁止 `/admin`，指向 sitemap
+- [x] 后台 `/admin` 路径返回 `X-Robots-Tag: noindex`（由 `proxy.ts` 设置）
+- [x] 前端使用语义化 HTML 标签（主题模板输出）
+- [x] 图片有 alt 文本（Markdown `![alt](url)`）
+- [x] 页面在禁用 JS 的情况下仍可读取主要内容（服务端渲染整页 HTML，平台增强脚本渐进增强）
