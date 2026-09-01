@@ -929,13 +929,27 @@ export function ArticleEditor({ article, categories, tags }: ArticleEditorProps)
         <div className="px-4 pb-5 lg:h-[calc(100vh-5.5rem)] lg:overflow-y-auto">
 
           <EditorAccordionSection title="发布" summary="状态、评论、定时" defaultOpen>
-            <label className="grid gap-1.5 text-sm font-medium">
-              类型
-              <select name="isPage" value={form.isPage ? 'page' : 'article'} onChange={(event) => updateField('isPage', event.target.value === 'page')} className="h-10 rounded-md border border-neutral-300 bg-white px-3 font-normal outline-none dark:border-neutral-700 dark:bg-neutral-900">
-                <option value="article">文章（显示在首页列表）</option>
-                <option value="page">页面（不在首页列表显示）</option>
-              </select>
-            </label>
+            <div className="grid gap-1.5 text-sm font-medium">
+              <span>类型</span>
+              <div className="inline-flex w-full overflow-hidden rounded-lg border border-neutral-300 dark:border-neutral-700" role="group" aria-label="类型">
+                <button
+                  type="button"
+                  onClick={() => updateField('isPage', false)}
+                  aria-pressed={!form.isPage}
+                  className={`flex-1 px-3 py-2 text-sm transition-colors ${!form.isPage ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900' : 'bg-white text-neutral-600 hover:bg-neutral-100 dark:bg-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800'}`}
+                >
+                  文章
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateField('isPage', true)}
+                  aria-pressed={form.isPage}
+                  className={`flex-1 px-3 py-2 text-sm transition-colors ${form.isPage ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900' : 'bg-white text-neutral-600 hover:bg-neutral-100 dark:bg-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800'}`}
+                >
+                  页面
+                </button>
+              </div>
+            </div>
             <label className="grid gap-1.5 text-sm font-medium">
               评论
               <select name="commentsMode" value={form.commentsMode} onChange={(event) => updateField('commentsMode', event.target.value as ArticleCommentsMode)} className="h-10 rounded-md border border-neutral-300 bg-white px-3 font-normal outline-none dark:border-neutral-700 dark:bg-neutral-900">
