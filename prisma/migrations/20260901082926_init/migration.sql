@@ -1,6 +1,3 @@
--- CreateSchema
-CREATE SCHEMA IF NOT EXISTS "public";
-
 -- CreateEnum
 CREATE TYPE "ArticleStatus" AS ENUM ('DRAFT', 'PUBLISHED', 'ARCHIVED');
 
@@ -9,6 +6,9 @@ CREATE TYPE "ArticleCommentsMode" AS ENUM ('ENABLED', 'READ_ONLY', 'DISABLED');
 
 -- CreateEnum
 CREATE TYPE "CommentStatus" AS ENUM ('PENDING', 'APPROVED', 'SPAM', 'TRASHED');
+
+-- CreateEnum
+CREATE TYPE "AnalyticsDimension" AS ENUM ('all', 'article', 'category', 'tag');
 
 -- CreateEnum
 CREATE TYPE "OperationLogResult" AS ENUM ('SUCCESS', 'FAILURE');
@@ -60,6 +60,7 @@ CREATE TABLE "Article" (
     "coverImage" TEXT,
     "status" "ArticleStatus" NOT NULL DEFAULT 'DRAFT',
     "commentsMode" "ArticleCommentsMode" NOT NULL DEFAULT 'ENABLED',
+    "isPage" BOOLEAN NOT NULL DEFAULT false,
     "metaTitle" TEXT,
     "metaDescription" TEXT,
     "metaKeywords" TEXT,
@@ -87,10 +88,10 @@ CREATE TABLE "Comment" (
     "id" TEXT NOT NULL,
     "content" TEXT NOT NULL,
     "status" "CommentStatus" NOT NULL DEFAULT 'PENDING',
-    "ip" TEXT,
-    "userAgent" TEXT,
     "guestName" TEXT,
     "guestEmail" TEXT,
+    "guestLink" TEXT,
+    "visitorId" TEXT,
     "isSpam" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -140,6 +141,15 @@ CREATE TABLE "SiteSetting" (
 );
 
 -- CreateTable
+CREATE TABLE "ThemeCustomization" (
+    "themeSlug" TEXT NOT NULL,
+    "settings" JSONB NOT NULL,
+    "settingsVersion" INTEGER NOT NULL DEFAULT 1,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL
+);
+
+-- CreateTable
 CREATE TABLE "AnalyticsEvent" (
     "id" TEXT NOT NULL,
     "path" TEXT NOT NULL,
@@ -147,8 +157,7 @@ CREATE TABLE "AnalyticsEvent" (
     "articleId" TEXT,
     "categoryId" TEXT,
     "tagId" TEXT,
-    "visitorHash" TEXT,
-    "sessionId" TEXT,
+    "visitorId" TEXT,
     "referrer" TEXT,
     "country" TEXT,
     "ipAddress" TEXT,
@@ -159,6 +168,26 @@ CREATE TABLE "AnalyticsEvent" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "AnalyticsEvent_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "AnalyticsDailyStat" (
+    "date" TIMESTAMP(3) NOT NULL,
+    "dimension" "AnalyticsDimension" NOT NULL,
+    "contentId" TEXT NOT NULL,
+    "views" INTEGER NOT NULL DEFAULT 0,
+
+    CONSTRAINT "AnalyticsDailyStat_pkey" PRIMARY KEY ("date","dimension","contentId")
+);
+
+-- CreateTable
+CREATE TABLE "Visitor" (
+    "visitorId" TEXT NOT NULL,
+    "firstSeenAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "lastSeenAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "visitCount" INTEGER NOT NULL DEFAULT 1,
+
+    CONSTRAINT "Visitor_pkey" PRIMARY KEY ("visitorId")
 );
 
 -- CreateTable
@@ -178,6 +207,8 @@ CREATE TABLE "OperationLog" (
     "metadata" JSONB,
     "ipAddress" TEXT,
     "userAgent" TEXT,
+    "browserFingerprint" TEXT,
+    "hardware" TEXT,
     "method" TEXT,
     "path" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -231,6 +262,9 @@ CREATE INDEX "Comment_parentId_idx" ON "Comment"("parentId");
 CREATE INDEX "Comment_guestEmail_idx" ON "Comment"("guestEmail");
 
 -- CreateIndex
+CREATE INDEX "Comment_visitorId_idx" ON "Comment"("visitorId");
+
+-- CreateIndex
 CREATE INDEX "ArticleRevision_articleId_version_idx" ON "ArticleRevision"("articleId", "version");
 
 -- CreateIndex
@@ -241,6 +275,9 @@ CREATE INDEX "Media_createdAt_idx" ON "Media"("createdAt");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "SiteSetting_key_key" ON "SiteSetting"("key");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ThemeCustomization_themeSlug_key" ON "ThemeCustomization"("themeSlug");
 
 -- CreateIndex
 CREATE INDEX "AnalyticsEvent_createdAt_idx" ON "AnalyticsEvent"("createdAt");
@@ -258,7 +295,22 @@ CREATE INDEX "AnalyticsEvent_tagId_createdAt_idx" ON "AnalyticsEvent"("tagId", "
 CREATE INDEX "AnalyticsEvent_contentType_createdAt_idx" ON "AnalyticsEvent"("contentType", "createdAt");
 
 -- CreateIndex
-CREATE INDEX "AnalyticsEvent_visitorHash_idx" ON "AnalyticsEvent"("visitorHash");
+CREATE INDEX "AnalyticsEvent_visitorId_idx" ON "AnalyticsEvent"("visitorId");
+
+-- CreateIndex
+CREATE INDEX "AnalyticsEvent_articleId_visitorId_idx" ON "AnalyticsEvent"("articleId", "visitorId");
+
+-- CreateIndex
+CREATE INDEX "AnalyticsDailyStat_dimension_date_idx" ON "AnalyticsDailyStat"("dimension", "date");
+
+-- CreateIndex
+CREATE INDEX "AnalyticsDailyStat_contentId_date_idx" ON "AnalyticsDailyStat"("contentId", "date");
+
+-- CreateIndex
+CREATE INDEX "Visitor_lastSeenAt_idx" ON "Visitor"("lastSeenAt");
+
+-- CreateIndex
+CREATE INDEX "Visitor_firstSeenAt_idx" ON "Visitor"("firstSeenAt");
 
 -- CreateIndex
 CREATE INDEX "OperationLog_createdAt_idx" ON "OperationLog"("createdAt");
@@ -291,6 +343,9 @@ ALTER TABLE "Comment" ADD CONSTRAINT "Comment_articleId_fkey" FOREIGN KEY ("arti
 ALTER TABLE "Comment" ADD CONSTRAINT "Comment_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "Comment"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "Comment" ADD CONSTRAINT "Comment_visitorId_fkey" FOREIGN KEY ("visitorId") REFERENCES "Visitor"("visitorId") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "ArticleRevision" ADD CONSTRAINT "ArticleRevision_articleId_fkey" FOREIGN KEY ("articleId") REFERENCES "Article"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -301,3 +356,6 @@ ALTER TABLE "AnalyticsEvent" ADD CONSTRAINT "AnalyticsEvent_categoryId_fkey" FOR
 
 -- AddForeignKey
 ALTER TABLE "AnalyticsEvent" ADD CONSTRAINT "AnalyticsEvent_tagId_fkey" FOREIGN KEY ("tagId") REFERENCES "Tag"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AnalyticsEvent" ADD CONSTRAINT "AnalyticsEvent_visitorId_fkey" FOREIGN KEY ("visitorId") REFERENCES "Visitor"("visitorId") ON DELETE SET NULL ON UPDATE CASCADE;

@@ -409,7 +409,7 @@ model OperationLog {
 ## 6. 迁移与版本管理
 
 - `prisma/schema.prisma` 是数据模型的唯一真实来源
-- 当前项目处于预发布开发阶段，`prisma/migrations/20260809020000_init` 是包含全部当前结构的单一基线迁移；结构调整后可重置本地开发数据库并重新生成该基线，而不保留兼容性迁移链
+- 当前项目处于预发布开发阶段，`prisma/migrations/20260901082926_init` 是包含全部当前结构的单一基线迁移；预发布阶段结构调整后可重置本地开发数据库并重新生成该基线，而不保留兼容性迁移链。**首次正式上线后必须切换为增量迁移工作流**（每次结构变更用 `npx prisma migrate dev --name xxx` 生成一条新迁移，不再合并/重写历史）
 - `prisma/migrations/` 目录必须纳入版本控制
 - 本地重建数据库使用 `npx prisma migrate reset`；生产或已承载真实数据的环境不得采用该命令
 - 管理员账号通过 `scripts/initialize-admin.mjs` 在生产启动时确保存在，不再维护 Prisma seed 脚本
