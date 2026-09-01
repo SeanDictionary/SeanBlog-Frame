@@ -50,10 +50,12 @@ export async function resetAdminPassword() {
   const password = createPassword()
 
   try {
+    // 递增 sessionTokenVersion，使所有旧 JWT 立即失效（旧会话在缓存过期后失效，≤30s）
     await prisma.user.upsert({
       where: { username: ADMIN_USERNAME },
       update: {
         passwordHash: await hash(password, 12),
+        sessionTokenVersion: { increment: 1 },
       },
       create: {
         username: ADMIN_USERNAME,

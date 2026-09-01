@@ -43,12 +43,13 @@ enum ArticleCommentsMode {
 
 ```prisma
 model User {
-  id           String   @id @default(cuid())
-  username     String   @unique
-  passwordHash String
+  id                   String   @id @default(cuid())
+  username             String   @unique
+  passwordHash         String
+  sessionTokenVersion  Int      @default(0)
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 }
 ```
 
@@ -56,6 +57,7 @@ model User {
 
 - `username` 固定使用 `admin`
 - `passwordHash` 必填，密码使用 `bcryptjs` hash 存储
+- `sessionTokenVersion` 用于会话吊销：重置密码时递增，`auth.ts` 的 jwt 回调会校验 JWT 携带的版本与 DB 当前版本是否一致，不一致即吊销旧会话；带 30s 缓存，重置后最多 30s 内旧会话失效
 - 不保存邮箱、头像、角色、禁言状态或 OAuth 账户信息
 - 管理员密码通过 `scripts/initialize-admin.mjs` 初始化，必要时通过重置脚本更新
 
