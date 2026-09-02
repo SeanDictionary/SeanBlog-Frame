@@ -31,9 +31,10 @@
 |------|------|------|
 | `DATABASE_URL` | 是 | PostgreSQL 连接串，如 `postgresql://postgres:pwd@host:5432/seanblog_frame?schema=public` |
 | `AUTH_SECRET` | 是 | Auth.js JWT 签名密钥，用 `openssl rand -base64 32` 生成 |
-| `NEXT_PUBLIC_SITE_URL` | 推荐 | 站点完整 URL（带协议，无尾斜杠），用于 canonical/OG/sitemap/RSS；**构建期烘焙进客户端 bundle**，Docker 部署须作为构建参数传入 |
 | `TRUST_PROXY_HEADERS` | 看部署 | `true` 时信任 `X-Forwarded-For`（反向代理后必须为 `true` 才能正确限流与采集访客 IP）；直连暴露时设 `false` |
 | `SECRETS_DIRECTORY` | Docker 用 | 密钥文件目录，默认 `/run/secrets`，由 compose `secrets` 服务生成 |
+
+> 站点 URL（`siteUrl`）不再使用环境变量，改为后台「站点信息」设置项运行时读取，缺省 `http://localhost:3000`。生产部署后在 `/admin` 设置真实域名即可，无需重建镜像。
 
 ## 本地开发
 
@@ -42,8 +43,9 @@
    ```env
    DATABASE_URL=postgresql://postgres:postgres@localhost:5432/seanblog_frame?schema=public
    AUTH_SECRET=用 openssl rand -base64 32 生成
-   NEXT_PUBLIC_SITE_URL=http://localhost:3000
    ```
+
+   > 站点 URL 在后台「站点信息」设置项配置，无需 `.env.local`。
 
 2. 初始化数据库与管理员：
 
@@ -59,14 +61,46 @@
 
 ## Docker 部署（推荐）
 
-### 一键启动
+提供两份 compose：
 
-```bash
-# 务必设置真实域名：NEXT_PUBLIC_* 在构建期烘焙进客户端，影响 canonical/OG
-SITE_URL=https://blog.example.com docker compose up -d --build
+- `docker-compose.prod.yml` —— **推荐**，直接拉取 GHCR 发布镜像，部署机无需源码 / 无需本地构建
+- `docker-compose.yml` —— 从源码构建，适合自行修改后部署或离线场景
+
+### 方式一：使用发布镜像（推荐，免构建）
+
+镜像由 CI（`.github/workflows/docker-publish.yml`）自动构建并发布到 GHCR，多架构支持 `amd64` / `arm64`：
+
+```
+ghcr.io/seandictionary/seanblog-frame:latest
 ```
 
-`docker-compose.yml` 会自动完成：
+部署机只要有 Docker：
+
+```bash
+# 只需 compose 文件即可（镜像自动拉取）
+docker compose -f docker-compose.prod.yml up -d
+```
+
+升级：
+
+```bash
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d
+```
+
+命名卷保留所有数据，重建容器不丢失（数据库、文章、主题、密钥、后台设置）。
+
+> 提示：导出 `COMPOSE_FILE=docker-compose.prod.yml` 后，下方所有 `docker compose ...` 命令可直接使用，无需每次加 `-f`。
+
+### 方式二：从源码构建
+
+```bash
+docker compose up -d --build
+```
+
+启动后到 `/admin` 的「站点信息」设置项填写真实域名（如 `https://blog.example.com`），保存后即时生效，无需重建镜像。
+
+两份 compose 均会自动完成：
 
 1. `secrets` 服务生成 `auth_secret` / `postgres_password` 写入命名卷
 2. `db`（Postgres 16）启动并健康检查
@@ -95,8 +129,7 @@ docker compose exec app node scripts/reset-admin-password.mjs
 
 ### 配置与反向代理
 
-- `SITE_URL` 同时作为构建参数（`build.args.NEXT_PUBLIC_SITE_URL`，烘焙进客户端）与运行时 `environment`（服务端 `seo_head` 读取）。修改域名后需重新 `--build`。
-- 可在仓库根放 `.env` 文件持久化（compose 自动读取）：`SITE_URL=https://blog.example.com`。
+- 站点 URL 由后台「站点信息」设置项运行时读取（带短缓存），修改域名后保存即可生效，无需 `--build`。
 - compose 默认 `TRUST_PROXY_HEADERS: "true"`，适配"容器在反代后"的典型拓扑。若直接暴露 3000 端口到公网（不推荐），改 `"false"` 以防 `X-Forwarded-For` 被客户端伪造。
 - 反向代理（Caddy / Nginx）需将 `X-Forwarded-For`、`X-Forwarded-Proto` 透传，并终止 HTTPS。Caddy 示例：
 
@@ -137,9 +170,19 @@ docker compose exec app node scripts/prune-operation-logs.mjs
 
 ### 升级
 
+镜像发布方式（推荐）：
+
+```bash
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d   # migrate deploy 自动应用新迁移
+```
+
+源码构建方式：
+
 ```bash
 git pull
 docker compose up -d --build          # 重新构建并重启，migrate deploy 自动应用新迁移
+```
 ```
 
 > 首次正式上线后，迁移为**增量工作流**（每次结构变更一条迁移），`prisma migrate deploy` 自动按序应用。**生产库切勿 `migrate reset`**（会清空数据）。
@@ -150,9 +193,11 @@ docker compose up -d --build          # 重新构建并重启，migrate deploy �
 npm ci
 npx prisma generate
 npm run build                         # 输出 .next/standalone
-export DATABASE_URL=... AUTH_SECRET=... NEXT_PUBLIC_SITE_URL=...
+export DATABASE_URL=... AUTH_SECRET=...
 node .next/standalone/server.js       # 监听 :3000
 ```
+
+站点 URL 在后台「站点信息」设置项配置，缺省 `http://localhost:3000`。
 
 需自行管理 Postgres、密钥、`content/` 与 `themes/` 目录的持久化。
 
