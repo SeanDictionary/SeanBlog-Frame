@@ -15,10 +15,8 @@ COPY . .
 # content/ 在仓库中为运行时内容（gitignore），clone 后可能不存在；
 # 此处保证 builder 镜像内存在该目录，避免 runner 阶段 COPY 失败。运行时由命名卷覆盖。
 RUN mkdir -p /app/content
-# NEXT_PUBLIC_* 在 next build 时烘炉进客户端 bundle，必须作为构建期参数传入，
-# 否则客户端会恒为构建默认值（运行时 environment 无法覆盖已烘妒的客户端代码）。
-ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
-ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
+# 站点 URL（siteUrl）由后台设置（DB）运行时读取，不再需要构建期变量；
+# 缺省 http://localhost:3000，管理员在后台配置真实域名后即时生效。
 RUN npx prisma generate
 RUN npm run build
 
@@ -40,11 +38,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 RUN chmod +x ./scripts/start-production.sh
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
-
-# 服务端读取 NEXT_PUBLIC_SITE_URL（seo_head/canonical）；带上构建期值，便于
-# docker run（非 compose）部署；compose 可用运行时 environment 覆盖。
-ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
-ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 
 USER nextjs
 EXPOSE 3000

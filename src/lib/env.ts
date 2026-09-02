@@ -15,11 +15,6 @@ import { z } from 'zod'
 const envSchema = z.object({
   DATABASE_URL: z.string().trim().min(1, 'DATABASE_URL is required.'),
   AUTH_SECRET: z.string().trim().min(1, 'AUTH_SECRET is required.'),
-  NEXT_PUBLIC_SITE_URL: z
-    .string()
-    .trim()
-    .url('NEXT_PUBLIC_SITE_URL must be a valid URL.')
-    .optional(),
   TRUST_PROXY_HEADERS: z.string().optional(),
   NODE_ENV: z.enum(['development', 'test', 'production']).optional(),
 })
@@ -38,5 +33,3 @@ function parseEnv(): Env {
 const shouldValidate = Boolean(process.env.DATABASE_URL)
 
 export const env: Env = shouldValidate ? parseEnv() : (process.env as Env)
-
-export const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, '')

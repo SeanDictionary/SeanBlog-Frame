@@ -228,7 +228,7 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
                   ? 'SeanBlog'
                   : key === 'siteDescription'
                     ? 'Personal blog powered by SeanBlog Frame.'
-                    : process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+                    : 'http://localhost:3000'
                 : currentValue
 
               return (

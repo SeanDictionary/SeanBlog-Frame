@@ -3,8 +3,8 @@ import { Inter } from 'next/font/google'
 import { cookies } from 'next/headers'
 import type { ReactNode } from 'react'
 
-import { siteUrl } from '@/lib/env'
 import { getActiveThemeSettings } from '@/lib/services/theme-settings-service'
+import { getSiteUrl } from '@/lib/services/setting-service'
 import './globals.css'
 
 const inter = Inter({
@@ -13,19 +13,24 @@ const inter = Inter({
   variable: '--font-inter',
 })
 
-export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
-  title: {
-    default: 'SeanBlog',
-    template: '%s | SeanBlog',
-  },
-  description: 'Personal blog powered by SeanBlog Frame.',
-  openGraph: {
-    type: 'website',
-    siteName: 'SeanBlog',
-    title: 'SeanBlog',
+// metadataBase 来自后台 siteUrl 设置（带短缓存）；root layout 本就因 cookie 动态，
+// 改用 generateMetadata 按请求解析，使管理员后台改域名即时生效，无需重建镜像。
+export async function generateMetadata(): Promise<Metadata> {
+  const siteUrl = await getSiteUrl()
+  return {
+    metadataBase: new URL(siteUrl),
+    title: {
+      default: 'SeanBlog',
+      template: '%s | SeanBlog',
+    },
     description: 'Personal blog powered by SeanBlog Frame.',
-  },
+    openGraph: {
+      type: 'website',
+      siteName: 'SeanBlog',
+      title: 'SeanBlog',
+      description: 'Personal blog powered by SeanBlog Frame.',
+    },
+  }
 }
 
 type RootLayoutProps = {

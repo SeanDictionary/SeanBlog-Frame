@@ -7,7 +7,7 @@ import { getPrisma } from '@/lib/prisma'
 import { getSiteSettingsMap } from '@/lib/services/setting-service'
 
 function normalizeBaseUrl(value: unknown) {
-  const siteUrl = typeof value === 'string' && value.trim() ? value : process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+  const siteUrl = typeof value === 'string' && value.trim() ? value : 'http://localhost:3000'
   return siteUrl.replace(/\/$/, '')
 }
 

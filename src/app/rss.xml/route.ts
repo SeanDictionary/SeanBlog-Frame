@@ -23,7 +23,7 @@ export async function GET() {
     }),
   ])
 
-  const siteUrl = typeof settings.siteUrl === 'string' ? settings.siteUrl : process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+  const siteUrl = typeof settings.siteUrl === 'string' ? settings.siteUrl : 'http://localhost:3000'
   const siteName = typeof settings.siteName === 'string' ? settings.siteName : 'SeanBlog Frame'
   const siteDescription = typeof settings.siteDescription === 'string' ? settings.siteDescription : 'Personal blog feed'
 

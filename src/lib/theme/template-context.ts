@@ -169,7 +169,7 @@ async function baseCtx(): Promise<{ settings: Record<string, unknown>; site: Sit
   const site: SiteCtx = {
     title: typeof settings.siteName === 'string' && settings.siteName.trim() ? settings.siteName : 'SeanBlog',
     description: typeof settings.siteDescription === 'string' ? settings.siteDescription : '',
-    url: process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
+    url: typeof settings.siteUrl === 'string' && settings.siteUrl.trim() ? settings.siteUrl.replace(/\/$/, '') : 'http://localhost:3000',
     locale: 'zh-CN',
     logo: typeof settings.siteLogo === 'string' ? settings.siteLogo : null,
   }

@@ -1,11 +1,12 @@
 import type { MetadataRoute } from 'next'
 
-function getBaseUrl() {
-  return (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, '')
-}
+import { getSiteUrl } from '@/lib/services/setting-service'
 
-export default function robots(): MetadataRoute.Robots {
-  const baseUrl = getBaseUrl()
+// 站点 URL 来自后台设置（DB），需按请求动态生成，不能在构建期静态固化。
+export const dynamic = 'force-dynamic'
+
+export default async function robots(): Promise<MetadataRoute.Robots> {
+  const baseUrl = await getSiteUrl()
 
   return {
     rules: {
