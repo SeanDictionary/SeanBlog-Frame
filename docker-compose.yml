@@ -1,5 +1,19 @@
+# SeanBlog Frame 生产部署。
+#
+# 镜像由 .github/workflows/docker-publish.yml 在打 v*.*.* 标签时构建并推送：
+#   ghcr.io/seandictionary/seanblog-frame:latest  （amd64 / arm64）
+#
+# 用法（服务同时声明 image 与 build，由命令决定拉镜像还是本地构建）：
+#   正式部署（拉镜像，推荐）  docker compose up -d
+#   升级                      docker compose pull && docker compose up -d
+#   从源码构建（改了代码/离线）docker compose up -d --build
+#
+# 站点 URL 在后台「站点信息」设置项运行时配置（镜像与域名解耦），无需重建即可改域名。
+# 数据持久化见命名卷，重建容器不丢失（数据库 / 文章 / 主题 / 密钥 / 后台设置）。
+
 services:
   secrets:
+    image: ghcr.io/seandictionary/seanblog-frame:latest
     build:
       context: .
       dockerfile: Dockerfile
@@ -10,6 +24,7 @@ services:
       - seanblog_secrets:/run/secrets
 
   app:
+    image: ghcr.io/seandictionary/seanblog-frame:latest
     build:
       context: .
       dockerfile: Dockerfile

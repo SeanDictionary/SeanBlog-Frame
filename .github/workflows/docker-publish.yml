@@ -117,7 +117,7 @@ jobs:
             docker pull ghcr.io/seandictionary/seanblog-frame:${{ steps.meta.outputs.version }}
             ```
 
-            部署见 [`docker-compose.prod.yml`](https://github.com/SeanDictionary/SeanBlog-Frame/blob/main/docker-compose.prod.yml)。
+            部署见 [`docker-compose.yml`](https://github.com/SeanDictionary/SeanBlog-Frame/blob/main/docker-compose.yml)。
 
             ---
             ${{ steps.pre_tag.outputs.prev != '' && format('**Full Changelog**: https://github.com/{0}/compare/{1}...{2}', github.repository, steps.pre_tag.outputs.prev, github.ref_name) || 'Initial Release' }}

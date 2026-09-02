@@ -61,46 +61,49 @@
 
 ## Docker 部署（推荐）
 
-提供两份 compose：
-
-- `docker-compose.prod.yml` —— **推荐**，直接拉取 GHCR 发布镜像，部署机无需源码 / 无需本地构建
-- `docker-compose.yml` —— 从源码构建，适合自行修改后部署或离线场景
-
-### 方式一：使用发布镜像（推荐，免构建）
-
-镜像由 CI（`.github/workflows/docker-publish.yml`）自动构建并发布到 GHCR，多架构支持 `amd64` / `arm64`：
+只需一个 [`docker-compose.yml`](https://github.com/SeanDictionary/SeanBlog-Frame/blob/main/docker-compose.yml) 文件即可部署，镜像由 CI 在打 `v*.*.*` 标签时自动构建并发布到 GHCR（多架构 `amd64` / `arm64`）：
 
 ```
 ghcr.io/seandictionary/seanblog-frame:latest
 ```
 
-部署机只要有 Docker：
+### 一键部署
+
+部署机只要有 Docker，下载 compose 文件后直接启动（首次会自动拉取镜像）：
 
 ```bash
-# 只需 compose 文件即可（镜像自动拉取）
-docker compose -f docker-compose.prod.yml up -d
+# 拉取 compose 文件
+curl -O https://raw.githubusercontent.com/SeanDictionary/SeanBlog-Frame/main/docker-compose.yml
+
+# 启动（拉取镜像、生成密钥、建表、初始化管理员/欢迎文章）
+docker compose up -d
 ```
 
-升级：
+打开 `http://<服务器IP>:3000`，后台在 `/admin`（首次启动管理员密码打印在 app 容器日志，见下文「获取管理员密码」）。
+
+到 `/admin` 的「站点信息」设置项填写真实域名（如 `https://blog.example.com`），保存后即时生效，无需重建镜像。
+
+### 升级
 
 ```bash
-docker compose -f docker-compose.prod.yml pull
-docker compose -f docker-compose.prod.yml up -d
+docker compose pull
+docker compose up -d        # migrate deploy 自动应用新迁移
 ```
 
-命名卷保留所有数据，重建容器不丢失（数据库、文章、主题、密钥、后台设置）。
+命名卷保留所有数据，重建容器不丢失（数据库、文章、主题、密钥、后台设置）。**生产库切勿 `migrate reset`。**
 
-> 提示：导出 `COMPOSE_FILE=docker-compose.prod.yml` 后，下方所有 `docker compose ...` 命令可直接使用，无需每次加 `-f`。
+### 从源码构建（可选）
 
-### 方式二：从源码构建
+自行改了代码或离线场景，加 `--build` 即从本地源码构建（compose 同时声明了 `image` 与 `build`，由命令决定拉镜像还是本地构建）：
 
 ```bash
+# 需要完整源码
+git clone https://github.com/SeanDictionary/SeanBlog-Frame.git
+cd SeanBlog-Frame
 docker compose up -d --build
 ```
 
-启动后到 `/admin` 的「站点信息」设置项填写真实域名（如 `https://blog.example.com`），保存后即时生效，无需重建镜像。
-
-两份 compose 均会自动完成：
+### 启动后自动完成
 
 1. `secrets` 服务生成 `auth_secret` / `postgres_password` 写入命名卷
 2. `db`（Postgres 16）启动并健康检查
@@ -173,8 +176,8 @@ docker compose exec app node scripts/prune-operation-logs.mjs
 镜像发布方式（推荐）：
 
 ```bash
-docker compose -f docker-compose.prod.yml pull
-docker compose -f docker-compose.prod.yml up -d   # migrate deploy 自动应用新迁移
+docker compose pull
+docker compose up -d   # migrate deploy 自动应用新迁移
 ```
 
 源码构建方式：
