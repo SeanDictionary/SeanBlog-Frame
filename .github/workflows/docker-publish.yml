@@ -1,0 +1,126 @@
+# 打 v*.*.* 标签时：构建并发布镜像到 GHCR，并用 CHANGELOG.md 对应版本段落创建 GitHub Release。
+#
+# 流程参照 SeanDictionary/sage-lsp、SeanDictionary/SageMath-for-VScode 的发布模式：
+#   - 标签触发（仅 v*.*.*，含预发布如 v1.2.3-rc.1）
+#   - 从 CHANGELOG.md 提取本版本条目作为 Release 正文
+#   - softprops/action-gh-release 创建 Release，附 Full Changelog compare 链接
+#   - 含 '-' 视为预发布
+#
+# 镜像地址：ghcr.io/seandictionary/seanblog-frame
+# 镜像与站点域名解耦（siteUrl 后台运行时配置），一个镜像可给任意域名部署。
+
+name: Publish Docker Image and Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write   # 创建 GitHub Release
+  packages: write   # 推送镜像到 GHCR
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-publish-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0    # 全历史，用于查找上一标签生成 compare 链接
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/seandictionary/seanblog-frame
+          # v1.2.3 → 1.2.3 / 1.2 / 1；预发布（含 -）不打 latest
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest,enable=${{ !contains(github.ref_name, '-') }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+
+      # --- 以下为 GitHub Release 创建，参照 sage 仓库的 changelog 模式 ---
+
+      - name: Build Release Notes from Changelog
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          # 用 index() 字符串匹配而非正则 \[，避免不同 gawk 版本对 \[ 解释不同导致漏匹配。
+          awk -v ver="$VERSION" '
+            /^## / {
+              if (in_section) exit
+              if (index($0, "[" ver "]") > 0) { in_section = 1; print; next }
+              next
+            }
+            in_section { print }
+          ' CHANGELOG.md > release_notes.md
+
+          if [[ ! -s release_notes.md ]]; then
+            echo "No changelog entry found for $VERSION" > release_notes.md
+          fi
+
+      - name: Extract Release Notes
+        id: extract_release_notes
+        run: |
+          echo "contents<<EOF" >> "$GITHUB_OUTPUT"
+          cat release_notes.md >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Find Previous Tag
+        id: pre_tag
+        run: |
+          PREV=$(git tag --sort=-v:refname | grep -v "^${GITHUB_REF_NAME}$" | head -n 1 || true)
+          echo "prev=$PREV" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body: |
+            ${{ steps.extract_release_notes.outputs.contents }}
+
+            ---
+
+            ## 镜像
+
+            ```
+            docker pull ghcr.io/seandictionary/seanblog-frame:${{ steps.meta.outputs.version }}
+            ```
+
+            部署见 [`docker-compose.prod.yml`](https://github.com/SeanDictionary/SeanBlog-Frame/blob/main/docker-compose.prod.yml)。
+
+            ---
+            ${{ steps.pre_tag.outputs.prev != '' && format('**Full Changelog**: https://github.com/{0}/compare/{1}...{2}', github.repository, steps.pre_tag.outputs.prev, github.ref_name) || 'Initial Release' }}
+          prerelease: ${{ contains(github.ref_name, '-') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
