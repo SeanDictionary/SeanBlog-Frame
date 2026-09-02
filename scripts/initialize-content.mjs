@@ -4,6 +4,8 @@ import path from 'node:path'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '@prisma/client'
 
+import { resolveDatabaseUrl } from './db-url.mjs'
+
 const DEFAULT_CATEGORY = {
   name: '未分类',
   slug: 'uncategorized',
@@ -31,14 +33,8 @@ const WELCOME_ARTICLE = {
 }
 
 function createPrisma() {
-  const connectionString = process.env.DATABASE_URL
-
-  if (!connectionString) {
-    throw new Error('DATABASE_URL is not configured.')
-  }
-
   return new PrismaClient({
-    adapter: new PrismaPg({ connectionString }),
+    adapter: new PrismaPg({ connectionString: resolveDatabaseUrl() }),
   })
 }
 
