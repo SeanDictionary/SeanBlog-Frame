@@ -15,7 +15,8 @@ pnpm-debug.log*
 Dockerfile
 .dockerignore
 docker-compose*.yml
-# dev 脚本不进生产镜像
+# 宿主机部署脚本与 dev 脚本不进生产镜像
+install.sh
 scripts/build-openapi.mjs
 docs
 README.md

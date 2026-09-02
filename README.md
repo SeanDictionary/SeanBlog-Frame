@@ -67,27 +67,33 @@
 ghcr.io/seandictionary/seanblog-frame:latest
 ```
 
-### 一键部署
+### 一键部署（推荐）
 
-部署机只要有 Docker，下载 compose 文件后直接启动（首次会自动拉取镜像）：
+部署机只要有 Docker，执行官方安装脚本即可（自动下载 compose、拉镜像、启动、等待就绪、并把首次管理员密码打印到终端）：
 
 ```bash
-# 拉取 compose 文件
-curl -O https://raw.githubusercontent.com/SeanDictionary/SeanBlog-Frame/main/docker-compose.yml
-
-# 启动（拉取镜像、生成密钥、建表、初始化管理员/欢迎文章）
-docker compose up -d
+curl -fsSL https://raw.githubusercontent.com/SeanDictionary/SeanBlog-Frame/main/install.sh | bash
 ```
 
-打开 `http://<服务器IP>:3000`，后台在 `/admin`（首次启动管理员密码打印在 app 容器日志，见下文「获取管理员密码」）。
+脚本完成后会直接输出管理员账号/密码和后台地址。打开 `http://<服务器IP>:3000/admin` 登录，到「站点信息」设置项填写真实域名（如 `https://blog.example.com`），保存后即时生效，无需重建镜像。
 
-到 `/admin` 的「站点信息」设置项填写真实域名（如 `https://blog.example.com`），保存后即时生效，无需重建镜像。
+### 手动部署
+
+不想用脚本时，拿 compose 文件直接启动：
+
+```bash
+curl -O https://raw.githubusercontent.com/SeanDictionary/SeanBlog-Frame/main/docker-compose.yml
+docker compose up -d        # 首次会拉取镜像、生成密钥、建表、初始化管理员/欢迎文章
+# 首次管理员密码在 app 容器日志：docker compose logs app | grep -A3 'Administrator password'
+```
 
 ### 升级
 
+重跑安装脚本即可升级（自动拉取最新镜像并重启）：
+
 ```bash
-docker compose pull
-docker compose up -d        # migrate deploy 自动应用新迁移
+bash install.sh
+# 或手动：docker compose pull && docker compose up -d   # migrate deploy 自动应用新迁移
 ```
 
 命名卷保留所有数据，重建容器不丢失（数据库、文章、主题、密钥、后台设置）。**生产库切勿 `migrate reset`。**
@@ -118,7 +124,9 @@ docker compose up -d --build
 
 ### 获取管理员密码
 
-首次 `app` 启动时 `initialize-admin` 会把密码打印到 **app 容器标准输出**：
+使用 `install.sh` 部署时，脚本会在启动就绪后**直接把首次管理员密码打印到终端**，无需手动查日志。
+
+手动部署或脚本未抓到时，从 app 容器日志获取：
 
 ```bash
 docker compose logs app | grep -A3 "Administrator password"
