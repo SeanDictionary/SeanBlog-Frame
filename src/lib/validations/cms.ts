@@ -223,14 +223,9 @@ const analyticsSettingKeys = new Set([
   ...analyticsStringSettingKeys,
 ])
 const publicLayoutBooleanSettingKeys = new Set([
-  'publicHeaderShowHome',
-  'publicHeaderShowCategories',
-  'publicHeaderShowTags',
-  'publicHeaderShowSearch',
   'publicFooterShowRss',
 ])
 const publicLayoutStringSettingKeys = new Set([
-  'publicHeaderTitle',
   'publicFooterText',
 ])
 const publicLayoutSettingKeys = new Set([

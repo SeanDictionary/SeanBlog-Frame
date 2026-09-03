@@ -8,11 +8,9 @@ type SiteHeaderProps = {
 }
 
 export function SiteHeader({ settings }: SiteHeaderProps) {
-  const title = typeof settings?.publicHeaderTitle === 'string' && settings.publicHeaderTitle.trim()
-    ? settings.publicHeaderTitle
-    : typeof settings?.siteName === 'string' && settings.siteName.trim()
-      ? settings.siteName
-      : 'SeanBlog'
+  const title = typeof settings?.siteName === 'string' && settings.siteName.trim()
+    ? settings.siteName
+    : 'SeanBlog'
 
   const showThemeToggle = settings?.showThemeToggle !== false && settings?.showThemeToggle !== 'false'
   const hasSidebar = typeof settings?.sidebarPosition === 'string' && settings.sidebarPosition !== 'none'

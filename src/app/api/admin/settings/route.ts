@@ -9,7 +9,7 @@ import { settingBulkUpdateSchema } from '@/lib/validations/cms'
 
 const settingScopeLabels = {
   analytics: '访问统计设置',
-  'public-layout': 'Header / Footer 设置',
+  'public-layout': '页脚设置',
   'site-info': '站点信息',
 } satisfies Record<string, string>
 
@@ -19,7 +19,7 @@ function revalidateSettings(keys: string[]) {
     revalidatePath('/admin/visitors')
   }
 
-  if (keys.some((key) => key.startsWith('publicHeader') || key.startsWith('publicFooter') || keys.includes('siteName') || keys.includes('siteDescription') || keys.includes('siteUrl'))) {
+  if (keys.some((key) => key.startsWith('publicFooter') || keys.includes('siteName') || keys.includes('siteDescription') || keys.includes('siteUrl'))) {
     revalidatePath('/(public)', 'layout')
     revalidatePath('/rss.xml')
   }

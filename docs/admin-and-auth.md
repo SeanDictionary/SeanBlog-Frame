@@ -213,6 +213,7 @@ export async function isAdminAuthenticated() {
 - JWT token 使用 `AUTH_SECRET` 环境变量签名
 - 管理员初始密码随机生成，只在创建或重置时输出一次
 - 所有 Server Action 在执行业务逻辑前调用 `requireAdmin()`
+- 后台与评论写入接口统一经 `requireSameOriginRequest()`（`src/lib/api/request-guard.ts`）做同源校验：`Origin` 头命中允许集合（`request.url` 解析出的源 + 后台 `siteUrl` 设置项的源）即放行；未命中时回退看 `sec-fetch-site`，`same-origin/same-site/none` 放行，`cross-site` 或缺失则拦截。该回退覆盖反代终结 TLS、`siteUrl` 缓存未预热等导致 `requestOrigin` 与浏览器 `Origin` 不一致的场景，同时保持对跨站 CSRF 的拦截
 - 生产环境强制 HTTPS，Cookie 设置 `secure: true`
 - 登录和评论接口做速率限制（Phase 3 引入 Redis rate limiting）
 - 评论不再直接存储 `ip`/`userAgent` 字段，而是通过 `visitorId` 外键关联 `Visitor` 表；反垃圾数据（浏览器指纹、硬件特征等）记录在 `AnalyticsEvent`/`OperationLog` 上，而非 Comment 行

@@ -53,7 +53,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ key:
       return upsertSetting(key, input.value)
     })
 
-    if (key === 'activeTheme' || key.startsWith('publicHeader') || key.startsWith('publicFooter') || key.startsWith('theme')) {
+    if (key === 'activeTheme' || key.startsWith('publicFooter') || key.startsWith('theme')) {
       revalidatePath('/(public)', 'layout')
     }
 

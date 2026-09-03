@@ -20,6 +20,6 @@
 ## 后台管理员
 
 admin
-ueqxT_dIhMW5i2Fz2UPNkOxcfS4OS9QM
+41z-gnIggHIbXL1FcX8r_x4AgxTIF4Xa
 
 如果密码不对可以使用脚本重新生成密码，同时需要告知用户，并更新上方密码

@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 
+import { useAdminToast } from '@/components/admin/admin-toast-provider'
 import { Card } from '@/components/ui/card'
 
 type Setting = {
@@ -100,12 +101,8 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
   const [analyticsSettings, setAnalyticsSettings] = useState(() => buildAnalyticsSettings(initialSettings))
   const [operationLogRetentionDays, setOperationLogRetentionDays] = useState(() => buildOperationLogRetentionDays(initialSettings))
   const [ipinfoToken, setIpinfoToken] = useState(() => buildIpinfoToken(initialSettings))
-  const [message, setMessage] = useState<string | null>(null)
+  const toast = useAdminToast()
   const [isPending, startTransition] = useTransition()
-
-  function reportError(error: unknown, fallback: string) {
-    setMessage(error instanceof Error ? error.message : fallback)
-  }
 
   async function persistSetting(key: string, value: unknown) {
     const response = await fetch(`/api/admin/settings/${encodeURIComponent(key)}`, {
@@ -139,7 +136,6 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
 
   function save(key: string, rawValue: string, label?: string) {
     startTransition(async () => {
-      setMessage(null)
       let value: unknown = rawValue
 
       try {
@@ -151,55 +147,49 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
       try {
         const setting = await persistSetting(key, value)
         setSettings((previous) => mergeSettings(previous, [setting]))
-        setMessage(null)
+        toast.success(label ? `${label}已保存。` : '设置已保存。')
         router.refresh()
       } catch (error) {
-        reportError(error, '保存失败。')
+        toast.error(error instanceof Error ? error.message : '保存失败。')
       }
     })
   }
 
   function saveMany(updates: SettingUpdate[], successMessage: string) {
     startTransition(async () => {
-      setMessage(null)
-
       try {
         const savedSettings = await Promise.all(updates.map((update) => persistSetting(update.key, update.value)))
         setSettings((previous) => mergeSettings(previous, savedSettings))
-        setMessage(null)
+        toast.success(successMessage)
         router.refresh()
       } catch (error) {
-        reportError(error, '保存失败。')
+        toast.error(error instanceof Error ? error.message : '保存失败。')
       }
     })
   }
 
   function saveAnalyticsSettings(updates: SettingUpdate[]) {
     startTransition(async () => {
-      setMessage(null)
-
       try {
         const savedSettings = await persistSettings('analytics', updates)
         setSettings((previous) => mergeSettings(previous, savedSettings))
-        setMessage(null)
+        toast.success('访问统计设置已保存。')
         router.refresh()
       } catch (error) {
-        reportError(error, '访问统计设置保存失败。')
+        toast.error(error instanceof Error ? error.message : '访问统计设置保存失败。')
       }
     })
   }
 
   function saveSiteInfo(updates: SettingUpdate[]) {
     startTransition(async () => {
-      setMessage(null)
-
       try {
         const savedSettings = await persistSettings('site-info', updates)
         setSettings((previous) => mergeSettings(previous, savedSettings))
-        setMessage(null)
+        toast.success('站点信息已保存。')
         router.refresh()
       } catch (error) {
-        reportError(error, '站点信息保存失败。')
+        toast.error(error instanceof Error ? error.message : '站点信息保存失败。')
       }
     })
   }
@@ -321,7 +311,7 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
           saveMany([
             { key: 'publicFooterText', value: String(formData.get('publicFooterText') ?? '') },
             { key: 'publicFooterShowRss', value: formData.get('publicFooterShowRss') === 'on' },
-          ], 'footer')
+          ], '页脚已保存。')
         }}>
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
@@ -337,7 +327,6 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
         </form>
       </Card>
 
-      {message && <p className="text-sm text-red-600 dark:text-red-400" role="alert">{message}</p>}
     </div>
   )
 }

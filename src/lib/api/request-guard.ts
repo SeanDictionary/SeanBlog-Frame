@@ -38,11 +38,20 @@ export function requireSameOriginRequest(request: Request) {
   if (origin) {
     const normalizedOrigin = safeNormalizeOrigin(origin)
 
-    if (!normalizedOrigin || !getAllowedOrigins(request).has(normalizedOrigin)) {
-      throw forbidden('Cross-site admin requests are not allowed.')
+    if (normalizedOrigin && getAllowedOrigins(request).has(normalizedOrigin)) {
+      return
     }
 
-    return
+    // Origin 未命中允许集合时，回退到 Fetch Metadata（sec-fetch-site）。
+    // 浏览器对同源请求如实发送 same-origin/same-site/none，覆盖反代终结 TLS、
+    // siteUrl 缓存未预热等导致 requestOrigin 与浏览器 Origin 不一致的场景；
+    // 跨站 CSRF 的 sec-fetch-site 为 cross-site，仍会被拦截。
+    const fetchSite = request.headers.get('sec-fetch-site')
+    if (fetchSite && ALLOWED_FETCH_SITES.has(fetchSite)) {
+      return
+    }
+
+    throw forbidden('Cross-site admin requests are not allowed.')
   }
 
   const fetchSite = request.headers.get('sec-fetch-site')

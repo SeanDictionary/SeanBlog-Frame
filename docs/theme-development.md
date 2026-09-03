@@ -344,6 +344,8 @@ partial fallback 同 [§6.1](#61-模板-fallback-链重申)。
 | `platform_enhance` | string | 平台脚本 `<script src="/enhance.js" defer><script src="/analytics.js" defer>` |
 | `seo` | object | 当前页 SEO 原始结构（一般不直接用，用 `seo_head` 即可） |
 
+> 页脚 partial 约定：主题 `partials/footer.hbs` 应读取站点级 `settings.publicFooterText`（自定义页脚 HTML，非空时用 `{{{settings.publicFooterText}}}` 原样输出，否则回退主题默认版权）与 `settings.publicFooterShowRss`（布尔，默认 `true`，仅在显式为 `false` 时隐藏 RSS 入口）。页头导航/搜索/主题切换等属表现层，由 `theme.config.*` 控制，不再有站点级页头设置。
+
 `sidebarData` 子结构：
 
 ```js

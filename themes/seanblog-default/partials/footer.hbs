@@ -1,6 +1,12 @@
 <footer class="sb-footer">
   <div class="sb-footer-inner">
-    <span>© {{site.title}}</span>
-    <a href="/rss.xml" aria-label="RSS"><i class="fa-solid fa-rss"></i></a>
+    {{#if settings.publicFooterText}}
+      <div class="sb-footer-text">{{{settings.publicFooterText}}}</div>
+    {{else}}
+      <span>© {{site.title}}</span>
+    {{/if}}
+    {{#unless (eq settings.publicFooterShowRss false)}}
+      <a href="/rss.xml" aria-label="RSS"><i class="fa-solid fa-rss"></i></a>
+    {{/unless}}
   </div>
 </footer>
