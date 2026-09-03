@@ -5,6 +5,8 @@
 #   curl -fsSL https://raw.githubusercontent.com/SeanDictionary/SeanBlog-Frame/main/install.sh | bash
 # 或本地：
 #   bash install.sh
+# 自定义对外端口（默认 3000，仅改宿主机映射，容器内固定 3000）：
+#   APP_PORT=8080 bash install.sh
 #
 # 行为：
 #   - 检查 docker / docker compose / curl
@@ -18,7 +20,7 @@ set -euo pipefail
 REPO="SeanDictionary/SeanBlog-Frame"
 RAW="https://raw.githubusercontent.com/$REPO/main"
 COMPOSE_FILE="docker-compose.yml"
-HEALTH_URL="http://127.0.0.1:3000/api/health"
+HEALTH_URL="http://127.0.0.1:${APP_PORT:-3000}/api/health"
 HEALTH_TIMEOUT=180   # 等待应用就绪的最长秒数
 
 c_bold=$'\033[1m'; c_green=$'\033[32m'; c_yellow=$'\033[33m'; c_red=$'\033[31m'; c_reset=$'\033[0m'
@@ -77,8 +79,8 @@ else
   printf '  如需重置：docker compose exec app node scripts/reset-admin-password.mjs\n'
 fi
 printf '\n'
-printf '后台地址：http://localhost:3000/admin （本机）\n'
-printf '          http://<服务器IP>:3000/admin （远程）\n'
+printf '后台地址：http://localhost:${APP_PORT:-3000}/admin （本机）\n'
+printf '          http://<服务器IP>:${APP_PORT:-3000}/admin （远程）\n'
 printf '\n'
 printf '下一步：登录后台「站点信息」设置真实域名（如 https://blog.example.com），保存即生效。\n'
 printf '\n'

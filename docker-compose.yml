@@ -36,7 +36,7 @@ services:
       # 容器化部署默认位于反向代理后，信任 X-Forwarded-For 以正确限流与采集访客 IP
       TRUST_PROXY_HEADERS: "true"
     ports:
-      - "3000:3000"
+      - "${APP_PORT:-3000}:3000"
     volumes:
       - seanblog_secrets:/run/secrets:ro
       - seanblog_content:/app/content

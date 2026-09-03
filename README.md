@@ -65,7 +65,7 @@
 
 ```
 ghcr.io/seandictionary/seanblog-frame:latest
-```
+bush```
 
 ### 一键部署（推荐）
 
@@ -76,6 +76,23 @@ curl -fsSL https://raw.githubusercontent.com/SeanDictionary/SeanBlog-Frame/main/
 ```
 
 脚本完成后会直接输出管理员账号/密码和后台地址。打开 `http://<服务器IP>:3000/admin` 登录，到「站点信息」设置项填写真实域名（如 `https://blog.example.com`），保存后即时生效，无需重建镜像。
+
+#### 自定义端口
+
+默认暴露宿主机 `3000` 端口。需改用别的端口时，用环境变量 `APP_PORT` 指定（容器内端口固定 3000，仅改对外映射）：
+
+```bash
+# 安装脚本：指定 8080
+APP_PORT=8080 bash -c "$(curl -fsSL https://raw.githubusercontent.com/SeanDictionary/SeanBlog-Frame/main/install.sh)"
+# 或本地脚本
+APP_PORT=8080 bash install.sh
+```
+
+也可在部署目录放 `.env` 持久化（compose 自动读取）：
+
+```env
+APP_PORT=8080
+```
 
 ### 手动部署
 
