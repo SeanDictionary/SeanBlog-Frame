@@ -179,25 +179,6 @@ docker compose ps                      # 查看健康状态（app 有 /api/healt
 docker compose exec app node scripts/prune-operation-logs.mjs
 ```
 
-### 升级
-
-镜像发布方式（推荐）：
-
-```bash
-docker compose pull
-docker compose up -d   # migrate deploy 自动应用新迁移
-```
-
-源码构建方式：
-
-```bash
-git pull
-docker compose up -d --build          # 重新构建并重启，migrate deploy 自动应用新迁移
-```
-```
-
-> 首次正式上线后，迁移为**增量工作流**（每次结构变更一条迁移），`prisma migrate deploy` 自动按序应用。**生产库切勿 `migrate reset`**（会清空数据）。
-
 ## 从源码部署（无 Docker）
 
 ```bash
