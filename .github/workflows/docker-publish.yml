@@ -8,6 +8,8 @@
 #
 # 镜像地址：ghcr.io/seandictionary/seanblog-frame
 # 镜像与站点域名解耦（siteUrl 后台运行时配置），一个镜像可给任意域名部署。
+# 仅构建 amd64：arm64 经 QEMU 模拟跑 next build 会挂死，且绝大多数部署机为 x86。
+# 将来需要 arm64 时改用原生 arm64 runner（matrix），不要用 QEMU。
 
 name: Publish Docker Image and Release
 
@@ -32,9 +34,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0    # 全历史，用于查找上一标签生成 compare 链接
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -63,7 +62,7 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
