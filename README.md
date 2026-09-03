@@ -223,6 +223,7 @@ node .next/standalone/server.js       # 监听 :3000
 - [后台与权限设计](docs/admin-and-auth.md)
 - [SEO 与内容系统设计](docs/seo-and-content.md)
 - [主题框架设计](docs/theme-framework.md)
+- [主题开发指引](docs/theme-development.md)
 - [OpenAPI 规范](docs/openapi.json)
 
 ## 许可证

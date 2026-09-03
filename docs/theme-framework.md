@@ -1,7 +1,10 @@
 # 主题框架设计（SeanBlog Theme Framework v2）
 
+> ⚠️ **本文是架构设计/决策文档**，面向框架实现者。部分 API（如 `{{#get}}`、`{{!< default}}` 布局继承、`{{excerpt}}`/`{{img_url}}`/`{{reading_time}}` helpers）为**设计期描述，当前未实现**。
+> **主题开发请以 [`theme-development.md`](./theme-development.md) 为准**——该文档基于实际引擎源码编写，所有 ctx 字段、helpers、`data-*` 契约均与实现一致。
+>
 > 状态：已实现（随仓库默认主题 `seanblog-default` 发布）。本文档推翻并替代旧版 `theme-development.md` 与 `cardinal-flexible-design.md`。
-> 目标读者：框架实现者 + 主题包开发者。
+> 目标读者：框架实现者。
 
 ## 1. 背景与目标
 
@@ -132,30 +135,25 @@ my-theme/
 ## 6. 清单 `theme.yaml`
 
 ```yaml
-slug: my-theme
-name: My Theme
-version: 1.0.0
-author: { name: "...", url: "..." }
-description: "..."
-homepage: "..."
-screenshot: screenshot.png
-engine: seanblog-theme
-engineVersion: 2
-base: seanblog-default      # 缺失模板/资源从这里继承
+slug: my-theme              # 必需，匹配 ^[a-z0-9][a-z0-9_-]{0,63}$
+name: My Theme              # 必需
+version: 1.0.0              # 必需
+author: { name: "...", url: "..." }   # 可选
+description: "..."           # 可选
+engine: seanblog-theme       # 必需，必须为字面量 seanblog-theme
+engineVersion: 2             # 必需，正整数；> 当前引擎版本(2) 则拒绝安装
+previewImage: preview.png    # 可选
+base: seanblog-default       # 可选，缺失模板/partial 的继承基主题
 assets:
-  css: assets/css/screen.css
-  js: assets/js/main.js      # 可选
-templates:
-  - index
-  - post
-  - taxonomy
-  - categories
-  - tags
-  - search
-requires: ">=2.0.0"          # 兼容的引擎版本
+  css: assets/theme.css       # 可选，主样式相对路径（缺省回退 assets/theme.css）
+parts:                       # 可选，声明页面使用的平台 UI 块
+  header: { blocks: [SiteHeader] }
+settingsSchema:              # 可选，设置 schema（驱动后台表单，见 §7.1）
+  ...
+settingsVersion: 1           # 可选，设置 schema 版本（用于设置快照迁移）
 ```
 
-校验：`slug` 合法、`engine` 必须 `seanblog-theme`、`engineVersion` 必须等于当前主版本（不兼容则拒绝安装）、必填模板至少含 `index` 与 `post`。
+校验：`slug` 合法、`engine` 必须 `seanblog-theme`、`engineVersion` 必须为正整数（大于当前主版本 2 才拒绝）、模板由 `templates/` 目录文件名决定（无显式 `templates` 清单字段）。实际字段与校验以 [`theme-development.md`](./theme-development.md) §4 为准。
 
 ## 7. 设置 `settings.yaml`
 
@@ -299,6 +297,8 @@ settingsSchema:
 
 ### 8.1 上下文（ctx）
 
+> ⚠️ 以下是**设计期示意**。实际 ctx 字段以 [`theme-development.md`](./theme-development.md) §7 为准（含 `sidebarData`/`pinned`/`sortOptions`/`commentsMode`/`readingMinutes` 等实际字段，`comments` 线程结构含 `link`/`replies[].replyToAuthor`）。
+
 ```js
 {
   site: { title, description, url, logo, locale },
@@ -319,6 +319,9 @@ settingsSchema:
 
 ### 8.2 平台 helpers（Handlebars，白名单注册）
 
+> ⚠️ 下表为**设计期设想**。实际实现的 helpers 见 [`theme-development.md`](./theme-development.md) §8.1：`asset`/`format_date`/`truncate`/`t`/`json`/`eq`/`ne`/`gt`/`or`/`not`/`limit`。
+> `{{{seo_head}}}`/`{{{theme_css}}}`/`{{{platform_enhance}}}` 等**不是 helper**，是平台预计算后注入 ctx 的字符串字段（见 [`theme-development.md`](./theme-development.md) §8.2）。`{{excerpt}}`/`{{img_url}}`/`{{reading_time}}`/`{{#get}}` **未实现**。
+
 | helper | 作用 |
 |---|---|
 | `{{asset "css/screen.css"}}` | 主题资源 URL，自动加版本指纹 → `/api/themes/{slug}/asset?v=...&path=...` |
@@ -337,6 +340,9 @@ settingsSchema:
 helpers 全部平台内置，**主题不能注册自己的 helper**（安全沙箱）。额外的“取数”需求用受控 `{{#get}}` helper（见 §8.5）。
 
 ### 8.3 交互模型：主题拥有 markup + 平台 data-* 渐进增强
+
+> ⚠️ 下表为**设计期设想**。实际实现的 `data-*` 契约见 [`theme-development.md`](./theme-development.md) §9：**平台 `/enhance.js` 只接管评论提交（`data-sb-comment-form` 等）与搜索弹窗（`data-sb-search*`）**。
+> 深浅色切换（`data-sb-theme-toggle`）、移动侧栏（`data-sb-sidebar-toggle`）、目录高亮（`data-sb-toc`）、评论回复（`data-sb-reply-*`）等**由主题自带 `assets/js/main.js` 实现**（默认主题为参考），不在平台增强契约内。
 
 **原则**：全部可见 markup 与样式由主题用 ctx 数据自行渲染；平台不抢 markup。需要 JS 的行为，主题给元素挂 `data-sb-*` 属性，平台一段不 intrusive 脚本（`{{{platform_enhance}}}`）按约定接线。**不挂也能静态展示，只是无交互**——渐进增强。
 
@@ -389,6 +395,8 @@ helpers 全部平台内置，**主题不能注册自己的 helper**（安全沙�
 
 ### 8.4 布局示例
 
+> ⚠️ 本引擎**不使用 Ghost 的 `{{!< default}}` 布局继承语法**（Handlebars 原生不支持）。实际机制：平台渲染页面模板得到片段，再调用 `default.hbs` 并以 `{{{body}}}` 注入。见 [`theme-development.md`](./theme-development.md) §6.2。
+
 `templates/default.hbs`：
 
 ```hbs
@@ -401,7 +409,7 @@ helpers 全部平台内置，**主题不能注册自己的 helper**（安全沙�
 </head>
 <body class="sb-layout list-{{theme.config.list_style}}">
   {{> header}}
-  <main class="sb-main">{{{_layout_body}}}</main>   <!-- 页面模板注入点 -->
+  <main class="sb-main">{{{body}}}</main>   <!-- 页面模板注入点 -->
   {{> footer}}
   <script src="{{asset "js/main.js"}}" defer></script>
   {{{platform_enhance}}}
@@ -409,10 +417,9 @@ helpers 全部平台内置，**主题不能注册自己的 helper**（安全沙�
 </html>
 ```
 
-`templates/post.hbs`：
+`templates/post.hbs`（页面模板只写主体，布局由 `default.hbs` 以 `{{{body}}}` 注入）：
 
 ```hbs
-{{!< default}}
 <article class="post">
   <h1>{{post.title}}</h1>
   <ul class="post-meta">
@@ -437,7 +444,9 @@ helpers 全部平台内置，**主题不能注册自己的 helper**（安全沙�
 </article>
 ```
 
-### 8.5 受控取数 helper `{{#get}}`（可选出口）
+### 8.5 受控取数 helper `{{#get}}`（未实现）
+
+> ⚠️ **当前引擎未实现 `{{#get}}` helper。** 各页面所需数据已由 ctx 提供（如侧栏数据见 `sidebarData`）。设计意图保留如下，供未来实现参考。
 
 默认 ctx 已含每个页面所需数据。当主题需额外数据（侧栏最近文章、相关文章、标签云），用受控 helper：
 
