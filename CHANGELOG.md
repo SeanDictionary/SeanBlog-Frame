@@ -8,9 +8,21 @@
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-03
+
 ### Added
 
 - 部署支持通过 `APP_PORT` 环境变量自定义对外端口（默认 3000，仅改宿主机映射，容器内固定 3000）；`install.sh` 与 `docker-compose.yml` 均已支持。
+- 后台设置页（站点信息 / 访问统计 / 页脚）保存通知统一为 toast 弹窗，替代底部红字提示。
+- 页脚自定义 HTML（`publicFooterText`）与 RSS 显隐（`publicFooterShowRss`）接入 `seanblog-default` 主题 footer partial；容器为空样式，只继承字体颜色/大小，直接子元素 `margin` 清零，间距由内联 `style` 控制（`seanblog-default` 主题版本 2.1.0）。
+
+### Changed
+
+- CSRF 同源守卫（`requireSameOriginRequest`）在 `Origin` 未命中允许集合时回退检查 `sec-fetch-site`，修复反向代理/CDN 终结 TLS、`siteUrl` 缓存未预热等场景下合法后台请求被误判为跨站而 403 的问题；跨站 CSRF（`sec-fetch-site: cross-site`）仍被拦截。
+
+### Removed
+
+- 废弃的页头站点设置（`publicHeaderTitle`、`publicHeaderShowHome/ShowCategories/ShowTags/ShowSearch`）；页头导航/搜索/主题切换完全归主题 `theme.config.*` 控制。
 
 ## [0.1.0] - 2026-09-02
 

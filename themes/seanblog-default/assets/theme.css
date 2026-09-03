@@ -212,8 +212,10 @@ form[data-sb-comment-form][data-state="pending"] .sb-comment-status { color: var
 .sb-footer-inner { max-width: 56rem; margin: 0 auto; padding: 2rem var(--content-padding); display: flex; justify-content: space-between; align-items: center; color: var(--color-text-tertiary); font-size: 0.8rem; }
 .sb-footer a { color: var(--color-text-tertiary); text-decoration: none; }
 .sb-footer a:hover { color: var(--color-text-secondary); }
-/* 自定义页脚容器：占满可用宽度，内部走正常块流；只继承字体颜色/大小，不继承 flex 排版 */
+/* 自定义页脚容器：占满可用宽度，内部走正常块流；只继承字体颜色/大小，不继承 flex 排版；
+   直接子元素 margin 清零，间距由用户内联 style 自行控制 */
 .sb-footer-text { flex: 1 1 auto; min-width: 0; }
+.sb-footer-text > * { margin: 0; }
 
 /* === 搜索弹窗 === */
 .sb-search-overlay { position: fixed; inset: 0; z-index: 60; background: color-mix(in srgb, #000 50%, transparent); display: flex; align-items: flex-start; justify-content: center; padding: 12vh 1rem 1rem; }
