@@ -591,7 +591,9 @@ CSS 里的 `url(...)` 只能引用**包内相对资源**，由平台重写为 `/
 <img src="{{asset "assets/img/logo.png"}}">
 ```
 
-生成形如 `/api/themes/{slug}/asset?v={version}&path={encoded}`，`Cache-Control: public, max-age=31536000, immutable` + `X-Content-Type-Options: nosniff`。
+生成形如 `/api/themes/{slug}/asset?v={version}&path={path}`（`path` 为原始相对路径，`/` 不做编码），`Cache-Control: public, max-age=31536000, immutable` + `X-Content-Type-Options: nosniff`。
+
+> 资源路由对查询串做防御性解码：即便 CDN/WAF 把 `%` 二次编码（`%2F`→`%252F`），仍能正确命中文件；文件不存在时返回 404（非 500）。
 
 资源路由按扩展名返回 Content-Type（`.css`/`.js`/`.svg`/`.png`/`.jpg`/`.webp`/`.woff2` 等，其余 `application/octet-stream`）。路径经 `resolveThemePath` 校验，**禁止 `..` 与绝对路径**（防穿越）。
 

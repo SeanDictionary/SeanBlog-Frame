@@ -539,7 +539,7 @@ function rewriteThemeCssUrls(themeSlug: string, cssPath: string, css: string) {
     }
 
     const assetPath = path.posix.normalize(path.posix.join(cssDirectory, value))
-    return `url("/api/themes/${themeSlug}/asset?path=${encodeURIComponent(assetPath)}")`
+    return `url("/api/themes/${themeSlug}/asset?path=${assetPath}")`
   })
 }
 

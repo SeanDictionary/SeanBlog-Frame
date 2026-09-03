@@ -8,6 +8,12 @@
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-09-03
+
+### Fixed
+
+- 修复主题资源（`{{asset}}` 引用的 `assets/js/main.js` 等）在经 CDN/WAF 二次编码 URL 后返回 500 `INTERNAL_SERVER_ERROR` 的问题。根因是 `asset` helper 对路径做了 `encodeURIComponent`，`/` 被预编码成 `%2F`，再被中间层二次编码成 `%252F`，服务端解码一次后仍残留 `%2F` 导致文件命中失败。改为不再预编码斜杠，并在资源路由对查询串做防御性解码；缺失资源现返回 404 而非 500。
+
 ## [0.2.0] - 2026-09-03
 
 ### Added

@@ -159,7 +159,10 @@ Handlebars.registerHelper('truncate', (text: unknown, opts: { hash?: { length?: 
 Handlebars.registerHelper('t', (key: string) => ZH_DICT[key] ?? key)
 
 Handlebars.registerHelper('asset', function (this: any, p: string) {
-  return this.__assetBase ? `${this.__assetBase}${encodeURIComponent(p)}` : p
+  // 路径拼入查询串 value（?path=...），其中 '/' 本就合法，无需 encodeURIComponent。
+  // 预编码会把 '/' 变成 %2F，一旦被 CDN/WAF 二次编码成 %252F，服务端解码后仍是 %2F 导致文件命中失败。
+  // 交由路由层处理解码与兜底，这里保持原始路径最稳健。
+  return this.__assetBase ? `${this.__assetBase}${p}` : p
 })
 
 Handlebars.registerHelper('eq', function (this: any, a: unknown, b: unknown, options: any) {

@@ -1,6 +1,6 @@
 {
   "name": "SeanBlog-Frame",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "一个面向长期使用的个人博客 CMS 项目，用于替代 WordPress。",
   "scripts": {
