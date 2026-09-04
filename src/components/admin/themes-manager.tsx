@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import { Card } from '@/components/ui/card'
@@ -78,6 +78,17 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
   const [liveValues, setLiveValues] = useState<Record<string, unknown>>(() =>
     activeThemePackage ? buildLiveValues(activeThemePackage.settingsSchema, themeSettings) : {},
   )
+  // 切换活跃主题（导入后启用、点击「启用」等）时，schema 已变，liveValues 必须按新主题
+  // 重新由 schema 默认值 + 当前 themeSettings 构建；否则旧 liveValues（或缺省）会让
+  // computeVisibility 把默认就勾选的级联设置项（如个人简介相关项）判为不可见，
+  // 表现为「首次进入设置不显示、刷新或重新勾选才出现」。
+  const liveValuesThemeSlugRef = useRef<string | undefined>(activeThemePackage?.slug)
+  useEffect(() => {
+    const nextSlug = activeThemePackage?.slug
+    if (!nextSlug || nextSlug === liveValuesThemeSlugRef.current) return
+    liveValuesThemeSlugRef.current = nextSlug
+    setLiveValues(activeThemePackage ? buildLiveValues(activeThemePackage.settingsSchema, themeSettings) : {})
+  }, [activeThemePackage, themeSettings])
   // 二级分组折叠状态：默认全部展开
   const [expandedSubs, setExpandedSubs] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {}
