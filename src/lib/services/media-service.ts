@@ -1,9 +1,7 @@
-import { rm } from 'node:fs/promises'
-import path from 'node:path'
-
 import { Prisma } from '@prisma/client'
 
 import { conflict, notFound } from '@/lib/api/errors'
+import { deleteUploadByUrl } from '@/lib/media/storage'
 import { getPrisma } from '@/lib/prisma'
 import { pageMeta, paginate } from '@/lib/services/shared'
 import type { MediaInput } from '@/lib/validations/cms'
@@ -13,28 +11,9 @@ type MediaRecord = {
   url: string
 }
 
-function getLocalUploadFilePath(media: MediaRecord) {
-  const normalizedKey = media.key.replaceAll('\\', '/')
-  const normalizedUrl = media.url.replaceAll('\\', '/')
-  const relativePath = normalizedKey.startsWith('uploads/')
-    ? normalizedKey
-    : normalizedUrl.startsWith('/uploads/')
-      ? normalizedUrl.slice(1)
-      : null
-
-  if (!relativePath || relativePath.includes('..')) return null
-
-  const publicRoot = path.resolve(process.cwd(), 'public')
-  const filePath = path.resolve(publicRoot, ...relativePath.split('/'))
-
-  return filePath.startsWith(`${publicRoot}${path.sep}`) ? filePath : null
-}
-
 async function deleteLocalUploadFile(media: MediaRecord) {
-  const filePath = getLocalUploadFilePath(media)
-  if (!filePath) return
-
-  await rm(filePath, { force: true }).catch(() => undefined)
+  // 按 url 解析磁盘路径并删除；非本地上传（url 不以 /uploads/ 开头）静默跳过。
+  await deleteUploadByUrl(media.url)
 }
 
 export async function listMedia(input: { page: number; pageSize: number }) {

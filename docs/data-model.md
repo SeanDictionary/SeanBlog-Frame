@@ -267,7 +267,7 @@ model Media {
 
 - 不设置 `userId`，因为媒体均由唯一管理员上传
 - 支持任意类型文件上传（图片、视频、音频、文档、压缩包等），单文件上限 50 MB
-- 上传文件按 MIME 类型分类写入 `public/uploads/media/{category}/`（`category` ∈ images / videos / audio / documents / archives / other，由 `src/lib/media-category.ts` 统一分类），`key` 形如 `uploads/media/{category}/{filename}`
+- 上传文件按 MIME 类型分类写入 `storage/uploads/media/{category}/`（`category` ∈ images / videos / audio / documents / archives / other，由 `src/lib/media-category.ts` 统一分类），`key` 形如 `media/{category}/{filename}`（相对存储根 `UPLOADS_DIR`），`url` 形如 `/uploads/media/{category}/{filename}`；文件经 `src/lib/media/storage.ts` 写入，经 `src/app/uploads/[...path]/route.ts` 流式服务（不依赖 `public/` 静态服务）
 - 文件名保留原文件名（清洗非法字符），冲突时自动追加序号；原文件名无扩展名时按 MIME 兜底补全
 - 上传入口支持多选、复制粘贴与拖拽到页面三种方式
 - 媒体库删除记录时会同步删除对应本地文件；批量删除同样清理本地文件

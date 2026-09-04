@@ -41,6 +41,7 @@ services:
       - seanblog_secrets:/run/secrets:ro
       - seanblog_content:/app/content
       - seanblog_themes:/app/themes
+      - seanblog_uploads:/app/storage
     depends_on:
       secrets:
         condition: service_completed_successfully
@@ -78,3 +79,4 @@ volumes:
   seanblog_secrets:
   seanblog_content:
   seanblog_themes:
+  seanblog_uploads:

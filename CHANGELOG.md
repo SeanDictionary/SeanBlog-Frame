@@ -11,6 +11,21 @@
 ### Fixed
 
 - 修复后台「主题」页在客户端切换活跃主题后（如导入主题包后点击「启用」、或在多主题间切换），新主题中依赖默认值即勾选的级联设置项（典型如 Cardinal 的「侧边栏内容」默认含「个人简介」时，其下的头像/签名/自定义 HTML 等项）不显示、需刷新或重新勾选才出现的问题。根因是驱动显隐的 `liveValues` 仅在组件首次挂载时按当时活跃主题构建，切换主题后 schema 已变但 `liveValues` 未按新主题重新构建，导致 `computeVisibility` 把默认就应勾选的项判为不可见。现改为在活跃主题 slug 变化时重新由 schema 默认值 + 当前 `themeSettings` 构建 `liveValues`。
+- 修复媒体库上传图片后前台无法查看（`/uploads/...` 返回 404）的问题。根因：上传文件写入 `public/uploads/`，而 Next.js 生产模式（standalone）仅在服务器启动时把 `public/` 文件清单缓存一次，运行时新增的文件不在缓存中、不会被服务（dev 模式 dev server 每次读文件系统，故本地开发不可见）。同时修复上传媒体在重建容器时丢失的问题（原 `public/uploads` 无持久化卷）。
+
+### Changed
+
+- 媒体存储迁出 `public/`：上传内容改写入独立存储根 `storage/uploads/`（可由 `UPLOADS_DIR` 覆盖；容器内 `/app/storage/uploads`，挂命名卷 `seanblog_uploads` 持久化），由新增的 catch-all 路由 `src/app/uploads/[...path]/route.ts` 流式服务（Content-Type、Range、长缓存、路径越界保护）。URL 前缀 `/uploads/` 不变；`Media.key` 规范化为相对存储根的相对路径（`media/{category}/{filename}`、`article-imports/{slug}/{filename}`），服务端按 URL 路径读取、不依赖 DB 查询。集中存储逻辑于 `src/lib/media/storage.ts`，为未来对象存储（S3/R2/MinIO）留接缝。文章导入附件同步迁入 `storage/uploads/article-imports/`。
+- 新增一次性迁移脚本 `scripts/migrate-uploads-to-storage.mjs`（幂等、`--dry-run`），把历史 `public/uploads/*` 搬到 `storage/uploads/*` 并规范化 `Media.key`。
+
+### 升级注意
+
+升级到本版本后，需在服务器运行迁移脚本：
+
+```bash
+docker compose exec app node scripts/migrate-uploads-to-storage.mjs --dry-run   # 预览
+docker compose exec app node scripts/migrate-uploads-to-storage.mjs             # 执行
+```
 
 ## [0.2.1] - 2026-09-03
 

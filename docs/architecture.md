@@ -191,9 +191,13 @@ src/
 
 `searchService` 是搜索的统一入口。MVP 使用 PostgreSQL 原生的 `tsvector` + `websearch_to_tsquery` 实现全文搜索。当前内置搜索交互支持用空格或 `+` 拆分多个关键词，并按“全部关键词命中”返回结果；搜索弹窗和搜索结果页都应高亮命中的标题/摘要关键词。后续切换到 Meilisearch 或 Typesense 时只需替换 `searchService` 内部实现，不影响前端路由和组件。
 
-### 7.3 图片存储
+### 7.3 媒体存储
 
-媒体上传直接写入本地文件系统 `public/uploads/media/`，删除媒体记录时同步删除对应本地文件；未引入对象存储抽象，后续确有 S3 / R2 / MinIO 需求时再以真实实现接入。文章中引用外部 `https://` 图片可直接写在 Markdown 中，无需登记到媒体库。
+媒体上传写入独立存储目录 `<cwd>/storage/uploads/`（可由 `UPLOADS_DIR` 环境变量覆盖；容器内为 `/app/storage/uploads`，挂命名卷 `seanblog_uploads` 持久化），脱离 Next.js 的 `public/`——生产模式下 `public/` 文件清单在启动时一次性缓存，运行时写入的文件不会被服务。文件经统一存储层 `src/lib/media/storage.ts` 写入与删除（原子写入、冲突自增、路径越界保护）。
+
+上传内容通过路由 `src/app/uploads/[...path]/route.ts` 流式服务，URL 前缀 `/uploads/` 不变：按扩展名设 `Content-Type`、支持 Range 请求（视频/音频拖动）、设长缓存。媒体库 `Media.key` 为相对存储根的相对路径（形如 `media/{category}/{filename}`），仅用于删除与未来对象存储接入；服务端按 URL 路径读取文件，不依赖 DB 查询。文章导入附件归入 `storage/uploads/article-imports/<slug>/`。未引入对象存储抽象，后续确有 S3 / R2 / MinIO 需求时只需替换 `storage.ts` 的 write/read/delete 实现，URL 与数据模型不变。文章中引用外部 `https://` 图片可直接写在 Markdown 中，无需登记到媒体库。
+
+> 历史版本将上传文件存于 `public/uploads/`，升级到本版本后需运行一次性迁移 `node scripts/migrate-uploads-to-storage.mjs`（支持 `--dry-run`，幂等可重复执行）把历史文件搬到 `storage/uploads/` 并规范化 `Media.key`。
 
 ### 7.4 AI 功能
 

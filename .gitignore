@@ -70,8 +70,9 @@ Thumbs.db
 /themes/*
 !/themes/seanblog-default
 
-# uploads
+# uploads（本地存储根，含媒体与文章导入附件；生产由命名卷 seanblog_uploads 持久化）
 /public/uploads/
+/storage/
 
 # cache
 /.cache/

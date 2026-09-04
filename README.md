@@ -33,6 +33,7 @@
 | `AUTH_SECRET` | 是 | Auth.js JWT 签名密钥，用 `openssl rand -base64 32` 生成 |
 | `TRUST_PROXY_HEADERS` | 看部署 | `true` 时信任 `X-Forwarded-For`（反向代理后必须为 `true` 才能正确限流与采集访客 IP）；直连暴露时设 `false` |
 | `SECRETS_DIRECTORY` | Docker 用 | 密钥文件目录，默认 `/run/secrets`，由 compose `secrets` 服务生成 |
+| `UPLOADS_DIR` | 否 | 用户上传内容存储根，默认 `<cwd>/storage/uploads`（容器内 `/app/storage/uploads`，由命名卷 `seanblog_uploads` 持久化）。仅在自定义存储位置时覆盖 |
 
 > 站点 URL（`siteUrl`）不再使用环境变量，改为后台「站点信息」设置项运行时读取，缺省 `http://localhost:3000`。生产部署后在 `/admin` 设置真实域名即可，无需重建镜像。
 
@@ -105,7 +106,14 @@ bash install.sh
 # 或手动：docker compose pull && docker compose up -d   # migrate deploy 自动应用新迁移
 ```
 
-命名卷保留所有数据，重建容器不丢失（数据库、文章、主题、密钥、后台设置）。**生产库切勿 `migrate reset`。**
+命名卷保留所有数据，重建容器不丢失（数据库、文章、主题、密钥、上传媒体、后台设置）。**生产库切勿 `migrate reset`。**
+
+> 升级到将媒体存储迁出 `public/` 的版本后，需运行一次性迁移把历史上传文件搬到新存储位置并规范化 `Media.key`（幂等、支持 `--dry-run`）：
+>
+> ```bash
+> docker compose exec app node scripts/migrate-uploads-to-storage.mjs --dry-run   # 先预览
+> docker compose exec app node scripts/migrate-uploads-to-storage.mjs             # 执行
+> ```
 
 ### 从源码构建（可选）
 
@@ -161,7 +169,7 @@ docker compose exec app node scripts/reset-admin-password.mjs
 
 ### 数据持久化与备份
 
-命名卷：`seanblog_pgdata`（数据库）、`seanblog_secrets`（密钥）、`seanblog_content`（文章 Markdown）、`seanblog_themes`（主题包）。
+命名卷：`seanblog_pgdata`（数据库）、`seanblog_secrets`（密钥）、`seanblog_content`（文章 Markdown）、`seanblog_themes`（主题包）、`seanblog_uploads`（用户上传媒体与文章导入附件）。
 
 ```bash
 # 备份数据库
@@ -170,8 +178,8 @@ docker compose exec db pg_dump -U postgres seanblog_frame > backup-$(date +%F).s
 # 恢复
 cat backup.sql | docker compose exec -T db psql -U postgres seanblog_frame
 
-# 备份内容与主题
-docker run --rm -v seanblog_content:/c -v "$PWD":/b alpine tar czf /b/content-$(date +%F).tgz -C /c .
+# 备份内容、主题与上传媒体
+docker run --rm -v seanblog_content:/c -v seanblog_uploads:/u -v "$PWD":/b alpine tar czf /b/content-$(date +%F).tgz -C /c . && docker run --rm -v seanblog_uploads:/u -v "$PWD":/b alpine tar czf /b/uploads-$(date +%F).tgz -C /u .
 ```
 
 ### 运维

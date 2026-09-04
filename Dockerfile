@@ -39,6 +39,13 @@ COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 RUN chmod +x ./scripts/start-production.sh
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 
+# 用户上传内容存储根：脱离 public/（生产模式 public/ 文件清单在启动时缓存，
+# 运行时写入的文件不会被服务）。挂命名卷以持久化，并预建属主为 nextjs，
+# 使首次挂载时 Docker 将该属主复制进空卷，容器内可写（同 content/themes 卷套路）。
+RUN mkdir -p /app/storage/uploads \
+  && chown -R nextjs:nodejs /app/storage \
+  && touch /app/storage/uploads/.gitkeep
+
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000

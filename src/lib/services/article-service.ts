@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto'
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { readFile, rm } from 'node:fs/promises'
 import path from 'node:path'
 
 import { ArticleStatus, Prisma } from '@prisma/client'
@@ -19,6 +19,7 @@ import { fromPrismaArticleCommentsMode, isArticleCommentsMode, toPrismaArticleCo
 import { createExcerpt, markdownToHtml } from '@/lib/content/markdown'
 import { resolveSlug } from '@/lib/content/slug'
 import { createZip, readZip } from '@/lib/content/zip'
+import { UPLOADS_DIR, resolveUploadPathFromUrl, writeUniqueFile } from '@/lib/media/storage'
 import { getPublicArticleWhere } from '@/lib/services/article-visibility'
 import { getPrisma } from '@/lib/prisma'
 import { parseSearchTerms, textIncludesAllSearchTerms } from '@/lib/search'
@@ -281,8 +282,7 @@ const ARTICLE_ARCHIVE_MAX_UNCOMPRESSED_BYTES = 80 * 1024 * 1024
 const ARTICLE_ARCHIVE_MAX_FILE_BYTES = 10 * 1024 * 1024
 const ARTICLE_ARCHIVE_MAX_ENTRIES = 800
 const ARTICLE_ARCHIVE_MAX_ARTICLES = 100
-const ARTICLE_ARCHIVE_MEDIA_ROOT = path.join(process.cwd(), 'public', 'uploads', 'article-imports')
-const publicUploadRoot = path.join(process.cwd(), 'public')
+const ARTICLE_ARCHIVE_MEDIA_ROOT = path.join(UPLOADS_DIR, 'article-imports')
 const localMediaPattern = /!\[([^\]]*)\]\((\/uploads\/media\/[^)\s]+|\/uploads\/article-imports\/[^)\s]+)\)/g
 const importedArticleMediaPattern = /!\[([^\]]*)\]\((image\/article\/[^)\s]+)\)/g
 const supportedMediaTypes: Record<string, string> = {
@@ -348,17 +348,7 @@ function getMimeTypeFromFilename(filename: string) {
 }
 
 function getLocalPublicFilePath(url: string) {
-  if (!url.startsWith('/uploads/')) return null
-
-  const decodedPath = decodeURIComponent(url.split(/[?#]/)[0] ?? '')
-  const relativePath = decodedPath.replace(/^\/+/, '')
-  const absolutePath = path.resolve(publicUploadRoot, relativePath)
-
-  if (absolutePath !== publicUploadRoot && absolutePath.startsWith(`${publicUploadRoot}${path.sep}`)) {
-    return absolutePath
-  }
-
-  return null
+  return resolveUploadPathFromUrl(url)
 }
 
 function getUniqueArchiveMediaPath(basePath: string, usedPaths: Set<string>) {
@@ -541,13 +531,11 @@ async function findOrCreateTags(tags: NonNullable<ArticleArchiveMetadata['tags']
 async function writeImportedMedia(file: ImportedMediaFile, articleSlug: string, client: PrismaExecutor) {
   const extension = path.extname(file.filename).toLowerCase()
   const digest = createHash('sha1').update(file.data).digest('hex').slice(0, 10)
-  const filename = `${Date.now()}-${randomUUID()}-${digest}${extension}`
-  const key = `uploads/article-imports/${articleSlug}/${filename}`
-  const url = `/${key}`
-  const absolutePath = path.join(ARTICLE_ARCHIVE_MEDIA_ROOT, articleSlug, filename)
-
-  await mkdir(path.dirname(absolutePath), { recursive: true })
-  await writeFile(absolutePath, file.data)
+  const desiredFilename = `${Date.now()}-${randomUUID()}-${digest}${extension}`
+  const dirRel = path.posix.join('article-imports', articleSlug)
+  const { filename: storedFilename } = await writeUniqueFile(dirRel, desiredFilename, file.data)
+  const key = `${dirRel}/${storedFilename}`
+  const url = `/uploads/${key}`
   await client.media.create({
     data: {
       filename: file.filename,

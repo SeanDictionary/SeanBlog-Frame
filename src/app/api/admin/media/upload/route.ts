@@ -1,4 +1,4 @@
-import { mkdir, rm, writeFile } from 'node:fs/promises'
+import { rm } from 'node:fs/promises'
 import path from 'node:path'
 
 import { badRequest } from '@/lib/api/errors'
@@ -6,6 +6,7 @@ import { created, handleApiError } from '@/lib/api/response'
 import { requireSameOriginRequest } from '@/lib/api/request-guard'
 import { requireAdmin } from '@/lib/auth.utils'
 import { resolveMediaUpload } from '@/lib/media-category'
+import { writeUniqueFile } from '@/lib/media/storage'
 import { adminLogActor, recordOperation } from '@/lib/services/operation-log-service'
 import { createMedia } from '@/lib/services/media-service'
 
@@ -23,25 +24,6 @@ function normalizeBasename(filename: string, fallback: string) {
     .slice(0, 120)
 
   return name || fallback
-}
-
-async function writeUniqueFile(uploadDirectory: string, desiredFilename: string, bytes: Buffer) {
-  const parsed = path.parse(desiredFilename)
-  const basename = parsed.name
-  const extension = parsed.ext
-
-  for (let index = 0; index < 1000; index += 1) {
-    const filename = index === 0 ? desiredFilename : `${basename}-${index + 1}${extension}`
-
-    try {
-      await writeFile(path.join(uploadDirectory, filename), bytes, { flag: 'wx' })
-      return filename
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error
-    }
-  }
-
-  throw badRequest('Unable to allocate a unique upload filename.', 'UPLOAD_FILENAME_CONFLICT')
 }
 
 export async function POST(request: Request) {
@@ -79,15 +61,13 @@ export async function POST(request: Request) {
         const { category, extension } = resolveMediaUpload(file.name, file.type, bytes)
         const basename = normalizeBasename(file.name, 'file')
         const desiredFilename = `${basename}.${extension}`
-        const uploadDirectory = path.join(process.cwd(), 'public', 'uploads', 'media', category)
+        const dirRel = path.posix.join('media', category)
 
-        await mkdir(uploadDirectory, { recursive: true })
+        const { filename, absPath } = await writeUniqueFile(dirRel, desiredFilename, bytes)
+        const key = `${dirRel}/${filename}`
+        const url = `/uploads/${key}`
 
-        const filename = await writeUniqueFile(uploadDirectory, desiredFilename, bytes)
-        const key = `uploads/media/${category}/${filename}`
-        const url = `/${key}`
-
-        writtenFiles.push(path.join(uploadDirectory, filename))
+        writtenFiles.push(absPath)
 
         const media = await createMedia({
           filename,
