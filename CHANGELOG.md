@@ -8,6 +8,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- 修复 `install.sh` 升级时只判断本地 `docker-compose.yml` 是否存在、从不与仓库最新版同步的问题。这会导致新版本引入的卷/服务（如 `seanblog_uploads`）不生效——镜像已是新版但 compose 仍是旧版，表现为数据不持久或功能异常。现改为始终拉取最新版比对：本地过期则备份（`docker-compose.yml.bak.<时间戳>`）后更新，相同则跳过，离线时回退本地版本。README「升级」章节同步补充警示：不要只用 `docker compose pull && up -d` 升级。
+
 ## [0.3.0] - 2026-09-04
 
 ### Fixed

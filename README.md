@@ -99,12 +99,18 @@ docker compose up -d        # 首次会拉取镜像、生成密钥、建表、�
 
 ### 升级
 
-重跑安装脚本即可升级（自动拉取最新镜像并重启）：
+重跑安装脚本即可升级（自动同步最新 `docker-compose.yml`、拉取最新镜像并重启）：
 
 ```bash
 bash install.sh
-# 或手动：docker compose pull && docker compose up -d   # migrate deploy 自动应用新迁移
 ```
+
+> ⚠️ **不要只用 `docker compose pull && up -d` 升级**。它只换镜像、不会更新 `docker-compose.yml`；新版本若新增了卷/服务（如 `seanblog_uploads`）将不会生效，导致数据不持久或功能异常。`install.sh` 会在本地 compose 与仓库不一致时备份并更新为最新版。若必须手动升级，请先重新下载 compose：
+>
+> ```bash
+> curl -fsSL https://raw.githubusercontent.com/SeanDictionary/SeanBlog-Frame/main/docker-compose.yml -o docker-compose.yml
+> docker compose pull && docker compose up -d   # migrate deploy 自动应用新迁移
+> ```
 
 命名卷保留所有数据，重建容器不丢失（数据库、文章、主题、密钥、上传媒体、后台设置）。**生产库切勿 `migrate reset`。**
 

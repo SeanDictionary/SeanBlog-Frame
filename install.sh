@@ -35,13 +35,35 @@ command -v docker >/dev/null 2>&1 || die "未检测到 docker，请先安装 Doc
 docker compose version >/dev/null 2>&1 || die "未检测到 docker compose 子命令，需 Docker Compose v2。"
 command -v curl >/dev/null 2>&1 || die "未检测到 curl，请先安装。"
 
-# --- 2. 准备 compose 文件 ---
-if [ -f "$COMPOSE_FILE" ]; then
-  log "使用当前目录已存在的 $COMPOSE_FILE"
-else
-  log "当前目录无 $COMPOSE_FILE，从仓库下载"
-  curl -fsSL "$RAW/$COMPOSE_FILE" -o "$COMPOSE_FILE"
-fi
+# --- 2. 准备 compose 文件（始终与仓库最新版同步）---
+# 升级时新版本可能新增卷/服务/环境变量（如 seanblog_uploads 卷），仅判断本地
+# 文件是否存在会沿用过期版本，导致新镜像需要的挂载不生效。这里始终拉取最新版
+# 比对：本地有改动则备份后替换，相同则跳过；离线时回退到本地版本。
+ensure_compose() {
+  local tmp="${COMPOSE_FILE}.tmp.$$"
+  if curl -fsSL "$RAW/$COMPOSE_FILE" -o "$tmp" 2>/dev/null; then
+    if [ ! -f "$COMPOSE_FILE" ]; then
+      mv -f "$tmp" "$COMPOSE_FILE"
+      log "已下载最新 $COMPOSE_FILE"
+    elif cmp -s "$COMPOSE_FILE" "$tmp"; then
+      rm -f "$tmp"
+      log "本地 $COMPOSE_FILE 已是最新"
+    else
+      local backup="${COMPOSE_FILE}.bak.$(date +%Y%m%d%H%M%S)"
+      cp -f "$COMPOSE_FILE" "$backup"
+      mv -f "$tmp" "$COMPOSE_FILE"
+      warn "本地 $COMPOSE_FILE 已过期，已备份为 $backup 并更新为最新版（如需保留本地改动可从备份恢复）"
+    fi
+  else
+    rm -f "$tmp"
+    if [ -f "$COMPOSE_FILE" ]; then
+      warn "无法从仓库拉取最新 $COMPOSE_FILE（离线/网络受限），沿用本地版本"
+    else
+      die "无 $COMPOSE_FILE 且无法从仓库下载（离线/网络受限）"
+    fi
+  fi
+}
+ensure_compose
 
 # --- 3. 拉取镜像并启动 ---
 log "拉取镜像并启动（首次部署会下载镜像，耗时较长）"
