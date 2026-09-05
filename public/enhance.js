@@ -19,15 +19,25 @@
     if (!dialog) return
     var input = dialog.querySelector('[data-sb-search-input]')
     var results = dialog.querySelector('[data-sb-search-results]')
+    var hint = dialog.querySelector('[data-sb-search-hint]')
     var tpl = dialog.querySelector('[data-sb-search-result-template]')
     var empty = dialog.querySelector('[data-sb-search-empty]')
+    var fullLink = dialog.querySelector('[data-sb-search-full]')
     var timer
+    var lastReq = 0
 
+    function showState(state) {
+      // state: 'hint' | 'results' | 'empty'
+      if (hint) hint.hidden = state !== 'hint'
+      if (results) results.hidden = state !== 'results'
+      if (empty) empty.hidden = state !== 'empty'
+    }
     function open() {
       dialog.removeAttribute('hidden')
       if (input) { input.value = ''; input.focus() }
       if (results) results.innerHTML = ''
-      if (empty) empty.setAttribute('hidden', '')
+      if (fullLink) fullLink.setAttribute('href', '/search')
+      showState('hint')
     }
     function close() { dialog.setAttribute('hidden', '') }
 
@@ -35,28 +45,77 @@
       el.addEventListener('click', open)
     })
     dialog.addEventListener('click', function (e) { if (e.target === dialog) close() })
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !dialog.hasAttribute('hidden')) close() })
+    dialog.querySelectorAll('[data-sb-search-close]').forEach(function (el) {
+      el.addEventListener('click', close)
+    })
+    document.addEventListener('keydown', function (e) {
+      // ⌘K / Ctrl+K 打开
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        open()
+      }
+      if (e.key === 'Escape' && !dialog.hasAttribute('hidden')) close()
+    })
+
+    function escapeHtml(s) {
+      return String(s || '').replace(/[&<>]/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]
+      })
+    }
+    function escapeRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') }
+    function highlight(text, q) {
+      // 空格或 + 分隔多关键词，大小写不敏感，转义后包裹 <mark>
+      var terms = String(q || '').split(/[\s+]+/).filter(Boolean).map(escapeRe)
+      if (!terms.length) return escapeHtml(text)
+      var re = new RegExp('(' + terms.join('|') + ')', 'gi')
+      var out = ''
+      var src = String(text || '')
+      var last = 0
+      var m
+      while ((m = re.exec(src))) {
+        out += escapeHtml(src.slice(last, m.index))
+        out += '<mark class="sb-mark">' + escapeHtml(m[0]) + '</mark>'
+        last = m.index + m[0].length
+        if (m[0].length === 0) re.lastIndex++ // 防止零宽匹配死循环
+      }
+      out += escapeHtml(src.slice(last))
+      return out
+    }
 
     if (input) input.addEventListener('input', function () {
       window.clearTimeout(timer)
       var q = input.value.trim()
-      if (!q) { if (results) results.innerHTML = ''; if (empty) empty.setAttribute('hidden', ''); return }
+      if (fullLink) fullLink.setAttribute('href', q ? '/search?q=' + encodeURIComponent(q) : '/search')
+      if (!q) { if (results) results.innerHTML = ''; showState('hint'); return }
       timer = window.setTimeout(function () {
+        var reqId = ++lastReq
         fetch('/api/search?q=' + encodeURIComponent(q))
           .then(function (r) { return r.json() })
           .then(function (data) {
+            if (reqId !== lastReq) return // 旧请求被覆盖
             if (!results) return
             results.innerHTML = ''
             var items = ((data.articles || data.items || []) || []).slice(0, 8)
-            if (!items.length) { if (empty) empty.removeAttribute('hidden'); return }
-            if (empty) empty.setAttribute('hidden', '')
+            if (!items.length) { showState('empty'); return }
+            showState('results')
             items.forEach(function (a) {
               if (!tpl) return
               var node = tpl.content.cloneNode(true)
               var link = node.querySelector('[data-sb-result-link]')
               var title = node.querySelector('[data-sb-result-title]')
+              var excerpt = node.querySelector('[data-sb-result-excerpt]')
+              var meta = node.querySelector('[data-sb-result-meta]')
               if (link) link.setAttribute('href', '/articles/' + (a.slug || ''))
-              if (title) title.textContent = a.title || ''
+              if (title) title.innerHTML = highlight(a.title || '', q)
+              if (excerpt && a.excerpt) excerpt.innerHTML = highlight(a.excerpt, q)
+              else if (excerpt) excerpt.remove()
+              if (meta) {
+                var parts = []
+                if (a.category && a.category.name) parts.push(a.category.name)
+                if (a.publishedAt) parts.push(String(a.publishedAt).slice(0, 10))
+                if (parts.length) meta.textContent = parts.join(' · ')
+                else meta.remove()
+              }
               results.appendChild(node)
             })
           }).catch(function () {})
