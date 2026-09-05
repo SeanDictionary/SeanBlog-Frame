@@ -3826,20 +3826,12 @@
             "$ref": "#/components/parameters/PageSize"
           },
           {
-            "name": "category",
+            "name": "q",
             "in": "query",
+            "description": "按文件名或存储路径模糊搜索（大小写不敏感）。",
             "schema": {
-              "type": "string",
-              "enum": [
-                "images",
-                "videos",
-                "audio",
-                "documents",
-                "archives",
-                "other"
-              ]
-            },
-            "allowEmptyValue": true
+              "type": "string"
+            }
           }
         ]
       }

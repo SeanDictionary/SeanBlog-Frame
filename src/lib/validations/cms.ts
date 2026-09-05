@@ -303,7 +303,13 @@ export const categoryListQuerySchema = paginationQuerySchema
 
 export const tagListQuerySchema = paginationQuerySchema
 
-export const mediaListQuerySchema = paginationQuerySchema
+export const mediaListQuerySchema = paginationQuerySchema.extend({
+  q: optionalQueryString,
+  pageSize: z.preprocess(
+    emptyQueryParamToUndefined,
+    z.coerce.number().int().refine((value) => [20, 50, 100].includes(value), 'Page size must be 20, 50 or 100').default(20),
+  ),
+})
 
 export const articleBulkActionSchema = z
   .object({

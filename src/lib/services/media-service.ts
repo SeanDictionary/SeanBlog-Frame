@@ -16,9 +16,16 @@ async function deleteLocalUploadFile(media: MediaRecord) {
   await deleteUploadByUrl(media.url)
 }
 
-export async function listMedia(input: { page: number; pageSize: number }) {
+export async function listMedia(input: { page: number; pageSize: number; q?: string | null }) {
   const prisma = getPrisma()
-  const where: Prisma.MediaWhereInput = {}
+  const where: Prisma.MediaWhereInput = input.q
+    ? {
+        OR: [
+          { filename: { contains: input.q, mode: 'insensitive' } },
+          { key: { contains: input.q, mode: 'insensitive' } },
+        ],
+      }
+    : {}
 
   const [items, total] = await Promise.all([
     prisma.media.findMany({
