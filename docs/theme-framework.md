@@ -479,7 +479,7 @@ helpers 全部平台内置，**主题不能注册自己的 helper**（安全沙�
 
 **缓存**：按 `activeTheme` + 主题设置 tag 缓存渲染产物（`unstable_cache`），主题切换/设置变更时失效。文章详情按 slug tag。
 
-## 10. 上传 / 启用 / 预览 / 卸载
+## 10. 上传 / 启用 / 卸载
 
 ### 10.1 上传（zip）
 
@@ -505,11 +505,7 @@ helpers 全部平台内置，**主题不能注册自己的 helper**（安全沙�
 
 写 `SiteSetting.activeTheme = slug`，`revalidateTag('theme')` + `revalidatePath('/(public)','layout')`。即时生效，无需重启。
 
-### 10.3 预览
-
-`/theme-preview?theme=<slug>&page=home|post`，受管理员会话保护，**真实渲染该主题**（非内嵌占位）：加载目标主题模板 + 设置，渲染真实首页/文章页。与前台唯一区别是路由在管理员会话下可见。
-
-### 10.4 卸载
+### 10.3 卸载
 
 非默认、非当前活跃主题可删；删除 `themes/{slug}/` 目录并清缓存。
 

@@ -17,7 +17,7 @@
 - [10. CSS 规范](#10-css-规范)
 - [11. 资源与 `asset` helper](#11-资源与-asset-helper)
 - [12. 设置快照：导出与导入](#12-设置快照导出与导入)
-- [13. 上传 / 启用 / 预览 / 卸载](#13-上传--启用--预览--卸载)
+- [13. 上传 / 启用 / 卸载](#13-上传--启用--卸载)
 - [14. 安全边界](#14-安全边界)
 - [15. 完整最小主题示例](#15-完整最小主题示例)
 - [16. 调试与常见坑](#16-调试与常见坑)
@@ -71,10 +71,6 @@ my-theme/
 4. 直接编辑 `themes/<slug>/templates/*.hbs` 与 `assets/theme.css`，浏览器刷新即可看到变化。
 
 > 生产模式下模板与 partials 编译后会缓存到进程内存，主题切换/更新/删除时由平台清缓存。本地开发无需关心。
-
-### 2.3 预览
-
-`/theme-preview?theme=<slug>&page=home|article`（管理员会话保护）真实渲染目标主题的首页/文章页，与前台渲染路径一致，用于上线前验证。
 
 ---
 
@@ -644,7 +640,7 @@ CSS 里的 `url(...)` 只能引用**包内相对资源**，由平台重写为 `/
 
 ---
 
-## 13. 上传 / 启用 / 预览 / 卸载
+## 13. 上传 / 启用 / 卸载
 
 ### 13.1 上传（zip）
 
@@ -670,11 +666,7 @@ CSS 里的 `url(...)` 只能引用**包内相对资源**，由平台重写为 `/
 
 写站点设置 `activeTheme = slug` 并清缓存，**即时生效，无需重启**。
 
-### 13.3 预览
-
-`/theme-preview?theme=<slug>&page=home|article`（管理员会话保护），真实渲染目标主题，与前台唯一区别是路由在管理员会话下可见。
-
-### 13.4 卸载
+### 13.3 卸载
 
 非默认、非当前活跃主题可删；删除 `themes/{slug}/` 目录并清模板/设置缓存，同步删除其 `ThemeCustomization` 记录。
 
@@ -815,5 +807,4 @@ body { font-family: system-ui, sans-serif; max-width: 42rem; margin: 2rem auto; 
 - **`{{{...}}}` vs `{{...}}` 搞混**：用户输入（评论/搜索词）必须双花括号；可信 HTML（正文/平台注入字段）用三花括号。
 - **设置不生效**：确认 `theme.yaml.settingsSchema` 字段 `key` 与模板里 `theme.config.xxx` 一致；声明了 `cssVariable` 的项平台自动注入，CSS 用 `var(--xxx)`。
 - **partials 不覆盖**：partials fallback 是"活跃覆盖默认"，你的 `partials/header.hbs` 会覆盖 `seanblog-default` 的同名 partial。
-- **预览与前台不一致**：预览走相同渲染路径，差异通常来自站点设置（如 `siteUrl`）在管理员会话下的取值；以 `/theme-preview` 为准上线前验证。
 - **想取额外数据（如侧栏最新文章）**：已由 `sidebarData` 提供（§7.1）；`{{#get}}` 未实现，不要尝试。
