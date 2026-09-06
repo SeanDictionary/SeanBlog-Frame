@@ -345,7 +345,7 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
               <div className="h-2 rounded-t bg-linear-to-r from-accent via-accent-hover to-accent-subtle" />
               <div className="mt-4 flex items-start justify-between gap-3">
                 <div><h3 className="text-base font-semibold">{theme.name}</h3><p className="mt-1 text-xs text-neutral-500">{theme.author ?? '未知作者'}</p><p className="mt-1 text-xs text-neutral-500">v{theme.version}</p></div>
-                <div className="flex flex-wrap justify-end gap-2 text-xs">
+                <div className="grid grid-cols-2 justify-end gap-2 text-xs">
                     <button type="button" disabled={isPending || theme.slug === activeTheme} onClick={() => saveSetting('activeTheme', theme.slug)} className="rounded bg-neutral-950 px-2 py-1 text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-950">启用</button>
                     {theme.slug !== 'seanblog-default' &&
                     <>
