@@ -10,6 +10,21 @@
 
 ## [Unreleased]
 
+### Added
+
+- 主题包支持「就地更新」：上传安装时新增 `mode` 字段（`install` 默认 / `update`）。`update` 模式下 slug 已存在时先备份旧目录再覆盖写入，写入失败回滚到备份，**不删除 `ThemeCustomization` 数据库行**，用户自定义设置自然保留；可直接更新当前活跃主题（无需先切走）。若新版本号低于旧版本号，响应携带降级提示警告。后台「主题」页每张已安装主题卡新增「更新」按钮，复用导入确认弹窗并按 `mode=update` 提交。
+
+### Changed
+
+- 后台「主题」页设置读取统一走 `getThemeSettings`（与公开渲染同一条缓存路径），不再直接拼 `dbRow + schema 默认值`，消除 `settingsVersion` 未迁移前后台与前台显示不一致的窗口。
+- `ThemesManager` 客户端 state 同步：活跃主题切换或 `themeSettings` prop 变化（如就地更新后服务端返回新值）时重建 `liveValues` / `themeSettingsState`，避免表单与 Callout CSS 显示旧主题/旧值。
+- 保存主题设置时对「合并后的整体」跑一次 `validateThemeSettingsValues`，schema 收紧（如删除某 select 选项）时能及时发现库里残留旧值。
+- 主题包导出显式排除磁盘上可能残留的 `theme-settings.json`，避免陈旧快照被打进发布包；`includeSettings=true` 时改用新鲜快照。
+- 导入失败回滚区分 `install`/`update`：`install` 模式设置应用失败仍删整包回滚；`update` 模式不删已更新的文件（避免丢掉旧版）。
+
+### Fixed
+
+- 修复更新主题需「先卸载再上传」、卸载又禁止删除活跃主题导致的 4 步流程与设置丢失问题。
 ## [0.5.0] - 2026-09-06
 
 ### Added

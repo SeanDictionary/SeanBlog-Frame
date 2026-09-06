@@ -4297,7 +4297,7 @@
         },
         "requestBody": {
           "required": true,
-          "description": "multipart/form-data，字段 file 为主题 .zip。",
+          "description": "multipart/form-data：file 为主题 .zip；settingsMode 可选 ignore/preserve/restore；mode 可选 install（默认，slug 已存在则报冲突）/update（slug 已存在则就地覆盖安装并保留用户设置）。",
           "content": {
             "multipart/form-data": {
               "schema": {
@@ -4306,8 +4306,19 @@
                   "file": {
                     "type": "string",
                     "format": "binary"
+                  },
+                  "settingsMode": {
+                    "type": "string",
+                    "enum": ["ignore", "preserve", "restore"],
+                    "default": "preserve"
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": ["install", "update"],
+                    "default": "install"
                   }
-                }
+                },
+                "required": ["file"]
               }
             }
           }

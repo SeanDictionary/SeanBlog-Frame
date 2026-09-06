@@ -494,6 +494,13 @@ helpers 全部平台内置，**主题不能注册自己的 helper**（安全沙�
 7. 解压到 `themes/{slug}/`，登记 manifest 到 `ThemeManifest` 缓存。
 8. 失败则回滚（删目录）。**不构建任何 JS**（主题无服务端代码）。
 
+上传支持两种 `mode`：
+
+- `install`（默认）：slug 已存在则拒绝，走「新建」语义。
+- `update`：slug 已存在时**覆盖安装**。覆盖前先将旧目录重命名为临时备份目录，写入成功后删备份；任何写入失败则回滚到备份目录，避免把旧版主题丢掉。**不动 `ThemeCustomization` 数据库行**，用户已有自定义设置自然保留。同时允许直接更新当前活跃主题（slug 不变，无需先切走）。`update` 模式下若新版本号低于旧版本号，响应中携带降级提示警告。
+
+设置快照（`theme-settings.json`）处理仍走三种 `settingsMode`（`ignore` / `preserve` / `restore`）；`update` + `preserve` 即「保留当前用户设置」的常见场景。
+
 ### 10.2 启用
 
 写 `SiteSetting.activeTheme = slug`，`revalidateTag('theme')` + `revalidatePath('/(public)','layout')`。即时生效，无需重启。

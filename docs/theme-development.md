@@ -171,7 +171,7 @@ settingsVersion: 1           # 可选，设置 schema 版本号（用于设置�
 - `slug`：必须匹配 `^[a-z0-9][a-z0-9_-]{0,63}$`，安装时须与目录名一致；不能是 `seanblog-default`。
 - `engine`：必须等于 `seanblog-theme`，否则报 `UNSUPPORTED_THEME_ENGINE`。
 - `engineVersion`：正整数；**大于当前引擎版本（2）会被拒绝**，等于或小于均可安装。
-- 上传安装时：若 slug 已存在则报冲突；slug 为 `seanblog-default` 则禁止覆盖。
+- 上传安装时：`mode=install`（默认）下 slug 已存在则报冲突；`mode=update` 下 slug 已存在则就地覆盖安装并保留用户设置；slug 为 `seanblog-default` 则两种模式都禁止覆盖。
 
 > ⚠️ 清单**没有** `templates`（模板列表）、`requires`（版本要求）、`screenshot`/`homepage`、`assets.js` 等字段。模板由 `templates/` 目录文件名决定，JS 由主题模板里 `{{asset "..."}}` 自行引用。
 
@@ -658,6 +658,13 @@ CSS 里的 `url(...)` 只能引用**包内相对资源**，由平台重写为 `/
 6. （可选）应用 `theme-settings.json`（§12）。
 
 > **不构建任何 JS**——主题无服务端代码。`assets/js/main.js` 作为静态资源由资源路由返回。
+
+上传请求支持 `mode` 字段：
+
+- `install`（默认）：slug 已存在则报冲突（与「§3 上传安装时：若 slug 已存在则报冲突」一致）。
+- `update`：slug 已存在时**就地覆盖安装**。覆盖前先把旧目录重命名为临时备份，写入成功后删备份；写入失败则回滚到备份目录。**不删 `ThemeCustomization` 数据库行**，用户自定义设置自然保留；可直接更新当前活跃主题（无需先切走）。若新版本号低于旧版本号，响应携带降级提示警告。
+
+后台每张已安装主题卡上有「更新」按钮，点击后选 zip，走 `mode=update`。`update` + `settingsMode=preserve` 即「更新主题文件但保留我当前设置」的常见场景。
 
 ### 13.2 启用
 

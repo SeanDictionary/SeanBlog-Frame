@@ -14,6 +14,7 @@ import {
   getThemeSettingsVersion,
   migrateThemeSettingsToManifest,
   prepareThemeSettingsSnapshot,
+  validateThemeSettingsValues,
   type ThemeSettingsImportMode,
   type ThemeSettingsSnapshot,
 } from '@/lib/theme/settings-snapshot'
@@ -180,6 +181,8 @@ export async function saveThemeSettings(themeSlug: string, settings: Record<stri
   const manifest = await readThemeManifest(themeSlug)
   const existing = await fetchRawThemeSettings(themeSlug)
   const merged = { ...existing, ...settings }
+  // 对合并后的整体做校验：当 schema 收紧（如删除了某 select 选项）时，能及时发现库里残留的旧值
+  validateThemeSettingsValues(manifest.settingsSchema, merged)
   const settingsVersion = getThemeSettingsVersion(manifest)
 
   await getPrisma().themeCustomization.upsert({

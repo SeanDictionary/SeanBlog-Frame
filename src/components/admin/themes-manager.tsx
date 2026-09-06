@@ -67,6 +67,8 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
   const [settings, setSettings] = useState(initialSettings)
   const [themes, setThemes] = useState(availableThemes)
   const [importSettingsMode, setImportSettingsMode] = useState<'ignore' | 'preserve' | 'restore'>('preserve')
+  const [importMode, setImportMode] = useState<'install' | 'update'>('install')
+  const [updateTarget, setUpdateTarget] = useState<ThemePackageSummary | null>(null)
   const [includeSettingsOnExport, setIncludeSettingsOnExport] = useState(false)
   const [pendingImportFile, setPendingImportFile] = useState<File | null>(null)
   const [exportTarget, setExportTarget] = useState<ThemePackageSummary | null>(null)
@@ -78,16 +80,22 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
   const [liveValues, setLiveValues] = useState<Record<string, unknown>>(() =>
     activeThemePackage ? buildLiveValues(activeThemePackage.settingsSchema, themeSettings) : {},
   )
-  // 切换活跃主题（导入后启用、点击「启用」等）时，schema 已变，liveValues 必须按新主题
-  // 重新由 schema 默认值 + 当前 themeSettings 构建；否则旧 liveValues（或缺省）会让
-  // computeVisibility 把默认就勾选的级联设置项（如个人简介相关项）判为不可见，
-  // 表现为「首次进入设置不显示、刷新或重新勾选才出现」。
-  const liveValuesThemeSlugRef = useRef<string | undefined>(activeThemePackage?.slug)
+  // 当活跃主题切换、或活跃主题的 themeSettings prop 变化（例如就地更新后服务端返回新值）时，
+  // 用 schema 默认值 + 最新 themeSettings 重建 liveValues / themeSettingsState，避免表单显示旧值。
+  const prevThemeRef = useRef<{ slug: string | undefined; settings: Record<string, unknown> }>({
+    slug: activeThemePackage?.slug,
+    settings: themeSettings,
+  })
   useEffect(() => {
-    const nextSlug = activeThemePackage?.slug
-    if (!nextSlug || nextSlug === liveValuesThemeSlugRef.current) return
-    liveValuesThemeSlugRef.current = nextSlug
-    setLiveValues(activeThemePackage ? buildLiveValues(activeThemePackage.settingsSchema, themeSettings) : {})
+    const prev = prevThemeRef.current
+    const slugChanged = activeThemePackage?.slug !== prev.slug
+    const settingsChanged = prev.settings !== themeSettings
+    prevThemeRef.current = { slug: activeThemePackage?.slug, settings: themeSettings }
+    if (!activeThemePackage) return
+    if (slugChanged || settingsChanged) {
+      setLiveValues(buildLiveValues(activeThemePackage.settingsSchema, themeSettings))
+      setThemeSettingsState(themeSettings)
+    }
   }, [activeThemePackage, themeSettings])
   // 二级分组折叠状态：默认全部展开
   const [expandedSubs, setExpandedSubs] = useState<Record<string, boolean>>(() => {
@@ -251,16 +259,32 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
     setImportSettingsMode('preserve')
   }
 
+  function startInstall() {
+    setImportMode('install')
+    setUpdateTarget(null)
+    fileInputRef.current?.click()
+  }
+
+  function startUpdate(theme: ThemePackageSummary) {
+    setImportMode('update')
+    setUpdateTarget(theme)
+    fileInputRef.current?.click()
+  }
+
   function confirmImport() {
     const file = pendingImportFile
     if (!file) return
+    const mode = importMode
+    const target = updateTarget
     setPendingImportFile(null)
     setImportSettingsMode('preserve')
+    setUpdateTarget(null)
     startTransition(async () => {
       try {
         const formData = new FormData()
         formData.append('file', file)
         formData.append('settingsMode', importSettingsMode)
+        formData.append('mode', mode)
         const response = await fetch('/api/admin/themes', { method: 'POST', body: formData })
         const data = (await response.json()) as ApiResponse
 
@@ -273,7 +297,8 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
         if (refreshedData.themes) setThemes(refreshedData.themes)
         const warningText = data.warnings?.length ? `（${data.warnings.join('；')}）` : ''
         const settingsText = data.settingsApplied ? '，已应用包内设置' : ''
-        toast.success(`已导入主题包 ${data.theme}${settingsText}${warningText}。`)
+        const actionText = mode === 'update' ? `已更新主题包 ${data.theme}` : `已导入主题包 ${data.theme}`
+        toast.success(`${actionText}${settingsText}${warningText}。`)
         if (fileInputRef.current) fileInputRef.current.value = ''
         router.refresh()
       } catch (error) {
@@ -311,7 +336,7 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
       <Card padding="lg">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div><h2 className="font-semibold">主题包库</h2><p className="mt-1 text-sm text-neutral-500">导入、预览、启用、导出和卸载第三方主题包。主题必须包含 theme.yaml、模板、部件和资源目录。</p></div>
-          <button type="button" disabled={isPending} onClick={() => fileInputRef.current?.click()} className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium transition-colors hover:bg-neutral-100 disabled:opacity-60 dark:border-neutral-700 dark:hover:bg-neutral-800"><i className="fa-solid fa-upload mr-2 text-xs" />导入主题包</button>
+          <button type="button" disabled={isPending} onClick={startInstall} className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium transition-colors hover:bg-neutral-100 disabled:opacity-60 dark:border-neutral-700 dark:hover:bg-neutral-800"><i className="fa-solid fa-upload mr-2 text-xs" />导入主题包</button>
           <input ref={fileInputRef} type="file" accept=".zip,application/zip" className="hidden" onChange={handleImportFile} />
         </div>
         <div className="mt-6 grid gap-4 md:grid-cols-3">
@@ -329,6 +354,7 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
                     <button type="button" disabled={isPending || theme.slug === activeTheme} onClick={() => saveSetting('activeTheme', theme.slug)} className="rounded bg-neutral-950 px-2 py-1 text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-950">启用</button>
                     {theme.slug !== 'seanblog-default' &&
                     <>
+                      <button type="button" disabled={isPending} onClick={() => startUpdate(theme)} className="rounded border border-neutral-300 px-2 py-1 dark:border-neutral-700">更新</button>
                       <button type="button" onClick={() => { setIncludeSettingsOnExport(false); setExportTarget(theme) }} className="rounded border border-neutral-300 px-2 py-1 dark:border-neutral-700">导出</button>
                       <button type="button" disabled={isPending || theme.slug === activeTheme} onClick={() => deleteTheme(theme)} className="rounded border border-red-200 px-2 py-1 text-red-600 disabled:opacity-50 dark:border-red-900/60">卸载</button>
                     </>}
@@ -443,13 +469,17 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
       {pendingImportFile && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="import-theme-title">
           <div className="w-full max-w-md rounded-xl border border-neutral-200 bg-white p-6 shadow-xl dark:border-neutral-800 dark:bg-neutral-950">
-            <h2 id="import-theme-title" className="text-lg font-semibold">导入主题包</h2>
+            <h2 id="import-theme-title" className="text-lg font-semibold">{importMode === 'update' ? `更新主题包 ${updateTarget?.name ?? ''}` : '导入主题包'}</h2>
             <p className="mt-2 truncate text-sm text-neutral-500">文件：{pendingImportFile.name}</p>
-            <p className="mt-2 text-sm leading-6 text-neutral-500">若主题包包含 theme-settings.json，请选择设置处理方式。</p>
+            <p className="mt-2 text-sm leading-6 text-neutral-500">
+              {importMode === 'update'
+                ? '将覆盖当前同 slug 主题的文件。当前主题自定义设置默认保留；若包内含 theme-settings.json，可按下方选择处理。'
+                : '若主题包包含 theme-settings.json，请选择设置处理方式。'}
+            </p>
             <div className="mt-5 space-y-3">
               <label className="flex cursor-pointer gap-3 rounded-md border border-neutral-200 p-3 dark:border-neutral-800">
                 <input type="radio" name="import-settings-mode" value="ignore" checked={importSettingsMode === 'ignore'} onChange={() => setImportSettingsMode('ignore')} />
-                <span><strong className="block text-sm font-medium">仅导入主题文件</strong><span className="mt-1 block text-xs text-neutral-500">忽略包内设置，使用当前配置或主题默认值。</span></span>
+                <span><strong className="block text-sm font-medium">仅导入主题文件</strong><span className="mt-1 block text-xs text-neutral-500">忽略包内设置，{importMode === 'update' ? '保留当前主题配置。' : '使用当前配置或主题默认值。'}</span></span>
               </label>
               <label className="flex cursor-pointer gap-3 rounded-md border border-neutral-200 p-3 dark:border-neutral-800">
                 <input type="radio" name="import-settings-mode" value="preserve" checked={importSettingsMode === 'preserve'} onChange={() => setImportSettingsMode('preserve')} />
@@ -462,7 +492,7 @@ export function ThemesManager({ initialSettings, availableThemes, calloutPreset,
             </div>
             <div className="mt-6 flex justify-end gap-2">
               <button type="button" onClick={() => { setPendingImportFile(null); if (fileInputRef.current) fileInputRef.current.value = '' }} className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium dark:border-neutral-700">取消</button>
-              <button type="button" disabled={isPending} onClick={confirmImport} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950">{isPending ? '导入中…' : '开始导入'}</button>
+              <button type="button" disabled={isPending} onClick={confirmImport} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950">{isPending ? (importMode === 'update' ? '更新中…' : '导入中…') : (importMode === 'update' ? '开始更新' : '开始导入')}</button>
             </div>
           </div>
         </div>

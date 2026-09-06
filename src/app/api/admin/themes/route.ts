@@ -5,7 +5,7 @@ import { handleApiError, json } from '@/lib/api/response'
 import { requireSameOriginRequest } from '@/lib/api/request-guard'
 import { requireAdmin } from '@/lib/auth.utils'
 import { adminLogActor, recordOperation } from '@/lib/services/operation-log-service'
-import { installThemePackageFromZip, listThemes, deleteTheme } from '@/lib/theme'
+import { installThemePackageFromZip, listThemes, deleteTheme, type ThemeInstallMode } from '@/lib/theme'
 import { applyThemeSettingsSnapshot } from '@/lib/services/theme-settings-service'
 import type { ThemeSettingsImportMode } from '@/lib/theme/settings-snapshot'
 
@@ -28,11 +28,13 @@ export async function POST(request: Request) {
     const formData = await request.formData()
     const file = formData.get('file')
     const rawSettingsMode = formData.get('settingsMode')
+    const rawMode = formData.get('mode')
     const settingsMode: ThemeSettingsImportMode = rawSettingsMode === null
       ? 'preserve'
       : rawSettingsMode === 'ignore' || rawSettingsMode === 'preserve' || rawSettingsMode === 'restore'
         ? rawSettingsMode
         : (() => { throw badRequest('Invalid theme settings import mode.', 'INVALID_THEME_SETTINGS_MODE') })()
+    const mode: ThemeInstallMode = rawMode === 'update' ? 'update' : 'install'
 
     const theme = await recordOperation({
       actor: adminLogActor(session),
@@ -42,7 +44,7 @@ export async function POST(request: Request) {
       targetId: (installedTheme) => installedTheme.slug,
       summary: (installedTheme) => `安装主题包：${installedTheme.slug}`,
       failureSummary: '安装主题包失败',
-      metadata: (installedTheme) => ({ slug: installedTheme.slug, settingsMode, settingsApplied: installedTheme.settingsResult.applied }),
+      metadata: (installedTheme) => ({ slug: installedTheme.slug, settingsMode, mode, settingsApplied: installedTheme.settingsResult.applied }),
       request,
     }, async () => {
       if (!(file instanceof File)) {
@@ -57,24 +59,29 @@ export async function POST(request: Request) {
         throw badRequest('Theme packages must use the .zip format.', 'INVALID_THEME_PACKAGE')
       }
 
-      const installed = await installThemePackageFromZip(file, settingsMode)
+      const installed = await installThemePackageFromZip(file, settingsMode, mode)
       try {
         const settingsResult = installed.settingsSnapshot
           ? await applyThemeSettingsSnapshot(installed.slug, installed.settingsSnapshot, settingsMode)
           : { applied: false, warnings: [] as string[] }
         return { ...installed, settingsResult }
       } catch (error) {
-        await deleteTheme(installed.slug).catch(() => undefined)
+        // install 模式：设置应用失败回滚整包；update 模式：主题文件已更新成功，设置未应用时不回滚文件（避免丢掉旧版）
+        if (mode === 'install') {
+          await deleteTheme(installed.slug).catch(() => undefined)
+        }
         throw error
       }
     })
 
     revalidatePath('/(public)', 'layout')
 
+    const warnings = [...(theme.warnings ?? []), ...theme.settingsResult.warnings]
     return json({
       theme: theme.slug,
+      mode,
       settingsApplied: theme.settingsResult.applied,
-      warnings: theme.settingsResult.warnings,
+      warnings,
     }, { status: 201 })
   } catch (error) {
     return handleApiError(error)

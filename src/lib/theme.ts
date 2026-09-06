@@ -1,4 +1,4 @@
-import { mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { inflateRawSync } from 'node:zlib'
 import { load as yamlLoad, dump as yamlDump } from 'js-yaml'
@@ -459,6 +459,21 @@ export function normalizeThemeName(value: unknown) {
   return typeof value === 'string' && value !== 'default' ? assertThemeName(value) : DEFAULT_THEME_NAME
 }
 
+/** 简单语义化版本比较；无法解析时返回 0。 */
+function compareSemver(left: string, right: string) {
+  const parse = (value: string) => value.split('.').map((part) => Number.parseInt(part, 10)).filter((n) => Number.isFinite(n))
+  const leftParts = parse(left)
+  const rightParts = parse(right)
+  if (!leftParts.length || !rightParts.length) return 0
+  const length = Math.max(leftParts.length, rightParts.length)
+  for (let index = 0; index < length; index += 1) {
+    const l = leftParts[index] ?? 0
+    const r = rightParts[index] ?? 0
+    if (l !== r) return l - r
+  }
+  return 0
+}
+
 function validateTemplate(raw: unknown): ThemeTemplate {
   const record = assertRecord(raw, 'template')
 
@@ -573,7 +588,9 @@ export async function readThemeAsset(themeName: string, assetPath: string) {
   return readFile(resolveThemePath(name, assetPath))
 }
 
-export async function installThemePackageFromZip(file: File, settingsMode: ThemeSettingsImportMode = 'preserve'): Promise<{ slug: string; manifest: ThemePackageManifest; settingsSnapshot?: ThemeSettingsSnapshot }> {
+export type ThemeInstallMode = 'install' | 'update'
+
+export async function installThemePackageFromZip(file: File, settingsMode: ThemeSettingsImportMode = 'preserve', mode: ThemeInstallMode = 'install'): Promise<{ slug: string; manifest: ThemePackageManifest; settingsSnapshot?: ThemeSettingsSnapshot; warnings: string[] }> {
   const entries = parseZip(Buffer.from(await file.arrayBuffer()))
   const manifestEntry = entries.find((entry) => entry.path === themeManifestFilename)
 
@@ -606,23 +623,46 @@ export async function installThemePackageFromZip(file: File, settingsMode: Theme
   // Handlebars 模板语法预校验（fail-fast）
   await validateTemplatesSyntax(files)
 
-  const slug = await installThemePackageFromManifest(manifest, files)
-  return { slug, manifest, settingsSnapshot }
+  const warnings: string[] = []
+  // update 模式：若新旧版本号可比较且新版本低于旧版本，给出降级提示
+  if (mode === 'update') {
+    try {
+      const previous = await readThemeManifest(manifest.slug)
+      if (compareSemver(manifest.version, previous.version) < 0) {
+        warnings.push(`主题版本从 ${previous.version} 降级到 ${manifest.version}。`)
+      }
+    } catch {
+      // 旧版本读取失败（可能不存在）则忽略
+    }
+  }
+
+  const slug = await installThemePackageFromManifest(manifest, files, mode)
+  return { slug, manifest, settingsSnapshot, warnings }
 }
 
-export async function installThemePackageFromManifest(manifest: ThemePackageManifest, files: Array<{ path: string; content: string | Buffer }>) {
+export async function installThemePackageFromManifest(manifest: ThemePackageManifest, files: Array<{ path: string; content: string | Buffer }>, mode: ThemeInstallMode = 'install') {
   const slug = assertThemeName(manifest.slug)
 
   if (slug === DEFAULT_THEME_NAME) {
     throw conflict('The built-in default theme package cannot be overwritten.')
   }
 
-  if (await themeExists(slug)) {
+  const exists = await themeExists(slug)
+
+  if (mode === 'install' && exists) {
     throw conflict('A theme package with this slug already exists.')
   }
 
   validateManifest(manifest, slug)
   const directory = getThemeDirectory(slug)
+
+  // update 模式覆盖已存在的主题：先备份旧目录，写失败时回滚，避免把旧版也丢掉。
+  let backupDirectory: string | null = null
+  if (mode === 'update' && exists) {
+    backupDirectory = `${directory}.__backup_${Date.now()}`
+    await rename(directory, backupDirectory)
+  }
+
   await mkdir(directory, { recursive: true })
 
   try {
@@ -631,12 +671,29 @@ export async function installThemePackageFromManifest(manifest: ThemePackageMani
     for (const file of files) {
       const target = resolveThemePath(slug, file.path)
       await mkdir(path.dirname(target), { recursive: true })
-      if (file.path.endsWith('.css')) rewriteThemeCssUrls(slug, file.path, validateThemeCss(String(file.content)))
+      if (file.path.endsWith('.css')) {
+        // 安装期仅用 rewriteThemeCssUrls/validateThemeCss 做校验；URL 重写留给运行时 readThemeCss。
+        rewriteThemeCssUrls(slug, file.path, validateThemeCss(String(file.content)))
+      }
       await writeFile(target, file.content)
     }
   } catch (error) {
+    // 清理本次写入的半成品目录
     await rm(directory, { recursive: true, force: true }).catch(() => undefined)
+    // update 模式：回滚到备份的旧版本，保留原主题可用
+    if (backupDirectory) {
+      try {
+        await rename(backupDirectory, directory)
+      } catch {
+        // 备份恢复失败也无法做更多，保持抛出原始错误
+      }
+    }
     throw error
+  }
+
+  // 写入成功后删除备份（如有）
+  if (backupDirectory) {
+    await rm(backupDirectory, { recursive: true, force: true }).catch(() => undefined)
   }
 
   // 安装后清模板缓存（渲染时重新加载）
@@ -649,7 +706,8 @@ export async function installThemePackageFromManifest(manifest: ThemePackageMani
 export async function exportThemePackage(themeName: string, extraEntries: ZipEntry[] = []) {
   const name = normalizeThemeName(themeName)
   if (!(await themeExists(name))) throw notFound('Theme package not found.')
-  const files = await walkThemeFiles(name)
+  // 磁盘上的 theme-settings.json 永远不应被打进发布包；includeSettings=true 时改用 extraEntries 里的新鲜快照。
+  const files = (await walkThemeFiles(name)).filter((entry) => entry.path !== THEME_SETTINGS_FILENAME)
   const reservedPaths = new Set(extraEntries.map((entry) => entry.path))
   return createZip([...files.filter((entry) => !reservedPaths.has(entry.path)), ...extraEntries])
 }

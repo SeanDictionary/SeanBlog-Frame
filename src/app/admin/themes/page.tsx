@@ -3,8 +3,8 @@ import path from 'node:path'
 
 import { ThemesManager } from '@/components/admin/themes-manager'
 import { listSettings } from '@/lib/services/setting-service'
-import { getPrisma } from '@/lib/prisma'
-import { flattenSchemaItems, listThemes, readThemeManifest } from '@/lib/theme'
+import { getThemeSettings } from '@/lib/services/theme-settings-service'
+import { listThemes, readThemeManifest } from '@/lib/theme'
 
 function normalizeActiveTheme(value: unknown) {
   return typeof value === 'string' && value !== 'default' ? value : 'seanblog-default'
@@ -23,25 +23,12 @@ async function readCalloutPreset(themeSlug: string): Promise<string | null> {
 export default async function AdminThemesPage() {
   const [settings, themes] = await Promise.all([listSettings(), listThemes()])
   const activeTheme = normalizeActiveTheme(settings.find((s) => s.key === 'activeTheme')?.value)
-  const [calloutPreset, manifest, dbRow] = await Promise.all([
+  // 统一走 getThemeSettings（与公开渲染同一条缓存路径）：settingsVersion 迁移 + 合并 schema 默认值，
+  // 避免后台直接读 dbRow 导致迁移前显示与前台不一致。
+  const [calloutPreset, themeSettings] = await Promise.all([
     readCalloutPreset(activeTheme),
-    readThemeManifest(activeTheme).catch(() => null),
-    getPrisma().themeCustomization.findUnique({ where: { themeSlug: activeTheme } }),
+    getThemeSettings(activeTheme).catch(() => ({})),
   ])
-
-  // 合并默认值 + 数据库自定义
-  const themeSettings: Record<string, unknown> = {}
-  const dbSettings = dbRow?.settings && typeof dbRow.settings === 'object' && !Array.isArray(dbRow.settings)
-    ? dbRow.settings as Record<string, unknown>
-    : {}
-  const schema = manifest?.settingsSchema ?? {}
-  for (const item of flattenSchemaItems(schema)) {
-    themeSettings[item.key] = dbSettings[item.key] ?? item.default
-  }
-  // calloutCustomCss
-  if (typeof dbSettings.calloutCustomCss === 'string') {
-    themeSettings.calloutCustomCss = dbSettings.calloutCustomCss
-  }
 
   return (
     <div className="mx-auto max-w-7xl">
