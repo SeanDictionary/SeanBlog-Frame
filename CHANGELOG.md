@@ -3,8 +3,10 @@
 本文件记录 SeanBlog Frame 的显著变更。格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-发布流程：打 `v*.*.*` 标签后，CI 从本文件提取对应版本段落作为 GitHub Release 正文。
-新增变更时先写在 `## [Unreleased]` 下；发布前将其移至新的 `## [版本号]` 段落。
+发布流程：发版时把 `## [Unreleased]` 移至新的 `## [版本号]` 段 → 更新 `package.json` 的 `version` → 打 `v*.*.*` 标签 → push 触发 CI，CI 从本文件提取对应版本段落作为 GitHub Release 正文。
+新增变更时先写在 `## [Unreleased]` 下。
+
+> 主题仓库（SeanBlog-Themes）的发版约定不同：不打 tag，常规改动仅本地提交，仅正式发版时 bump `theme.yaml` version + CHANGELOG 版本段后 push。详见 `AGENTS.md`。
 
 ## [Unreleased]
 
@@ -18,6 +20,7 @@
 
 - 不存在的文章 slug 不再返回纯文本 `Article not found`，改为走统一的 404 渲染入口（主题 404.hbs 或平台内置 404 页）。
 - 主题契约扩展：新增**可选**模板 `404.hbs` 与 `templateExists` 探测，向后兼容（主题不提供则跳过）。
+- 修订发版与 push 约定（见 `AGENTS.md` 与根 `CHANGELOG.md` 发布流程段）：Themes 仓库不打任何 tag、常规改动仅本地提交、仅正式发版时 bump `theme.yaml` version + CHANGELOG 版本段后 push 触发 CI；Frame 仓库常规改动保持原子化提交 + 同步 CHANGELOG、默认本地，仅迭代版本号时 bump `package.json` version + CHANGELOG 版本段 + 打 `v*.*.*` tag 后 push 触发 CI。
 
 ## [0.4.0] - 2026-09-05
 

@@ -39,8 +39,8 @@
   - 主题改动 → `SeanBlog-Themes/<theme>/CHANGELOG.md` 的 `## [Unreleased]`（发版时再移至 `## [版本号]`）。
 - **其他文档随变更同步**：`README.md`、`docs/` 下架构文档（`theme-framework.md`、`theme-development.md`、`data-model.md` 等）、`theme.yaml` 的 `settingsSchema` 说明、`settingsVersion` 等。新增/重命名字段必须同步文档。
 - **版本迭代**：
-  - 主题发版：bump `theme.yaml` 的 `version`（语义化版本）→ 更新 CHANGELOG 版本段 → 提交 → 打 `v*.*.*` tag → push（默认 push Themes，Frame 默认保持本地除非额外要求）。
-  - Frame 发版：按根 `CHANGELOG.md` 顶部「发布流程」，打 `v*.*.*` tag，CI 从 CHANGELOG 提取 Release 正文。
+  - 主题发版（仅 Themes 仓库）：bump `theme.yaml` 的 `version`（语义化版本）→ 把 `## [Unreleased]` 移至新的 `## [版本号]` 段 → 提交 → push 触发 CI。**Themes 仓库不打任何 tag**（仓库托管多个主题，仓库级 tag 会歧义）；常规主题改动仅本地提交，不到正式发版不 push。
+  - Frame 发版：把 `## [Unreleased]` 移至新的 `## [版本号]` 段 → bump `package.json` 的 `version` → 打 `v*.*.*` tag → push 触发 CI（CI 从 CHANGELOG 提取对应版本段作 GitHub Release 正文）。常规 Frame 改动保持原子化提交 + 同步 CHANGELOG，默认本地，不到发版不 push。
 - 不要把 CHANGELOG 当事后补丁：提交信息与 CHANGELOG 条目应在同一次提交中一起出现。
 
 ## 验证要求
@@ -74,7 +74,9 @@
 - 遵循 [Conventional Commits](https://www.conventionalcommits.org/)：`feat` / `fix` / `docs` / `refactor` / `chore` / `perf`，可带 scope，如 `feat(cardinal): …`、`fix(search): …`、`fix(install): …`。
 - 提交信息首行简短，正文说明动机/根因/影响（参考仓库历史风格）。
 - 一次提交一个完整意图，不要把无关改动混在一起；跨仓库相关改动分别提交到各自仓库。
-- **默认 push 策略**：Themes 仓库按需迭代版本并 push；Frame 仓库**默认保持本地**，除非用户额外要求 push。
+- **默认 push 策略**：
+  - **Themes 仓库**：常规改动仅本地提交、不 push；仅在正式发版（bump `theme.yaml` version + CHANGELOG 版本段，不打 tag）时 push 触发 CI。
+  - **Frame 仓库**：常规改动保持原子化提交 + 同步 CHANGELOG，默认本地不 push；仅在迭代版本号时（bump `package.json` version + CHANGELOG 版本段 + 打 `v*.*.*` tag）push 触发 CI。
 
 ## 后台管理员
 
