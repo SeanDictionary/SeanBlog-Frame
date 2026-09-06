@@ -32,6 +32,9 @@ type ArticleRow = {
 type ArticleManagementTableProps = {
   articles: ArticleRow[]
   total: number
+  page: number
+  pageSize: number
+  pageCount: number
   filters: {
     status?: string
     category?: string
@@ -62,6 +65,20 @@ const defaultSortOrder: Record<SortField, 'asc' | 'desc'> = {
   createdAt: 'desc',
   viewCount: 'desc',
   visitorCount: 'desc',
+}
+
+const PAGE_SIZE_OPTIONS = [20, 50, 100]
+
+function getPageItems(current: number, total: number): Array<number | 'ellipsis'> {
+  if (total <= 7) return Array.from({ length: total }, (_, index) => index + 1)
+  const items: Array<number | 'ellipsis'> = [1]
+  const start = Math.max(2, current - 1)
+  const end = Math.min(total - 1, current + 1)
+  if (start > 2) items.push('ellipsis')
+  for (let page = start; page <= end; page += 1) items.push(page)
+  if (end < total - 1) items.push('ellipsis')
+  items.push(total)
+  return items
 }
 
 function statusBadges(article: ArticleRow) {
@@ -149,7 +166,7 @@ function resolveNoticeLevel(message: string): AdminToastLevel {
   return 'info'
 }
 
-export function ArticleManagementTable({ articles, total, filters, initialNotice }: ArticleManagementTableProps) {
+export function ArticleManagementTable({ articles, total, page, pageSize, pageCount, filters, initialNotice }: ArticleManagementTableProps) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -164,6 +181,15 @@ export function ArticleManagementTable({ articles, total, filters, initialNotice
   const allSelected = articles.length > 0 && visibleSelectedCount === articles.length
   const selectedCount = selectedIds.size
   const selectedIdList = useMemo(() => [...selectedIds], [selectedIds])
+  const pageItems = useMemo(() => getPageItems(page, pageCount), [page, pageCount])
+
+  function pageHrefFor(target: number) {
+    const qs = createQueryString(filters, {
+      page: target > 1 ? String(target) : null,
+      pageSize: pageSize !== 20 ? String(pageSize) : null,
+    })
+    return (`/admin/articles?${qs}`) as Route
+  }
 
   useEffect(() => {
     if (initialNotice) toast.notify(initialNotice, resolveNoticeLevel(initialNotice))
@@ -450,6 +476,36 @@ export function ArticleManagementTable({ articles, total, filters, initialNotice
         ) : (
           <EmptyState>当前搜索条件下没有文章。</EmptyState>
         )}
+
+        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-neutral-200 px-4 py-4 text-sm dark:border-neutral-800">
+          {pageItems.map((item, index) =>
+            item === 'ellipsis' ? (
+              <span key={`e-${index}`} className="px-1 text-neutral-400">…</span>
+            ) : item === page ? (
+              <span key={item} aria-current="page" className="min-w-8 rounded-md border border-neutral-950 bg-neutral-950 px-2 py-1 text-center text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950">{item}</span>
+            ) : (
+              <Link key={item} href={pageHrefFor(item)} className="min-w-8 rounded-md border border-neutral-300 px-2 py-1 text-center transition-colors hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-900">{item}</Link>
+            ),
+          )}
+          <span className="ml-2 flex items-center gap-1.5">
+            <span className="text-neutral-500">每页</span>
+            <select
+              value={pageSize}
+              onChange={(event) => {
+                const nextSize = event.target.value
+                const qs = createQueryString(filters, {
+                  pageSize: nextSize === '20' ? null : nextSize,
+                  page: null,
+                })
+                const nextHref = (qs ? `/admin/articles?${qs}` : '/admin/articles') as Route
+                router.replace(nextHref, { scroll: false })
+              }}
+              className="h-8 rounded-md border border-neutral-300 bg-white px-2 dark:border-neutral-700 dark:bg-neutral-900"
+            >
+              {PAGE_SIZE_OPTIONS.map((size) => <option key={size} value={size}>{size} 条</option>)}
+            </select>
+          </span>
+        </div>
       </Card>
     </div>
   )

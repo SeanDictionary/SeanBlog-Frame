@@ -68,6 +68,9 @@ export default async function AdminArticlesPage({
       <ArticleManagementTable
         articles={result.items.map(serializeArticle)}
         total={result.meta.total}
+        page={result.meta.page}
+        pageSize={result.meta.pageSize}
+        pageCount={Math.max(1, result.meta.pageCount)}
         filters={filters}
         initialNotice={notice}
       />
