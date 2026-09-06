@@ -129,6 +129,14 @@ async function getTemplate(slug: string, name: string): Promise<HandlebarsTempla
   return null
 }
 
+/**
+ * 探测主题（含 fallback 链）是否存在某模板，用于「主题可选提供」的页面
+ * （如 404.hbs）：命中则走主题渲染，未命中则由平台回退到内置默认页。
+ */
+export async function templateExists(slug: string, name: string): Promise<boolean> {
+  return (await getTemplate(slug, name)) !== null
+}
+
 // --- 白名单 helpers（纯函数，无 IO/异步） ---
 
 Handlebars.registerHelper('json', (obj: unknown) => {

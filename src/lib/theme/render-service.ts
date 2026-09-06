@@ -11,7 +11,9 @@
 import { buildThemeCssBundle } from '@/lib/theme/css-bundle'
 import { getMergedSettings } from '@/lib/services/theme-settings-service'
 import { normalizeThemeName } from '@/lib/theme'
-import { renderTemplate } from '@/lib/theme/handlebars-engine'
+import { renderTemplate, templateExists } from '@/lib/theme/handlebars-engine'
+import { buildNotFoundCtx } from '@/lib/theme/template-context'
+import { publicNotFoundResponse } from '@/lib/theme/public-error-page'
 
 export type PageKey = 'home' | 'post' | 'taxonomy' | 'categories' | 'tags' | 'search'
 
@@ -91,4 +93,26 @@ export async function renderThemePage(input: RenderInput): Promise<string> {
     layout: 'default',
     data: enriched,
   })
+}
+
+/**
+ * 渲染 404 响应：主题提供 404.hbs 时走主题模板（套 default 布局），
+ * 否则回退到平台内置 404 静态页（与 500/503 错误页同款样式）。
+ */
+export async function renderNotFoundResponse(): Promise<Response> {
+  const settings = await getMergedSettings()
+  const slug = normalizeThemeName(settings.activeTheme)
+
+  if (await templateExists(slug, '404')) {
+    try {
+      const ctx = await buildNotFoundCtx()
+      const enriched = await enrichCtx(ctx, slug)
+      const html = await renderTemplate({ slug, template: '404', layout: 'default', data: enriched })
+      return new Response(html, { status: 404, headers: { 'content-type': 'text/html; charset=utf-8' } })
+    } catch (error) {
+      console.error('[404] themed 404 render failed, falling back to built-in', error)
+    }
+  }
+
+  return publicNotFoundResponse()
 }

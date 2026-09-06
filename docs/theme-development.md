@@ -116,8 +116,18 @@ my-theme/
 | `/categories` | `categories.hbs` | `categories` |
 | `/tags` | `tags.hbs` | `tags` |
 | `/search` | `search.hbs` | `search` |
+| 任意未匹配前台路径（404） | `404.hbs`（**可选**） | `404` |
 
 整页由 `default.hbs` 包裹（布局机制见 [§6.2](#62-布局layout注入机制)）。
+
+#### 404 页（可选，主题覆盖）
+
+主题可在 `templates/404.hbs` 提供自定义 404 页。平台渲染逻辑（见 `render-service.ts` 的 `renderNotFoundResponse`）：
+
+- 主题（含 fallback 链）存在 `404.hbs` → 套 `default` 布局渲染，ctx 含 `page:'404'`、站点/主题/侧边栏基础数据、`seo`（`robots: noindex`、标题 `404 页面不存在 - <站点名>`）；
+- 不存在 → 回退到平台内置 404 静态页（与 500/503 错误页同款样式，带「返回首页 / 返回上一页」按钮）。
+
+因此**默认主题不提供 404.hbs 也安全**——直接用平台内置 404；需要与站点风格统一时再加 `404.hbs` 覆盖。后台 `/admin/**` 未匹配路径走独立的 `admin/not-found.tsx`，不经过主题。
 
 ### 3.2 模板 fallback 链
 

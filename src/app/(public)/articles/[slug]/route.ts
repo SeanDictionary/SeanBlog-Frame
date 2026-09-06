@@ -1,6 +1,7 @@
 import { publicErrorResponse } from '@/lib/theme/public-error-page'
-import { renderThemePage } from '@/lib/theme/render-service'
+import { renderNotFoundResponse, renderThemePage } from '@/lib/theme/render-service'
 import { buildPostCtx } from '@/lib/theme/template-context'
+import { ApiError } from '@/lib/api/errors'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,8 +12,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
     const html = await renderThemePage({ pageKey: 'post', ctx })
     return new Response(html, { headers: { 'content-type': 'text/html; charset=utf-8' } })
   } catch (error) {
-    if (error instanceof Error && error.name === 'ApiError') {
-      return new Response('Article not found', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8' } })
+    if (error instanceof ApiError && error.status === 404) {
+      return renderNotFoundResponse()
     }
     return publicErrorResponse(error)
   }

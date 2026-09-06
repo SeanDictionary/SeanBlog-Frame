@@ -87,11 +87,54 @@ function buildErrorHtml(error: unknown): { html: string; status: number } {
   return { html: body, status }
 }
 
+function buildNotFoundHtml(): { html: string; status: number } {
+  const status = 404
+  const code = 'NOT_FOUND'
+  const title = '页面不存在'
+  const message = '你访问的页面不存在，或已被移除/改名。'
+
+  const body = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>${esc(title)}</title>
+<style>${STYLES}</style>
+</head>
+<body>
+<main>
+  <p class="code">${status} · ${esc(code)}</p>
+  <h1>${esc(title)}</h1>
+  <p>${esc(message)}</p>
+  <div class="actions">
+    <a href="/" class="primary">返回首页</a>
+    <button type="button" class="" onclick="history.back()">返回上一页</button>
+  </div>
+</main>
+</body>
+</html>`
+
+  return { html: body, status }
+}
+
 /**
  * 构造前台错误回退响应。DB 错误 → 503，其他 → 500。
  */
 export function publicErrorResponse(error: unknown): Response {
   const { html, status } = buildErrorHtml(error)
+  return new Response(html, {
+    status,
+    headers: { 'content-type': 'text/html; charset=utf-8' },
+  })
+}
+
+/**
+ * 构造前台 404 回退响应（主题未提供 404.hbs 时使用）。
+ * 与 500/503 错误页同款样式，带「返回首页 / 返回上一页」按钮。
+ */
+export function publicNotFoundResponse(): Response {
+  const { html, status } = buildNotFoundHtml()
   return new Response(html, {
     status,
     headers: { 'content-type': 'text/html; charset=utf-8' },

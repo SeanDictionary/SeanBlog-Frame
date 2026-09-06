@@ -312,6 +312,23 @@ export async function buildSearchCtx(query: string, searchParams: { page?: strin
   }
 }
 
+/**
+ * 404 页 ctx：仅含站点/主题/侧边栏基础数据 + noindex seo，供主题 404.hbs 使用。
+ * 主题未提供 404.hbs 时，平台不调用本函数（回退到内置 404 静态页）。
+ */
+export async function buildNotFoundCtx() {
+  const base = await baseCtx()
+  return {
+    ...base,
+    page: '404',
+    seo: {
+      title: `404 页面不存在 - ${base.site.title}`,
+      description: '你访问的页面不存在，或已被移除/改名。',
+      robots: 'noindex',
+    } as SeoCtx,
+  }
+}
+
 // --- 归一化 ---
 
 function normalizePost(a: any) {
