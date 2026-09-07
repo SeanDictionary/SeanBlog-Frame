@@ -13,6 +13,9 @@
 ### Added
 
 - 主题包支持「就地更新」：上传安装时新增 `mode` 字段（`install` 默认 / `update`）。`update` 模式下 slug 已存在时先备份旧目录再覆盖写入，写入失败回滚到备份，**不删除 `ThemeCustomization` 数据库行**，用户自定义设置自然保留；可直接更新当前活跃主题（无需先切走）。若新版本号低于旧版本号，响应携带降级提示警告。后台「主题」页每张已安装主题卡新增「更新」按钮，复用导入确认弹窗并按 `mode=update` 提交。
+- 新增站点设置 `siteIcon`（站点图标 URL / favicon）：后台「设置 → 站点信息」新增字段，保存后注入到前台主题渲染 `<head>` 的 `<link rel="icon">`（经 `enrichCtx` 追加到 `seo_head`，主题无需改动）与后台 root layout head；`ctx.site.icon` 供主题模板消费。
+- 新增 `GET /api/admin/version` 接口：读取当前 `package.json` 版本，拉取 GitHub `SeanDictionary/SeanBlog-Frame` 的 latest release tag 做 semver 比较，带 5 分钟内存缓存。
+- 后台侧边栏「SeanBlog Admin」下方新增小字版本行（当前版本号），点击触发版本检查；存在新版本时以绿色跟随显示新版本号，检查失败显示提示。
 
 ### Changed
 

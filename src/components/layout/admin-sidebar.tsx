@@ -1,6 +1,7 @@
 import type { Route } from 'next'
 import type { Session } from 'next-auth'
 
+import packageJson from '@/../package.json'
 import { getSiteSettingsMapSafe } from '@/lib/services/setting-service'
 import { signOut } from '@/lib/auth'
 import { adminLogActor, recordOperationLog } from '@/lib/services/operation-log-service'
@@ -57,5 +58,5 @@ export async function AdminSidebar({ session }: AdminSidebarProps) {
     await signOut({ redirectTo: '/' })
   }
 
-  return <AdminSidebarClient navigation={adminNavigation} userName={session.user.name ?? '管理员'} siteName={siteName} signOutAction={signOutAction} />
+  return <AdminSidebarClient navigation={adminNavigation} userName={session.user.name ?? '管理员'} siteName={siteName} currentVersion={packageJson.version} signOutAction={signOutAction} />
 }

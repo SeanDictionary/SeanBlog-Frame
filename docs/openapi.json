@@ -3034,6 +3034,44 @@
         ]
       }
     },
+    "/api/admin/version": {
+      "get": {
+        "tags": [
+          "后台系统"
+        ],
+        "summary": "检查 Frame 版本更新",
+        "description": "读取当前 package.json 版本，拉取 GitHub SeanDictionary/SeanBlog-Frame 的 latest release tag，做 semver 比较。带 5 分钟内存缓存。",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "版本检查结果。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "current": { "type": "string" },
+                    "latest": { "type": "string", "nullable": true },
+                    "hasUpdate": { "type": "boolean" },
+                    "checkedAt": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
     "/api/admin/tags": {
       "get": {
         "tags": [

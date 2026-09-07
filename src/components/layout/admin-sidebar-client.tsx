@@ -20,6 +20,7 @@ type AdminSidebarClientProps = {
   navigation: AdminNavigationItem[]
   userName: string
   siteName?: string
+  currentVersion: string
   signOutAction: () => Promise<void>
 }
 
@@ -28,9 +29,21 @@ function isNavigationItemActive(pathname: string, item: AdminNavigationItem) {
   return item.children?.some((child) => pathname === child.href || pathname.startsWith(`${child.href}/`)) ?? false
 }
 
-export function AdminSidebarClient({ navigation, userName, siteName = 'SeanBlog', signOutAction }: AdminSidebarClientProps) {
+export function AdminSidebarClient({ navigation, userName, siteName = 'SeanBlog', currentVersion, signOutAction }: AdminSidebarClientProps) {
   const pathname = usePathname()
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [versionCheck, setVersionCheck] = useState<{ latest: string | null; hasUpdate: boolean; checking: boolean; error: boolean }>({ latest: null, hasUpdate: false, checking: false, error: false })
+
+  async function checkForUpdate() {
+    setVersionCheck((prev) => ({ ...prev, checking: true, error: false }))
+    try {
+      const res = await fetch('/api/admin/version', { headers: { 'same-origin': '1' } })
+      const data = (await res.json()) as { latest?: string | null; hasUpdate?: boolean }
+      setVersionCheck({ latest: data.latest ?? null, hasUpdate: Boolean(data.hasUpdate), checking: false, error: false })
+    } catch {
+      setVersionCheck((prev) => ({ ...prev, checking: false, error: true }))
+    }
+  }
   const activeParentHref = useMemo(() => navigation.find((item) => isNavigationItemActive(pathname, item) && item.children)?.href ?? null, [navigation, pathname])
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => activeParentHref ? new Set([activeParentHref]) : new Set())
 
@@ -66,12 +79,29 @@ export function AdminSidebarClient({ navigation, userName, siteName = 'SeanBlog'
   return (
     <aside className={`sb-admin-sidebar sticky top-0 flex h-screen shrink-0 flex-col overflow-hidden border-r border-neutral-200 bg-white px-4 py-5 dark:border-neutral-800 dark:bg-neutral-950 ${isCollapsed ? 'w-20' : 'w-64'}`}>
       <div className="flex shrink-0 items-start justify-between gap-2">
-        <Link
-          href="/admin"
-          className={`min-w-0 text-neutral-950 transition-opacity dark:text-neutral-50 ${isCollapsed ? 'sr-only' : 'px-3'}`}
-        >
-          <span className="whitespace-nowrap text-lg font-semibold leading-tight tracking-tight">{siteName} <span className="inline-block translate-y-0.5 text-base font-normal text-neutral-400">Admin</span></span>
-        </Link>
+        <div className={`min-w-0 ${isCollapsed ? 'sr-only' : 'px-3'}`}>
+          <Link
+            href="/admin"
+            className="block text-neutral-950 transition-opacity dark:text-neutral-50"
+          >
+            <span className="whitespace-nowrap text-lg font-semibold leading-tight tracking-tight">{siteName} <span className="inline-block translate-y-0.5 text-base font-normal text-neutral-400">Admin</span></span>
+          </Link>
+          <button
+            type="button"
+            onClick={checkForUpdate}
+            disabled={versionCheck.checking}
+            title="点击检查是否有新版本"
+            className="mt-0.5 block text-left text-[11px] font-normal leading-tight text-neutral-400 transition-colors hover:text-neutral-600 disabled:opacity-60 dark:text-neutral-500 dark:hover:text-neutral-300"
+          >
+            {versionCheck.checking
+              ? '检查更新中…'
+              : versionCheck.error
+                ? `v${currentVersion}（检查失败）`
+                : versionCheck.hasUpdate && versionCheck.latest
+                  ? <>v{currentVersion} → <span className="text-green-600 dark:text-green-400">{versionCheck.latest}</span></>
+                  : `v${currentVersion}`}
+          </button>
+        </div>
         <button
           type="button"
           onClick={() => setIsCollapsed((value) => !value)}
