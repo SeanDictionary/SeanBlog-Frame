@@ -70,16 +70,23 @@ const FONT_AWESOME = `<link rel="stylesheet" href="https://cdnjs.cloudflare.com/
 
 async function enrichCtx(ctx: Record<string, unknown>, slug: string): Promise<Record<string, unknown>> {
   const cssBundle = await buildThemeCssBundle()
+  const faviconLink = buildFaviconLink((ctx as any).site?.icon)
   return {
     ...ctx,
     theme: { ...(ctx as any).theme, slug },
-    seo_head: buildSeoHead((ctx as any).seo),
+    seo_head: buildSeoHead((ctx as any).seo) + (faviconLink ? `\n${faviconLink}` : ''),
     theme_css: cssBundle?.css ? `<style>${cssBundle.css}</style>` : '',
     callout_css: cssBundle?.calloutCss ? `<style>${cssBundle.calloutCss}</style>` : '',
     katex_css_link: cssBundle?.katexCssLink || '',
     font_awesome: FONT_AWESOME,
     platform_enhance: `<script src="/enhance.js" defer></script><script src="/analytics.js" defer></script>`,
   }
+}
+
+/** 由 siteIcon 设置生成 <link rel="icon"> 标签；未配置则返回空串。 */
+function buildFaviconLink(icon: unknown): string {
+  if (typeof icon !== 'string' || !icon.trim()) return ''
+  return `<link rel="icon" href="${esc(icon)}">`
 }
 
 /** 渲染整页 */

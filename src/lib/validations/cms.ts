@@ -236,6 +236,7 @@ const siteInfoSettingKeys = new Set([
   'siteName',
   'siteDescription',
   'siteUrl',
+  'siteIcon',
 ])
 
 export const settingBulkUpdateSchema = z

@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import type { ReactNode } from 'react'
 
 import { getActiveThemeSettings } from '@/lib/services/theme-settings-service'
+import { getSiteSettingsMapSafe } from '@/lib/services/setting-service'
 import { getSiteUrl } from '@/lib/services/setting-service'
 import './globals.css'
 
@@ -66,7 +67,8 @@ async function resolveColorMode(): Promise<{ attr: 'dark' | 'light'; mode: strin
 }
 
 export default async function RootLayout({ children }: RootLayoutProps) {
-  const { attr, mode } = await resolveColorMode()
+  const [{ attr, mode }, siteSettings] = await Promise.all([resolveColorMode(), getSiteSettingsMapSafe()])
+  const siteIcon = typeof siteSettings.siteIcon === 'string' && siteSettings.siteIcon.trim() ? siteSettings.siteIcon.trim() : null
 
   // 首屏前同步脚本：处理 auto 模式下跟随系统，且无 cookie 时才介入（避免覆盖用户偏好）
   const colorBootstrap = mode === 'auto'
@@ -84,6 +86,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
           referrerPolicy="no-referrer"
         />
         {mode === 'auto' && <script dangerouslySetInnerHTML={{ __html: colorBootstrap }} />}
+        {siteIcon && <link rel="icon" href={siteIcon} />}
       </head>
       <body className={`${inter.variable} font-sans antialiased`}>
         {children}

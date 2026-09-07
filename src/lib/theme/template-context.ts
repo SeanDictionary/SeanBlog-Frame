@@ -19,6 +19,7 @@ export type SiteCtx = {
   url: string
   locale: string
   logo?: string | null
+  icon?: string | null
 }
 
 export type SeoCtx = {
@@ -172,6 +173,7 @@ async function baseCtx(): Promise<{ settings: Record<string, unknown>; site: Sit
     url: typeof settings.siteUrl === 'string' && settings.siteUrl.trim() ? settings.siteUrl.replace(/\/$/, '') : 'http://localhost:3000',
     locale: 'zh-CN',
     logo: typeof settings.siteLogo === 'string' ? settings.siteLogo : null,
+    icon: typeof settings.siteIcon === 'string' && settings.siteIcon.trim() ? settings.siteIcon : null,
   }
   const themeSlug = typeof settings.activeTheme === 'string' && settings.activeTheme !== 'default' ? settings.activeTheme : 'seanblog-default'
   return { settings, site, theme: { slug: themeSlug, config: settings as Record<string, unknown> }, sidebarData }

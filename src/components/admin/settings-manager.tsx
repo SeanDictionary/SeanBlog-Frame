@@ -52,6 +52,7 @@ const EXCLUDED_SETTING_KEYS = new Set([
   'siteName',
   'siteDescription',
   'siteUrl',
+  'siteIcon',
   'articleCommentsMode',
   'commentModerationRules',
   OPERATION_LOG_RETENTION_SETTING_KEY,
@@ -199,7 +200,7 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
       <Card padding="lg">
         <form id="site-info-form" action={(formData) => {
           saveSiteInfo(
-            ['siteName', 'siteDescription', 'siteUrl'].map((key) => ({ key, value: String(formData.get(key) ?? '') }))
+            ['siteName', 'siteDescription', 'siteUrl', 'siteIcon'].map((key) => ({ key, value: String(formData.get(key) ?? '') }))
           )
         }} className="grid gap-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -210,7 +211,7 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
             <button type="submit" disabled={isPending} className="rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-950">保存</button>
           </div>
           <div className="grid gap-4">
-            {['siteName', 'siteDescription', 'siteUrl'].map((key) => {
+            {['siteName', 'siteDescription', 'siteUrl', 'siteIcon'].map((key) => {
               const setting = settings.find((item) => item.key === key)
               const currentValue = setting ? stringifyValue(setting.value) : ''
               const displayValue = !currentValue
@@ -218,7 +219,9 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
                   ? 'SeanBlog'
                   : key === 'siteDescription'
                     ? 'Personal blog powered by SeanBlog Frame.'
-                    : 'http://localhost:3000'
+                    : key === 'siteUrl'
+                      ? 'http://localhost:3000'
+                      : ''
                 : currentValue
 
               return (
@@ -233,6 +236,7 @@ export function SettingsManager({ initialSettings }: SettingsManagerProps) {
                     {key === 'siteName' && '用于前台显示、SEO 标题和 RSS feed'}
                     {key === 'siteDescription' && '用于 SEO meta description 和 RSS feed'}
                     {key === 'siteUrl' && '用于 Sitemap、RSS 和文章绝对链接，生产环境务必正确配置'}
+                    {key === 'siteIcon' && '站点图标 URL（favicon），用于前台与后台浏览器标签图标'}
                   </p>
                 </div>
               )
