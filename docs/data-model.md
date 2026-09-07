@@ -284,6 +284,8 @@ model SiteSetting {
 }
 ```
 
+站点信息相关 key：`siteName`、`siteDescription`、`siteUrl`、`siteIcon`（站点图标 URL，注入到前台主题 `<head>` 与后台 root layout 的 `<link rel="icon">`）。其余 key 含 `activeTheme`、`publicFooter*`、访问统计、操作日志保留天数等。
+
 ### 4.4b ThemeCustomization（主题自定义设置）
 
 ```prisma
