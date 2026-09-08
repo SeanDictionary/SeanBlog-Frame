@@ -349,7 +349,7 @@ export function ArticleManagementTable({ articles, total, page, pageSize, pageCo
         const skippedCount = data.skippedIds?.length ?? 0
         let message = importedNames ? `导入成功：${importedNames}` : `已导入 ${data.count ?? 0} 篇文章。`
         if (skippedCount > 0) {
-          message += `（跳过 ${skippedCount} 篇重复 ID）`
+          message += `（跳过 ${skippedCount} 篇重复 ID，查看日志了解详情）`
         }
         toast.success(message)
         setSelectedIds(new Set())
