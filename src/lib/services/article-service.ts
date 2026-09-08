@@ -3,6 +3,7 @@ import { readFile, rm } from 'node:fs/promises'
 import path from 'node:path'
 
 import { ArticleStatus, Prisma } from '@prisma/client'
+import { revalidateTag } from 'next/cache'
 
 import { badRequest, conflict, notFound } from '@/lib/api/errors'
 import {
@@ -1120,24 +1121,43 @@ export async function importAdminArticlesArchive(buffer: Buffer) {
 }
 
 export async function getPublicArticleNavigation(slug: string, order: 'publishedAt' | 'updatedAt' = 'publishedAt') {
-  const articles = await getPrisma().article.findMany({
-    where: getPublicArticleWhere(),
-    orderBy: order === 'updatedAt' ? [{ updatedAt: 'desc' }, { title: 'asc' }] : [{ publishedAt: 'desc' }, { title: 'asc' }],
-    select: {
-      title: true,
-      slug: true,
-    },
-  })
-  const currentIndex = articles.findIndex((article) => article.slug === slug)
+  const prisma = getPrisma()
+  const where = getPublicArticleWhere()
 
-  if (currentIndex === -1) {
+  // 获取当前文章的排序字段值
+  const current = await prisma.article.findFirst({
+    where: { slug, ...where },
+    select: { id: true, title: true, publishedAt: true, updatedAt: true },
+  })
+
+  if (!current) {
     throw notFound('Article not found.')
   }
 
-  return {
-    previous: articles[currentIndex - 1] ?? null,
-    next: articles[currentIndex + 1] ?? null,
-  }
+  const orderField = order === 'updatedAt' ? 'updatedAt' : 'publishedAt'
+  const orderValue = current[orderField]
+
+  // previous（列表中前一篇）= 排序字段值更大（更新）的文章
+  const previous = await prisma.article.findFirst({
+    where: {
+      ...where,
+      [orderField]: { gt: orderValue },
+    },
+    orderBy: [{ [orderField]: 'asc' }, { title: 'asc' }],
+    select: { title: true, slug: true },
+  })
+
+  // next（列表中后一篇）= 排序字段值更小（更旧）的文章
+  const next = await prisma.article.findFirst({
+    where: {
+      ...where,
+      [orderField]: { lt: orderValue },
+    },
+    orderBy: [{ [orderField]: 'desc' }, { title: 'desc' }],
+    select: { title: true, slug: true },
+  })
+
+  return { previous, next }
 }
 
 export async function getPublicArticleBySlug(slug: string) {
@@ -1225,6 +1245,9 @@ export async function createArticle(input: ArticleInput) {
     })
     await createRevision(article.id, article.title, input.contentMarkdown, input.changeNote ?? 'Initial version')
 
+    // 失效侧边栏缓存
+    revalidateTag('sidebar', 'default')
+
     return getAdminArticleById(article.id)
   } catch (error) {
     if (articleId) {
@@ -1293,6 +1316,9 @@ export async function updateArticle(id: string, input: ArticleUpdateInput) {
       }
     })
 
+    // 失效侧边栏缓存
+    revalidateTag('sidebar', 'default')
+
     return getAdminArticleById(id)
   } catch (error) {
     if (revision) {
@@ -1335,6 +1361,9 @@ export async function deleteArticle(id: string) {
         console.error(`Unable to remove content files for article ${id}.`, error)
       })
     }
+
+    // 失效侧边栏缓存
+    revalidateTag('sidebar', 'default')
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
       throw notFound('Article not found.')
