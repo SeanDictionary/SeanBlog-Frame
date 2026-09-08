@@ -35,6 +35,7 @@ export default async function EditArticlePage({ params }: EditArticlePageProps) 
           categoryId: article.categoryId,
           tagIds: article.tags.map((tag) => tag.id),
           isPinned: article.isPinned,
+          isPage: article.isPage,
           metaTitle: article.metaTitle,
           metaDescription: article.metaDescription,
           metaKeywords: article.metaKeywords,
