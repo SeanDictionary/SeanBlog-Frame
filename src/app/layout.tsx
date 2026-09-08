@@ -86,7 +86,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
           referrerPolicy="no-referrer"
         />
         {mode === 'auto' && <script dangerouslySetInnerHTML={{ __html: colorBootstrap }} />}
-        {siteIcon && <link rel="icon" href={siteIcon} />}
+        <link rel="icon" href={siteIcon || '/favicon.svg'} />
       </head>
       <body className={`${inter.variable} font-sans antialiased`}>
         {children}
