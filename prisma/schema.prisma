@@ -63,6 +63,7 @@ model Article {
   contentPath           String?
   legacyContentMarkdown String?             @map("contentMarkdown")
   legacyContentHtml     String?             @map("contentHtml")
+  searchText            String?             @map("search_text")
   coverImage            String?
   status                ArticleStatus       @default(DRAFT)
   commentsMode          ArticleCommentsMode @default(ENABLED)
