@@ -258,7 +258,11 @@ export async function buildPostCtx(slug: string) {
       title: a.metaTitle || a.title,
       description: a.metaDescription || stripHtml(a.excerpt || contentHtml).slice(0, 160),
       canonical: `${base.site.url}/articles/${a.slug}`,
-      og: { 'og:type': 'article', 'og:title': a.metaTitle || a.title, 'og:description': a.metaDescription || '' },
+      og: {
+        'og:type': 'article',
+        'og:title': a.metaTitle || a.title,
+        'og:description': a.metaDescription || stripHtml(a.excerpt || contentHtml).slice(0, 160),
+      },
       jsonld: { '@context': 'https://schema.org', '@type': 'Article', headline: a.title, datePublished: a.publishedAt?.toISOString() },
     } as SeoCtx,
   }
