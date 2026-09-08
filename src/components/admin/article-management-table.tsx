@@ -451,17 +451,17 @@ export function ArticleManagementTable({ articles, total, page, pageSize, pageCo
                         <p>
                           {article.category ? <TaxonomyLink type="category" slug={article.category.slug} label={article.category.name} /> : <span>未分类</span>}
                         </p>
-                        <p className="text-xs">
-                          {article.tags.length > 0
-                            ? article.tags.map((tag, index) => (
-                                <span key={tag.id}>
-                                  {index === 0 && <span className="text-neutral-300 dark:text-neutral-600"># </span>}
-                                  {index > 0 && <span className="mx-1 text-neutral-300 dark:text-neutral-700">/</span>}
-                                  <TaxonomyLink type="tag" slug={tag.slug} label={tag.name} />
-                                </span>
-                              ))
-                            : <span>无标签</span>}
-                        </p>
+                        <div className="flex text-xs text-neutral-500">
+                          <span className="text-neutral-300 dark:text-neutral-600 mr-1 shrink-0">#</span>
+                          <span className="flex flex-wrap flex-1">
+                            {article.tags.length > 0 ? article.tags.map((tag, index) => (
+                              <span key={tag.id} style={{ whiteSpace: 'nowrap' }}>
+                                {index > 0 && <span className="text-neutral-300 dark:text-neutral-700">/</span>}
+                                <TaxonomyLink type="tag" slug={tag.slug} label={tag.name} />
+                              </span>
+                            )) : <span>无标签</span>}
+                          </span>
+                        </div>
                       </div>
                     </td>
                     <td className="px-4 py-4 align-top text-neutral-500">{article.viewCount}</td>
