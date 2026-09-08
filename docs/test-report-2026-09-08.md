@@ -270,3 +270,25 @@
   - `prisma/schema.prisma` —— `Article.contentHtml` 列已存在但前台未用于读取（潜力点）
 
 > 建议优先落地 #4（用 `contentHtml` 列）+ #3（ISR/revalidate）+ #5（设置/侧边栏 unstable_cache），三者即可把「点击要等一会」的主诉覆盖掉大半。
+
+## 补充修复（用户反馈）
+
+### ✅ Favicon 显示问题
+- **问题**：后台页面显示 favicon 但前台不显示；用户不需要默认图标
+- **修复**：移除默认 favicon.svg，仅当 siteIcon 配置时显示
+- **文件**：`public/favicon.svg`（删除）、`src/app/layout.tsx`、`themes/cardinal/templates/default.hbs`
+
+### ✅ 后台页面标题
+- **问题**：后台所有页面标签页标题都是 "SeanBlog"，不随页面切换改变
+- **修复**：为每个后台页面添加 metadata title
+- **文件**：`src/app/admin/*/page.tsx`（11 个文件）、`src/app/admin/layout.tsx`
+
+### ✅ 移动端汉堡按钮无响应
+- **问题**：移动端 fa-bars 按钮点击没有反应
+- **修复**：改用事件委托处理点击，更稳健
+- **文件**：`themes/cardinal/assets/js/main.js`
+
+### ✅ 移动端侧边栏位置
+- **问题**：移动端侧边栏显示在文章列表末尾
+- **修复**：移动端 (≤860px) 隐藏侧边栏
+- **文件**：`themes/cardinal/assets/theme.css`
