@@ -2,7 +2,7 @@ import { publicErrorResponse } from '@/lib/theme/public-error-page'
 import { renderThemePage } from '@/lib/theme/render-service'
 import { buildCategoriesIndexCtx } from '@/lib/theme/template-context'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 300
 
 export async function GET(request: Request) {
   try {

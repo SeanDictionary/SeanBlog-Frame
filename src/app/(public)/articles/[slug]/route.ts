@@ -3,7 +3,7 @@ import { renderNotFoundResponse, renderThemePage } from '@/lib/theme/render-serv
 import { buildPostCtx } from '@/lib/theme/template-context'
 import { ApiError } from '@/lib/api/errors'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 300
 
 export async function GET(_request: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params

@@ -2,7 +2,7 @@ import { publicErrorResponse } from '@/lib/theme/public-error-page'
 import { renderThemePage } from '@/lib/theme/render-service'
 import { buildHomeCtx } from '@/lib/theme/template-context'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 300 // 5 分钟 ISR 缓存
 
 export async function GET(request: Request) {
   try {
