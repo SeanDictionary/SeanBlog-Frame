@@ -253,7 +253,7 @@
 | 9 | 上下篇加载全表 | ✅ 已修复 | `getPublicArticleNavigation` | 性能 |
 | 10 | 代码块未标语言 | 🟡 P3 | 内容 / 编辑器提示 | 内容 |
 | 11 | favicon 404 | ✅ 已修复 | `public/` + layout metadata | 体验 |
-| 12 | media/logs pageSize 校验 | 🟡 P3 | validations | 一致性 |
+| 12 | media/logs pageSize 校验 | ✅ 已修复 | validations | 一致性 |
 | 13 | 概览 analytics 多查询 | 🟡 P3 | `analytics-service.getAnalyticsOverview` | 性能 |
 
 ---
