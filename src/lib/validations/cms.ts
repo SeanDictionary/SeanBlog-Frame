@@ -306,10 +306,6 @@ export const tagListQuerySchema = paginationQuerySchema
 
 export const mediaListQuerySchema = paginationQuerySchema.extend({
   q: optionalQueryString,
-  pageSize: z.preprocess(
-    emptyQueryParamToUndefined,
-    z.coerce.number().int().refine((value) => [20, 50, 100].includes(value), 'Page size must be 20, 50 or 100').default(20),
-  ),
 })
 
 export const articleBulkActionSchema = z
@@ -356,13 +352,11 @@ export const analyticsOverviewQuerySchema = z.object({
 })
 
 export const analyticsVisitorQuerySchema = paginationQuerySchema.extend({
-  pageSize: z.preprocess(emptyQueryParamToUndefined, z.coerce.number().int().refine((value) => [20, 50, 100].includes(value)).default(20)),
   start: optionalDateQuery,
   end: optionalDateQuery,
 })
 
 export const operationLogQuerySchema = paginationQuerySchema.extend({
-  pageSize: z.preprocess(emptyQueryParamToUndefined, z.coerce.number().int().refine((value) => [20, 50, 100].includes(value)).default(20)),
   module: optionalQueryString,
   result: z.preprocess(emptyQueryParamToUndefined, z.nativeEnum(OperationLogResult).optional()),
   q: optionalQueryString,
