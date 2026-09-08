@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { CommentStatus } from '@prisma/client'
 import type { Route } from 'next'
 import Link from 'next/link'
@@ -7,6 +8,10 @@ import { CommentModerationRulesManager } from '@/components/admin/comment-modera
 import { COMMENT_MODERATION_RULES_SETTING_KEY, normalizeCommentModerationRules } from '@/lib/comment-moderation-rules'
 import { listComments } from '@/lib/services/comment-service'
 import { getSiteSettingsMap } from '@/lib/services/setting-service'
+export const metadata: Metadata = {
+  title: '评论',
+}
+
 
 const commentStatusLabels = {
   PENDING: '待审核',

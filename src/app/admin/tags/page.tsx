@@ -1,5 +1,10 @@
+import type { Metadata } from 'next'
 import { TaxonomyManager } from '@/components/admin/taxonomy-manager'
 import { listTags } from '@/lib/services/tag-service'
+export const metadata: Metadata = {
+  title: '标签管理',
+}
+
 
 export default async function AdminTagsPage() {
   const tags = await listTags()

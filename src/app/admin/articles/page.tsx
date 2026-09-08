@@ -1,8 +1,13 @@
 import Link from 'next/link'
+import type { Metadata } from 'next'
 
 import { ArticleManagementTable } from '@/components/admin/article-management-table'
 import { listAdminArticles } from '@/lib/services/article-service'
 import { articleListQuerySchema } from '@/lib/validations/cms'
+
+export const metadata: Metadata = {
+  title: '文章',
+}
 
 type AdminArticlesSearchParams = {
   status?: string

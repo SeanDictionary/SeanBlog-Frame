@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 
@@ -5,6 +6,10 @@ import { ThemesManager } from '@/components/admin/themes-manager'
 import { listSettings } from '@/lib/services/setting-service'
 import { getThemeSettings } from '@/lib/services/theme-settings-service'
 import { listThemes, readThemeManifest } from '@/lib/theme'
+export const metadata: Metadata = {
+  title: '主题',
+}
+
 
 function normalizeActiveTheme(value: unknown) {
   return typeof value === 'string' && value !== 'default' ? value : 'seanblog-default'

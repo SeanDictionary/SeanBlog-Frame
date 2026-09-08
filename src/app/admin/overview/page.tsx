@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import type { Route } from 'next'
 
@@ -9,6 +10,10 @@ import { LinkButton } from '@/components/ui/empty-state'
 import type { AnalyticsGranularity } from '@/lib/services/analytics-service'
 import { getAnalyticsOverview } from '@/lib/services/analytics-service'
 import { analyticsOverviewQuerySchema } from '@/lib/validations/cms'
+export const metadata: Metadata = {
+  title: '统计总览',
+}
+
 
 type AdminAnalyticsOverviewPageProps = {
   searchParams: Promise<Record<string, string | undefined>>

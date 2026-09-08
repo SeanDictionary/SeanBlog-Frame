@@ -1,5 +1,10 @@
+import type { Metadata } from 'next'
 import { SettingsManager } from '@/components/admin/settings-manager'
 import { listSettings } from '@/lib/services/setting-service'
+export const metadata: Metadata = {
+  title: '设置',
+}
+
 
 export default async function AdminSettingsPage() {
   const settings = await listSettings()

@@ -1,6 +1,11 @@
+import type { Metadata } from 'next'
 import { MediaManager } from '@/components/admin/media-manager'
 import { listMedia } from '@/lib/services/media-service'
 import { mediaListQuerySchema } from '@/lib/validations/cms'
+export const metadata: Metadata = {
+  title: '媒体',
+}
+
 
 type AdminMediaSearchParams = {
   page?: string

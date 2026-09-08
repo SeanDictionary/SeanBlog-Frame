@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import type { OperationLogResult } from '@prisma/client'
 
 import { Badge, type BadgeTone } from '@/components/ui/badge'
@@ -7,6 +8,10 @@ import { formatDateTime } from '@/lib/format'
 import { listOperationLogs } from '@/lib/services/operation-log-service'
 import { operationLogQuerySchema } from '@/lib/validations/cms'
 import { LogsTable } from '@/components/admin/logs-table'
+export const metadata: Metadata = {
+  title: '操作日志',
+}
+
 
 type AdminLogsPageProps = {
   searchParams: Promise<Record<string, string | undefined>>

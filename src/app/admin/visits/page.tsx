@@ -1,9 +1,14 @@
+import type { Metadata } from 'next'
 import { VisitRecordTable } from '@/components/admin/analytics-dashboard'
 import { AutoSubmitForm } from '@/components/common/auto-submit-form'
 import { Card, CardHeader } from '@/components/ui/card'
 import { ExportCsvButton, LinkButton, buildExportHref } from '@/components/ui/empty-state'
 import { getAnalyticsVisitors } from '@/lib/services/analytics-service'
 import { analyticsVisitorQuerySchema } from '@/lib/validations/cms'
+export const metadata: Metadata = {
+  title: '访问记录',
+}
+
 
 type AdminAnalyticsVisitorsPageProps = {
   searchParams: Promise<Record<string, string | undefined>>

@@ -1,9 +1,17 @@
 import { redirect } from 'next/navigation'
+import type { Metadata } from 'next'
 
 import { AdminIdentityBootstrap } from '@/components/admin/admin-identity-bootstrap'
 import { AdminToastProvider } from '@/components/admin/admin-toast-provider'
 import { AdminSidebar } from '@/components/layout/admin-sidebar'
 import { getAdminSession } from '@/lib/auth.utils'
+
+export const metadata: Metadata = {
+  title: {
+    default: 'SeanBlog Admin',
+    template: '%s | SeanBlog Admin',
+  },
+}
 
 export default async function AdminLayout({
   children,

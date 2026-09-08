@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import type { Route } from 'next'
 
@@ -7,6 +8,10 @@ import { ExportCsvButton, LinkButton, buildExportHref } from '@/components/ui/em
 import { formatDateTimeShort, formatDurationShort } from '@/lib/format'
 import { getVisitors } from '@/lib/services/analytics-service'
 import { paginationQuerySchema } from '@/lib/validations/cms'
+export const metadata: Metadata = {
+  title: '访客记录',
+}
+
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100]
 
