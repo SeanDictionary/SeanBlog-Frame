@@ -324,6 +324,7 @@ const supportedMediaTypes: Record<string, string> = {
 }
 
 type ArticleArchiveMetadata = {
+  id?: string
   title: string
   slug: string
   excerpt?: string | null
@@ -336,6 +337,7 @@ type ArticleArchiveMetadata = {
   isPinned?: boolean
   isPage?: boolean
   publishedAt?: string | null
+  updatedAt?: string | null
   category?: { name: string; slug: string; description?: string | null } | null
   tags?: Array<{ name: string; slug: string; description?: string | null }>
 }
@@ -422,6 +424,7 @@ function parseArchiveMetadata(value: unknown, metadataPath: string): ArticleArch
   const tags = Array.isArray(record.tags) ? record.tags : []
 
   return {
+    id: normalizeOptionalString(record.id) ?? undefined,
     title,
     slug,
     excerpt: normalizeOptionalString(record.excerpt),
@@ -434,6 +437,7 @@ function parseArchiveMetadata(value: unknown, metadataPath: string): ArticleArch
     isPinned: record.isPinned === true,
     isPage: record.isPage === true,
     publishedAt: normalizeOptionalString(record.publishedAt),
+    updatedAt: normalizeOptionalString(record.updatedAt),
     category: category
       ? {
           name: normalizeOptionalString(category.name) ?? '',
@@ -631,6 +635,7 @@ function buildArchiveImportInput(metadata: ArticleArchiveMetadata, markdown: str
   const commentsMode = isArticleCommentsMode(metadata.commentsMode) ? metadata.commentsMode : 'enabled'
 
   return {
+    id: metadata.id ?? undefined,
     title: metadata.title,
     slug: metadata.slug,
     excerpt: metadata.excerpt ?? null,
@@ -646,13 +651,18 @@ function buildArchiveImportInput(metadata: ArticleArchiveMetadata, markdown: str
     categoryId,
     tagIds,
     publishedAt: metadata.publishedAt ? new Date(metadata.publishedAt) : null,
+    updatedAt: metadata.updatedAt ? new Date(metadata.updatedAt) : undefined,
   }
 }
 
 async function createArticleInTransaction(input: ArticleInput, client: Prisma.TransactionClient, createdArticleIds?: string[]) {
   const data = buildArticleData(input, { generateSlugFromTitle: true })
   const article = await client.article.create({
-    data: data as Prisma.ArticleUncheckedCreateInput,
+    data: {
+      ...data,
+      ...(input.id ? { id: input.id } : {}),
+      ...(input.updatedAt ? { updatedAt: input.updatedAt } : {}),
+    } as Prisma.ArticleUncheckedCreateInput,
   })
   createdArticleIds?.push(article.id)
 
@@ -760,6 +770,7 @@ async function collectArticleExportEntries(article: Awaited<ReturnType<typeof ge
   })
 
   const metadata = {
+    id: article.id,
     title: article.title,
     slug: article.slug,
     excerpt: article.excerpt,
@@ -772,6 +783,7 @@ async function collectArticleExportEntries(article: Awaited<ReturnType<typeof ge
     isPinned: article.isPinned,
     isPage: article.isPage,
     publishedAt: article.publishedAt?.toISOString() ?? null,
+    updatedAt: article.updatedAt?.toISOString() ?? null,
     category: article.category
       ? {
           name: article.category.name,
@@ -1068,10 +1080,33 @@ export async function importAdminArticles(input: ArticleImportInput) {
     throw conflict(`Article slug already exists: ${existing.map((article) => article.slug).join(', ')}`)
   }
 
+  // 检查 ID 重复，跳过重复的
+  const articlesToImport = []
+  const skippedIds: string[] = []
+  
+  if (input.articles.some(a => a.id)) {
+    const ids = input.articles.filter(a => a.id).map(a => a.id!)
+    const existingIds = await getPrisma().article.findMany({
+      where: { id: { in: ids } },
+      select: { id: true },
+    })
+    const existingIdSet = new Set(existingIds.map(a => a.id))
+    
+    for (const articleInput of input.articles) {
+      if (articleInput.id && existingIdSet.has(articleInput.id)) {
+        skippedIds.push(articleInput.id)
+      } else {
+        articlesToImport.push(articleInput)
+      }
+    }
+  } else {
+    articlesToImport.push(...input.articles)
+  }
+
   const articles = []
 
   try {
-    for (const articleInput of input.articles) {
+    for (const articleInput of articlesToImport) {
       articles.push(await createArticle(articleInput))
     }
   } catch (error) {
@@ -1080,7 +1115,7 @@ export async function importAdminArticles(input: ArticleImportInput) {
     throw error
   }
 
-  return { count: articles.length, articles }
+  return { count: articles.length, articles, skippedIds }
 }
 
 export async function importAdminArticlesArchive(buffer: Buffer) {
@@ -1097,20 +1132,43 @@ export async function importAdminArticlesArchive(buffer: Buffer) {
     throw conflict(`Article slug already exists: ${existing.map((article) => article.slug).join(', ')}`)
   }
 
+  // 检查 ID 重复，跳过重复的
+  const archivesToImport: ParsedArticleArchive[] = []
+  const skippedIds: string[] = []
+  
+  const ids = archives.filter(a => a.metadata.id).map(a => a.metadata.id!)
+  if (ids.length > 0) {
+    const existingIds = await getPrisma().article.findMany({
+      where: { id: { in: ids } },
+      select: { id: true },
+    })
+    const existingIdSet = new Set(existingIds.map(a => a.id))
+    
+    for (const archive of archives) {
+      if (archive.metadata.id && existingIdSet.has(archive.metadata.id)) {
+        skippedIds.push(archive.metadata.id)
+      } else {
+        archivesToImport.push(archive)
+      }
+    }
+  } else {
+    archivesToImport.push(...archives)
+  }
+
   const createdArticleIds: string[] = []
 
   try {
     const articles = await getPrisma().$transaction(async (tx) => {
       const imported = []
 
-      for (const archive of archives) {
+      for (const archive of archivesToImport) {
         imported.push(await importArchiveArticle(archive, tx, createdArticleIds))
       }
 
       return imported
     })
 
-    return { count: articles.length, articles }
+    return { count: articles.length, articles, skippedIds }
   } catch (error) {
     await Promise.all([
       ...slugs.map((slug) => rm(path.join(ARTICLE_ARCHIVE_MEDIA_ROOT, slug), { recursive: true, force: true }).catch(() => undefined)),
@@ -1225,7 +1283,11 @@ export async function createArticle(input: ArticleInput) {
   try {
     const article = await prisma.$transaction(async (tx) => {
       const created = await tx.article.create({
-        data: data as Prisma.ArticleUncheckedCreateInput,
+        data: {
+          ...data,
+          ...(input.id ? { id: input.id } : {}),
+          ...(input.updatedAt ? { updatedAt: input.updatedAt } : {}),
+        } as Prisma.ArticleUncheckedCreateInput,
       })
 
       await syncArticleTags(created.id, input.tagIds, tx)

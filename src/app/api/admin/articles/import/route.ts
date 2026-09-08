@@ -19,9 +19,15 @@ export async function POST(request: Request) {
       module: 'article',
       action: 'import',
       targetType: 'article',
-      summary: (importResult) => `导入 ${importResult.count} 篇文章`,
+      summary: (importResult) => {
+        const skipped = importResult.skippedIds?.length ?? 0
+        return `导入 ${importResult.count} 篇文章${skipped > 0 ? `，跳过 ${skipped} 篇重复 ID` : ''}`
+      },
       failureSummary: '导入文章失败',
-      metadata: (importResult) => ({ articles: importResult.articles }),
+      metadata: (importResult) => ({
+        articles: importResult.articles,
+        skippedIds: importResult.skippedIds,
+      }),
       request,
     }, async () => {
       const formData = await request.formData()

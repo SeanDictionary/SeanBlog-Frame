@@ -339,14 +339,19 @@ export function ArticleManagementTable({ articles, total, page, pageSize, pageCo
         const formData = new FormData()
         formData.append('file', file)
         const response = await fetch('/api/admin/articles/import', { method: 'POST', body: formData })
-        const data = (await response.json()) as { count?: number; articles?: Array<{ title: string; slug: string }>; error?: { message?: string } }
+        const data = (await response.json()) as { count?: number; articles?: Array<{ title: string; slug: string }>; skippedIds?: string[]; error?: { message?: string } }
 
         if (!response.ok) {
           throw new Error(data.error?.message ?? '导入失败。')
         }
 
         const importedNames = data.articles?.map((article) => article.title || article.slug).join('、')
-        toast.success(importedNames ? `导入成功：${importedNames}` : `已导入 ${data.count ?? 0} 篇文章。`)
+        const skippedCount = data.skippedIds?.length ?? 0
+        let message = importedNames ? `导入成功：${importedNames}` : `已导入 ${data.count ?? 0} 篇文章。`
+        if (skippedCount > 0) {
+          message += `（跳过 ${skippedCount} 篇重复 ID）`
+        }
+        toast.success(message)
         setSelectedIds(new Set())
         router.refresh()
       } catch (error) {

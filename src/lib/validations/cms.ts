@@ -90,6 +90,7 @@ export const publicArticleListQuerySchema = paginationQuerySchema.extend({
 
 export const articleInputSchema = z
   .object({
+    id: optionalTrimmedString,
     title: z.string().trim().min(1).max(200),
     slug: requiredSlugSchema,
     excerpt: optionalTrimmedString,
@@ -105,6 +106,7 @@ export const articleInputSchema = z
     categoryId: optionalTrimmedString,
     tagIds: tagIdsSchema.default([]),
     publishedAt: z.coerce.date().nullable().optional(),
+    updatedAt: z.coerce.date().nullable().optional(),
     changeNote: optionalTrimmedString,
   })
   .strict()
