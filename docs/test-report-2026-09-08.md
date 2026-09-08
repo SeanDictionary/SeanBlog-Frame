@@ -250,7 +250,7 @@
 | 6 | 搜索全表扫描 + 读盘 | ✅ 已修复 | `article-service.searchArticles` | 性能 |
 | 7 | 文章 `og:description` 空 | ✅ 已修复 | `template-context.buildPostCtx` | SEO |
 | 8 | excerpt 不落库致列表读盘 | ✅ 已验证无问题 | `article-service` buildArticleData | 性能 |
-| 9 | 上下篇加载全表 | 🟡 P3 | `getPublicArticleNavigation` | 性能 |
+| 9 | 上下篇加载全表 | ✅ 已修复 | `getPublicArticleNavigation` | 性能 |
 | 10 | 代码块未标语言 | 🟡 P3 | 内容 / 编辑器提示 | 内容 |
 | 11 | favicon 404 | 🟡 P3 | `public/` + layout metadata | 体验 |
 | 12 | media/logs pageSize 校验 | 🟡 P3 | validations | 一致性 |
