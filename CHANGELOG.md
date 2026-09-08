@@ -28,10 +28,45 @@
 ### Fixed
 
 - 修复更新主题需「先卸载再上传」、卸载又禁止删除活跃主题导致的 4 步流程与设置丢失问题。
+- 修复前台分类/标签页 404 误报 500：`publicErrorResponse` 现识别 `ApiError.status`，404 统一走主题 `404.hbs`（回退内置静态 404），其他业务错误码透传其 status。此前 `/tags/<不存在>`、`/categories/<不存在>` 因 `classifyError` 仅判数据库错误、忽略 `ApiError.status` 而返回 500；文章详情路由靠手写兜底才正确，现已清理该重复兜底。
 
 ### Removed
 
 - 移除主题「主页预览 / 文章预览」功能（`/theme-preview` 路由、后台卡片上的两个预览入口、`docs` 预览小节及相关说明）。预览页本是平台内置的简化 React 骨架，无法真实反映主题 Handlebars 模板与模板级自定义设置（如 cardinal 的 `showTopBar`、`heroWidth`、`sidebarPosition` 等），易误导上线判断；直接移除该功能，主题效果以真实前台为准。后台「主题」页每张主题卡按钮随之重排为单行：启用 / 更新 / 导出 / 卸载（默认主题仅启用）。
+
+### Upgrade Notes
+
+从 0.5.0 升级到本版本需要手动执行以下步骤：
+
+1. **数据库迁移**：容器启动时自动执行 `prisma migrate deploy`，新增 `contentHtml` 和 `searchText` 列。
+
+2. **回填现有文章**（可选但推荐）：
+   ```bash
+   docker exec -it seanblog-app sh
+   cd /app
+   node scripts/backfill-article-content.mjs
+   exit
+   ```
+   - `contentHtml`：不回填不影响功能（NULL 时回退实时渲染），但性能差（每请求 ~800ms Shiki 渲染）
+   - `searchText`：**必须回填**，否则搜索功能失效（新搜索逻辑用 `ILIKE` 查此列，NULL 搜不到）
+   - 脚本幂等，可重复执行，跳过已回填的文章
+
+3. **更新 cardinal 主题**（从 Themes 仓库同步）：
+   ```bash
+   # 方式 A：手动复制文件
+   docker cp cardinal/partials/header.hbs seanblog-app:/app/themes/cardinal/partials/
+   docker cp cardinal/assets/theme.css seanblog-app:/app/themes/cardinal/assets/
+   docker cp cardinal/assets/js/main.js seanblog-app:/app/themes/cardinal/assets/
+   
+   # 方式 B：rsync 同步（推荐）
+   rsync -av --delete /path/to/SeanBlog-Themes/cardinal/ /path/to/seanblog_themes/cardinal/
+   ```
+   然后重启容器：`docker compose restart app`
+
+4. **缓存失效**：ISR 缓存 5 分钟，发布后最多等 5 分钟所有页面自动刷新。或手动触发：
+   ```bash
+   curl http://localhost:3000/
+   ```
 ## [0.5.0] - 2026-09-06
 
 ### Added
