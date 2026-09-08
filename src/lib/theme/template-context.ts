@@ -5,6 +5,8 @@
 
 import type { Route } from 'next'
 
+import { unstable_cache, revalidateTag } from 'next/cache'
+
 import { fromPrismaArticleCommentsMode } from '@/lib/comment-settings'
 import { countContentWordsFromHtml, estimateReadingMinutesFromHtml } from '@/lib/content/reading-time'
 import { getPublicArticleBySlug, getPublicArticleNavigation, listPublicArticles, searchArticles } from '@/lib/services/article-service'
@@ -68,38 +70,42 @@ export type SidebarData = {
 
 const EMPTY_SIDEBAR: SidebarData = { recentArticles: [], tags: [], categories: [] }
 
-async function loadSidebarData(): Promise<SidebarData> {
-  try {
-    const [recentResult, tagsResult, categoriesResult] = await Promise.all([
-      listPublicArticles({ page: 1, pageSize: 5, sort: 'publishedAt' }),
-      listPublicTags({ page: 1, pageSize: 50 }),
-      listPublicCategories({ page: 1, pageSize: 50 }),
-    ])
+const loadSidebarData = unstable_cache(
+  async (): Promise<SidebarData> => {
+    try {
+      const [recentResult, tagsResult, categoriesResult] = await Promise.all([
+        listPublicArticles({ page: 1, pageSize: 5, sort: 'publishedAt' }),
+        listPublicTags({ page: 1, pageSize: 50 }),
+        listPublicCategories({ page: 1, pageSize: 50 }),
+      ])
 
-    return {
-      recentArticles: recentResult.items.map((a) => ({
-        id: a.id,
-        title: a.title,
-        slug: a.slug,
-        publishedAt: a.publishedAt,
-      })),
-      tags: tagsResult.items.map((t) => ({
-        id: t.id,
-        name: t.name,
-        slug: t.slug,
-      })),
-      categories: categoriesResult.items.map((c) => ({
-        id: c.id,
-        name: c.name,
-        slug: c.slug,
-        count: c._count.articles,
-      })),
+      return {
+        recentArticles: recentResult.items.map((a) => ({
+          id: a.id,
+          title: a.title,
+          slug: a.slug,
+          publishedAt: a.publishedAt,
+        })),
+        tags: tagsResult.items.map((t) => ({
+          id: t.id,
+          name: t.name,
+          slug: t.slug,
+        })),
+        categories: categoriesResult.items.map((c) => ({
+          id: c.id,
+          name: c.name,
+          slug: c.slug,
+          count: c._count.articles,
+        })),
+      }
+    } catch (error) {
+      console.error('Failed to load sidebar data.', error)
+      return EMPTY_SIDEBAR
     }
-  } catch (error) {
-    console.error('Failed to load sidebar data.', error)
-    return EMPTY_SIDEBAR
-  }
-}
+  },
+  ['sidebar-data'],
+  { tags: ['sidebar'], revalidate: 300 }, // 5 分钟缓存
+)
 
 const HEADING_PATTERN = /<h([2-4])([^>]*)>([\s\S]*?)<\/h\1>/gi
 

@@ -1,5 +1,6 @@
 import { notFound } from '@/lib/api/errors'
 import { getPrisma } from '@/lib/prisma'
+import { unstable_cache, revalidateTag } from 'next/cache'
 
 function serializeValue(value: unknown) {
   return typeof value === 'string' ? value : JSON.stringify(value)
@@ -50,6 +51,7 @@ export async function upsertSetting(key: string, value: unknown) {
   })
 
   invalidateSiteUrlCache([{ key }])
+  revalidateTag('site-settings', 'default')
 
   return {
     ...setting,
@@ -66,6 +68,7 @@ export async function upsertSettings(updates: Array<{ key: string; value: unknow
   })))
 
   invalidateSiteUrlCache(updates)
+  revalidateTag('site-settings', 'default')
 
   return settings.map((setting) => ({
     ...setting,
@@ -73,11 +76,14 @@ export async function upsertSettings(updates: Array<{ key: string; value: unknow
   }))
 }
 
-export async function getSiteSettingsMap() {
-  const settings = await listSettings()
-
-  return Object.fromEntries(settings.map((setting) => [setting.key, setting.value]))
-}
+export const getSiteSettingsMap = unstable_cache(
+  async () => {
+    const settings = await listSettings()
+    return Object.fromEntries(settings.map((setting) => [setting.key, setting.value]))
+  },
+  ['site-settings-map'],
+  { tags: ['site-settings'], revalidate: 300 }, // 5 分钟缓存
+)
 
 /** 站点 URL 缺省值：管理员未在后台配置时的兜底。 */
 const DEFAULT_SITE_URL = 'http://localhost:3000'
