@@ -55,6 +55,27 @@ type PaginatedPublicArticles = {
   meta: ReturnType<typeof pageMeta>
 }
 
+/** 生成搜索文本：标题 + 摘要 + 纯文本正文（去 Markdown 符号） */
+function buildSearchText(title: string, excerpt: string, markdown: string): string {
+  // 简单去 Markdown 符号：代码块、标题、列表、链接、图片、粗体/斜体
+  const plainText = markdown
+    .replace(/```[\s\S]*?```/g, ' ') // 代码块
+    .replace(/`[^`]+`/g, ' ') // 行内代码
+    .replace(/#{1,6}\s/g, ' ') // 标题
+    .replace(/\*{1,3}([^*]+)\*{1,3}/g, '$1') // 粗体/斜体
+    .replace(/_{1,3}([^_]+)_{1,3}/g, '$1') // 下划线粗体/斜体
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // 链接
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1') // 图片
+    .replace(/[-*+]\s/g, ' ') // 列表
+    .replace(/\d+\.\s/g, ' ') // 有序列表
+    .replace(/>\s/g, ' ') // 引用
+    .replace(/\n+/g, ' ') // 换行
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  return [title, excerpt, plainText].filter(Boolean).join(' ')
+}
+
 function buildArticleData(input: ArticleInput | ArticleUpdateInput, options: { generateSlugFromTitle?: boolean } = {}) {
   const data: Prisma.ArticleUncheckedUpdateInput = {}
 
@@ -187,8 +208,15 @@ async function getAdminArticleRecord(id: string) {
 }
 
 async function withPublicArticleContent(article: NonNullable<Awaited<ReturnType<typeof getPublicArticleRecord>>>) {
+  // 优先用已渲染的 contentHtml（保存时生成），避免每请求重渲染 Shiki
+  if (article.legacyContentHtml) {
+    return {
+      ...withoutContentSource(article),
+      contentHtml: article.legacyContentHtml,
+    }
+  }
+  // 回退：旧文章无 contentHtml 时实时渲染（迁移后此分支可移除）
   const markdown = await readMarkdownFromStorage(article)
-
   return {
     ...withoutContentSource(article),
     contentHtml: await markdownToHtml(markdown),
@@ -915,23 +943,32 @@ export async function listAdminArticles(input: {
     }
   }
 
+  // 用 searchText 列做 ILIKE 模糊匹配
   const searchTerms = parseSearchTerms(input.q)
-  const candidates = await prisma.article.findMany({
-    where,
-    orderBy: getAdminArticleOrderBy(sort, order),
-    take: SEARCH_CANDIDATE_LIMIT,
-    select: adminArticleSearchSelect,
-  })
-  const matching = (
-    await Promise.all(
-      candidates.map(async (article) => ((await articleMatchesQuery(article, searchTerms)) ? article : null)),
-    )
-  ).filter((article): article is NonNullable<typeof article> => article !== null)
-  const start = (input.page - 1) * input.pageSize
+  const searchWhere: Prisma.ArticleWhereInput = {
+    ...where,
+    ...(searchTerms.length > 0
+      ? {
+          OR: searchTerms.map((term) => ({
+            searchText: { contains: term, mode: 'insensitive' } as Prisma.StringFilter,
+          })),
+        }
+      : {}),
+  }
+
+  const [items, total] = await Promise.all([
+    prisma.article.findMany({
+      where: searchWhere,
+      ...paginate(input.page, input.pageSize),
+      orderBy: getAdminArticleOrderBy(sort, order),
+      select: adminArticleSummarySelect,
+    }),
+    prisma.article.count({ where: searchWhere }),
+  ])
 
   return {
-    items: matching.slice(start, start + input.pageSize).map(withoutContentSource),
-    meta: pageMeta(matching.length, input.page, input.pageSize),
+    items: items.map(serializeArticleTags),
+    meta: pageMeta(total, input.page, input.pageSize),
   }
 }
 
@@ -1178,9 +1215,13 @@ export async function createArticle(input: ArticleInput) {
     articleId = article.id
     contentPath = await writeArticleMarkdown(article.id, input.contentMarkdown)
 
+    // 渲染 contentHtml 并生成 searchText（用于搜索）
+    const contentHtml = await markdownToHtml(input.contentMarkdown)
+    const searchText = buildSearchText(article.title, input.excerpt ?? '', input.contentMarkdown)
+
     await prisma.article.update({
       where: { id: article.id },
-      data: { contentPath },
+      data: { contentPath, contentHtml, searchText },
     })
     await createRevision(article.id, article.title, input.contentMarkdown, input.changeNote ?? 'Initial version')
 
@@ -1224,11 +1265,16 @@ export async function updateArticle(id: string, input: ArticleUpdateInput) {
   const markdown = input.contentMarkdown ?? previousMarkdown
   let contentPath: string | null = null
   let revision: { id: string; contentPath: string | null } | null = null
+  let contentHtml: string | null = null
+  let searchText: string | null = null
 
   try {
     if (contentChanged) {
       contentPath = await replaceArticleMarkdown(existing.contentPath ?? getArticleContentPath(id), markdown)
       revision = await createRevision(id, input.title ?? existing.title, markdown, input.changeNote)
+      // 渲染 contentHtml 并生成 searchText
+      contentHtml = await markdownToHtml(markdown)
+      searchText = buildSearchText(input.title ?? existing.title, input.excerpt ?? '', markdown)
     }
 
     await prisma.$transaction(async (tx) => {
@@ -1237,6 +1283,8 @@ export async function updateArticle(id: string, input: ArticleUpdateInput) {
         data: {
           ...data,
           ...(contentPath ? { contentPath } : {}),
+          ...(contentHtml ? { contentHtml } : {}),
+          ...(searchText ? { searchText } : {}),
         },
       })
 
@@ -1312,22 +1360,34 @@ export async function archiveArticle(id: string) {
 }
 
 export async function searchArticles(input: { q: string; page: number; pageSize: number }) {
+  const prisma = getPrisma()
   const searchTerms = parseSearchTerms(input.q)
-  const candidates = await getPrisma().article.findMany({
-    where: getPublicArticleWhere(),
-    orderBy: { publishedAt: 'desc' },
-    take: SEARCH_CANDIDATE_LIMIT,
-    select: publicArticleSearchSelect,
-  })
-  const matching = (
-    await Promise.all(
-      candidates.map(async (article) => ((await articleMatchesQuery(article, searchTerms)) ? article : null)),
-    )
-  ).filter((article): article is NonNullable<typeof article> => article !== null)
-  const start = (input.page - 1) * input.pageSize
+  // 用 searchText 列做 ILIKE 模糊匹配，避免每请求读盘
+  const where: Prisma.ArticleWhereInput = {
+    ...getPublicArticleWhere(),
+    ...(searchTerms.length > 0
+      ? {
+          OR: searchTerms.map((term) => ({
+            searchText: { contains: term, mode: 'insensitive' } as Prisma.StringFilter,
+          })),
+        }
+      : {}),
+  }
+
+  const [items, total] = await Promise.all([
+    prisma.article.findMany({
+      where,
+      ...paginate(input.page, input.pageSize),
+      orderBy: { publishedAt: 'desc' },
+      select: publicArticleSummarySelect,
+    }),
+    prisma.article.count({ where }),
+  ])
+
+  const serializedItems = await Promise.all(items.map(withPublicArticleListExcerpt))
 
   return {
-    items: matching.slice(start, start + input.pageSize).map(withoutContentSource),
-    meta: pageMeta(matching.length, input.page, input.pageSize),
+    items: serializedItems,
+    meta: pageMeta(total, input.page, input.pageSize),
   }
 }

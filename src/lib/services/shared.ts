@@ -73,6 +73,7 @@ export const publicArticleDetailSelect = {
   slug: true,
   contentPath: true,
   legacyContentMarkdown: true,
+  legacyContentHtml: true,
   excerpt: true,
   coverImage: true,
   metaTitle: true,
