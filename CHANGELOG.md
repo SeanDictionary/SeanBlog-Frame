@@ -41,15 +41,9 @@
 1. **数据库迁移**：容器启动时自动执行 `prisma migrate deploy`，新增 `contentHtml` 和 `searchText` 列。
 
 2. **回填现有文章**（可选但推荐）：
-   ```bash
-   docker exec -it seanblog-app sh
-   cd /app
-   node scripts/backfill-article-content.mjs
-   exit
-   ```
+   - 导出所有文章，删除文章和静态资源，重新导入文章，触发 `contentHtml` 和 `searchText` 回填
    - `contentHtml`：不回填不影响功能（NULL 时回退实时渲染），但性能差（每请求 ~800ms Shiki 渲染）
    - `searchText`：**必须回填**，否则搜索功能失效（新搜索逻辑用 `ILIKE` 查此列，NULL 搜不到）
-   - 脚本幂等，可重复执行，跳过已回填的文章
 
 3. **更新 cardinal 主题**：后台「主题」页使用「更新」按钮上传新主题包（见 Added 第一条）。
 
