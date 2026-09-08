@@ -248,7 +248,7 @@
 | 4 | Markdown/Shiki 每请求重渲染 | ✅ 已修复 | `markdown.ts` + `article-service`（用 `contentHtml` 列） | 性能 |
 | 5 | 站点设置 / 侧边栏每页查库 | ✅ 已修复 | `setting-service` / `template-context` | 性能 |
 | 6 | 搜索全表扫描 + 读盘 | ✅ 已修复 | `article-service.searchArticles` | 性能 |
-| 7 | 文章 `og:description` 空 | 🟡 P3 | `template-context.buildPostCtx` | SEO |
+| 7 | 文章 `og:description` 空 | ✅ 已修复 | `template-context.buildPostCtx` | SEO |
 | 8 | excerpt 不落库致列表读盘 | 🟡 P3 | `article-service` buildArticleData | 性能 |
 | 9 | 上下篇加载全表 | 🟡 P3 | `getPublicArticleNavigation` | 性能 |
 | 10 | 代码块未标语言 | 🟡 P3 | 内容 / 编辑器提示 | 内容 |
