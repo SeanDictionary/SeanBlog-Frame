@@ -51,17 +51,7 @@
    - `searchText`：**必须回填**，否则搜索功能失效（新搜索逻辑用 `ILIKE` 查此列，NULL 搜不到）
    - 脚本幂等，可重复执行，跳过已回填的文章
 
-3. **更新 cardinal 主题**（从 Themes 仓库同步）：
-   ```bash
-   # 方式 A：手动复制文件
-   docker cp cardinal/partials/header.hbs seanblog-app:/app/themes/cardinal/partials/
-   docker cp cardinal/assets/theme.css seanblog-app:/app/themes/cardinal/assets/
-   docker cp cardinal/assets/js/main.js seanblog-app:/app/themes/cardinal/assets/
-   
-   # 方式 B：rsync 同步（推荐）
-   rsync -av --delete /path/to/SeanBlog-Themes/cardinal/ /path/to/seanblog_themes/cardinal/
-   ```
-   然后重启容器：`docker compose restart app`
+3. **更新 cardinal 主题**：后台「主题」页使用「更新」按钮上传新主题包（见 Added 第一条）。
 
 4. **缓存失效**：ISR 缓存 5 分钟，发布后最多等 5 分钟所有页面自动刷新。或手动触发：
    ```bash
