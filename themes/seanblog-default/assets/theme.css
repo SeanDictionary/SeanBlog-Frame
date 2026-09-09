@@ -239,57 +239,44 @@ form[data-sb-comment-form][data-state="pending"] .sb-comment-status { color: var
 }
 /* ============================================================
    github-repo / friend-link 卡片（:::github-repo / :::friend-link）
-   平台 directive 产出 HTML，主题提供样式；用主题 CSS 变量自动适配浅/暗。
+   seanblog-default: 极简风格
    ============================================================ */
 .github-repo-card,
 .friend-link-card {
-  margin: 1.5em 0;
+  margin: 1.25em 0;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background: var(--color-bg-secondary);
+  border-radius: 12px;
+  background: transparent;
   overflow: hidden;
-  transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease;
 }
-.github-repo-card:hover,
-.friend-link-card:hover {
-  border-color: var(--color-accent);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--color-text) 10%, transparent);
-}
-.github-repo-card.gh-card--error,
-.friend-link-card.fl-card--error { border-style: dashed; border-color: var(--color-error); }
-.gh-card__error, .fl-card__error { display: block; padding: .75rem 1rem; font-size: .8125rem; color: var(--color-error); }
 
-/* github-repo */
-.gh-card__link { display: flex; align-items: flex-start; gap: .875rem; padding: 1rem 1.25rem; color: var(--color-text); text-decoration: none; }
+/* github-repo 极简 */
+.gh-card__link { display: block; padding: .875rem 1rem; color: var(--color-text); text-decoration: none; }
 .cf-post-content .gh-card__link { text-decoration: none; }
 .gh-card__link * { text-decoration: none; }
-.gh-card__icon { flex-shrink: 0; margin-top: .15rem; font-size: 1.5rem; color: var(--color-text-secondary); transition: color .2s ease; }
-.github-repo-card:hover .gh-card__icon,
-.github-repo-card:hover .gh-card__title,
-.github-repo-card:hover .gh-card__arrow { color: var(--color-accent); }
-.gh-card__main { display: flex; flex-direction: column; gap: .3rem; flex: 1; min-width: 0; }
-.gh-card__title { font-weight: 600; font-size: 1rem; line-height: 1.3; text-decoration: none; }
-.gh-card__desc { font-size: .875rem; color: var(--color-text-secondary); line-height: 1.5; text-decoration: none; }
-.gh-card__meta { display: flex; flex-wrap: wrap; gap: .875rem; margin-top: .1rem; font-size: .8125rem; color: var(--color-text-secondary); }
-.gh-card__meta > span { display: inline-flex; align-items: center; gap: .35rem; }
-.gh-card__lang-dot { display: inline-block; width: .65rem; height: .65rem; border-radius: 50%; }
-.gh-card__arrow { flex-shrink: 0; margin-top: .2rem; font-size: .8125rem; color: var(--color-text-tertiary); }
-.github-repo-card.gh-card--mini { display: inline-flex; width: auto; max-width: none; margin: 0 .5rem .5rem 0; }
-.github-repo-card.gh-card--mini .gh-card__link { align-items: center; padding: .35rem .75rem; gap: .4rem; }
-.github-repo-card.gh-card--mini .gh-card__icon { font-size: .9rem; margin: 0; }
-.github-repo-card.gh-card--mini .gh-card__title { font-size: .8125rem; font-weight: 500; }
-.github-repo-card.gh-card--mini .gh-card__stars { font-size: .75rem; }
+.gh-card__icon, .gh-card__arrow { display: none; }
+.gh-card__main { display: flex; flex-direction: column; gap: .25rem; }
+.gh-card__title { font-weight: 600; font-size: .95rem; line-height: 1.4; color: var(--color-accent); }
+.gh-card__desc { font-size: .8125rem; color: var(--color-text-secondary); line-height: 1.5; }
+.gh-card__meta { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: .1rem; font-size: .75rem; color: var(--color-text-tertiary); }
+.gh-card__meta > span { display: inline-flex; align-items: center; gap: .25rem; }
+.gh-card__lang-dot { display: inline-block; width: .5rem; height: .5rem; border-radius: 50%; }
 
-/* friend-link（多个连续自动排成网格） */
-.friend-link-card { display: inline-block; width: 100%; max-width: 340px; margin: 0 .875rem .875rem 0; vertical-align: top; }
+/* mini 变体 */
+.github-repo-card.gh-card--mini { display: inline-block; width: auto; margin: 0 .5rem .5rem 0; }
+.github-repo-card.gh-card--mini .gh-card__link { padding: .35rem .75rem; }
+.github-repo-card.gh-card--mini .gh-card__title { font-size: .8125rem; }
+.github-repo-card.gh-card--mini .gh-card__desc { display: none; }
+.github-repo-card.gh-card--mini .gh-card__meta { display: none; }
+
+/* friend-link 极简 */
+.friend-link-card { display: inline-block; width: 100%; max-width: 320px; margin: 0 .75rem .75rem 0; vertical-align: top; }
 .friend-link-card .fl-card__link { margin: 0; }
-.fl-card__link { display: flex; align-items: center; gap: .875rem; padding: .875rem 1.1rem; color: var(--color-text); text-decoration: none; }
+.fl-card__link { display: flex; align-items: center; gap: .75rem; padding: .75rem 1rem; color: var(--color-text); text-decoration: none; }
 .cf-post-content .fl-card__link { text-decoration: none; }
 .fl-card__link * { text-decoration: none; }
-.fl-card__avatar-img, .fl-card__avatar-fallback { width: 2.75rem; height: 2.75rem; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
-.fl-card__avatar-fallback { display: inline-flex; align-items: center; justify-content: center; background: var(--color-accent-subtle); color: var(--color-accent-text); font-weight: 600; font-size: 1.125rem; }
-.fl-card__main { display: flex; flex-direction: column; gap: .2rem; min-width: 0; }
-.fl-card__name { font-weight: 600; font-size: .95rem; text-decoration: none; }
-.friend-link-card:hover .fl-card__name { color: var(--color-accent); }
-.fl-card__desc { font-size: .8125rem; color: var(--color-text-secondary); text-decoration: none; }
+.fl-card__avatar-img { margin: 0; width: 2rem; height: 2rem; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.fl-card__avatar-fallback { display: none; }
+.fl-card__main { display: flex; flex-direction: column; gap: .15rem; min-width: 0; }
+.fl-card__name { font-weight: 500; font-size: .875rem; color: var(--color-accent); }
+.fl-card__desc { font-size: .75rem; color: var(--color-text-secondary); }
