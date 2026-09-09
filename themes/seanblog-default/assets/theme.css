@@ -237,3 +237,53 @@ form[data-sb-comment-form][data-state="pending"] .sb-comment-status { color: var
   .sb-form-row { grid-template-columns: 1fr; }
   .sb-nav a:not(.sb-nav-brand) { display: none; }
 }
+/* ============================================================
+   github-repo / friend-link 卡片（:::github-repo / :::friend-link）
+   平台 directive 产出 HTML，主题提供样式；用主题 CSS 变量自动适配浅/暗。
+   ============================================================ */
+.github-repo-card,
+.friend-link-card {
+  margin: 1.5em 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-secondary);
+  overflow: hidden;
+  transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease;
+}
+.github-repo-card:hover,
+.friend-link-card:hover {
+  border-color: var(--color-accent);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--color-text) 10%, transparent);
+}
+.github-repo-card.gh-card--error,
+.friend-link-card.fl-card--error { border-style: dashed; border-color: var(--color-error); }
+.gh-card__error, .fl-card__error { display: block; padding: .75rem 1rem; font-size: .8125rem; color: var(--color-error); }
+
+/* github-repo */
+.gh-card__link { display: flex; align-items: flex-start; gap: .875rem; padding: 1rem 1.25rem; color: var(--color-text); text-decoration: none; }
+.gh-card__icon { flex-shrink: 0; margin-top: .15rem; font-size: 1.5rem; color: var(--color-text-secondary); transition: color .2s ease; }
+.github-repo-card:hover .gh-card__icon,
+.github-repo-card:hover .gh-card__title,
+.github-repo-card:hover .gh-card__arrow { color: var(--color-accent); }
+.gh-card__main { display: flex; flex-direction: column; gap: .3rem; flex: 1; min-width: 0; }
+.gh-card__title { font-weight: 600; font-size: 1rem; line-height: 1.3; }
+.gh-card__desc { font-size: .875rem; color: var(--color-text-secondary); line-height: 1.5; }
+.gh-card__meta { display: flex; flex-wrap: wrap; gap: .875rem; margin-top: .1rem; font-size: .8125rem; color: var(--color-text-secondary); }
+.gh-card__meta > span { display: inline-flex; align-items: center; gap: .35rem; }
+.gh-card__lang-dot { display: inline-block; width: .65rem; height: .65rem; border-radius: 50%; }
+.gh-card__arrow { flex-shrink: 0; margin-top: .2rem; font-size: .8125rem; color: var(--color-text-tertiary); }
+.github-repo-card.gh-card--mini .gh-card__link { align-items: center; padding: .5rem .875rem; gap: .5rem; }
+.github-repo-card.gh-card--mini .gh-card__icon { font-size: 1rem; margin: 0; }
+.github-repo-card.gh-card--mini .gh-card__title { font-size: .875rem; font-weight: 500; }
+.github-repo-card.gh-card--mini .gh-card__stars { font-size: .8125rem; }
+
+/* friend-link（多个连续自动排成网格） */
+.friend-link-card { display: inline-block; width: 100%; max-width: 340px; margin: 0 .875rem .875rem 0; vertical-align: top; }
+.fl-card__link { display: flex; align-items: center; gap: .875rem; padding: .875rem 1.1rem; color: var(--color-text); text-decoration: none; }
+.fl-card__avatar-img, .fl-card__avatar-fallback { width: 2.75rem; height: 2.75rem; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.fl-card__avatar-fallback { display: inline-flex; align-items: center; justify-content: center; background: var(--color-accent-subtle); color: var(--color-accent-text); font-weight: 600; font-size: 1.125rem; }
+.fl-card__main { display: flex; flex-direction: column; gap: .2rem; min-width: 0; }
+.fl-card__name { font-weight: 600; font-size: .95rem; }
+.friend-link-card:hover .fl-card__name { color: var(--color-accent); }
+.fl-card__desc { font-size: .8125rem; color: var(--color-text-secondary); }

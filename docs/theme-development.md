@@ -635,6 +635,24 @@ Shiki 语法高亮，**双主题** `github-light` / `github-dark`：浅色颜色
 - **GFM**（remark-gfm）：表格、删除线、任务列表（`- [ ]` / `- [x]`）、自动链接。
 - **原始 HTML**：`rehype-raw` 允许文章内嵌 HTML，经 `rehype-sanitize` 白名单净化。允许的标签含 `div` `span` `figure` `figcaption` `iframe` `details` `summary` 及 KaTeX 的 MathML 标签；`iframe` 的 `src` 仅限 `http`/`https`（禁 `data:`）；`script` / `style` 标签等不允许。`className` / `style` / `data-*` 属性允许。
 
+#### 10.5.6 github-repo / friend-link 卡片
+
+平台 directive 插件产出结构化 HTML，主题负责样式。两种卡片均用主题 CSS 变量（`--color-border`/`--color-bg-secondary`/`--color-accent` 等）自动适配浅/暗模式。
+
+**github-repo**：`:::github-repo{author="solstice23" project="argon-theme" size="full"}`
+- `author`+`project` 必填（等价 Argon 的 `[github]` 短代码）；`size` 可选 `full`/`mini`（默认 full）。
+- 服务端拉取 GitHub API（进程内缓存 1h，可选 `GITHUB_TOKEN` 环境变量提速率），产出仓库名/描述/语言色点/stars/forks。
+- 失败降级：仅显示 author/project + 链接，不报错。
+- HTML 结构：`<figure class="github-repo-card">`（mini 变体加 `gh-card--mini`）→ `<a class="gh-card__link">` → 图标 + 主区（标题/描述/meta）+ 箭头。
+
+**friend-link**：`:::friend-link{name="站点名" url="https://..." avatar="https://..." desc="描述"}`
+- `name`+`url` 必填；`avatar`/`desc` 可选。
+- 静态卡片（无外部数据源）；多个连续写自动排成网格（`inline-block` + `max-width: 340px`）。
+- avatar 缺省回退首字母圆圈（`fl-card__avatar-fallback`）。
+- HTML 结构：`<figure class="friend-link-card">` → `<a class="fl-card__link">` → 头像 + 主区（名字/描述）。
+
+**主题样式**：seanblog-default 与 cardinal 均已内置默认样式（`assets/theme.css` 末尾）。主题可覆盖/扩展。
+
 ---
 
 ## 11. 资源与 `asset` helper

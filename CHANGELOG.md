@@ -187,3 +187,10 @@ docker compose exec app node scripts/migrate-uploads-to-storage.mjs             
 - 主题 `cssVariable` 设置值在输出层转义，防 CSS 注入
 - admin API same-origin 请求校验（Origin / Sec-Fetch-Site），防 CSRF
 - 会话版本号吊销机制 + JWT `maxAge` 收紧到 7 天
+
+### Added
+
+- 新增 `:::github-repo` 与 `:::friend-link` 卡片 directive：
+  - `:::github-repo{author="..." project="..." size="full|mini"}`：服务端拉取 GitHub API（进程内缓存 1h，可选 `GITHUB_TOKEN` 提速率），产出仓库名/描述/语言色点/stars/forks 卡片；失败降级为仅链接。`size="mini"` 为紧凑一行变体。
+  - `:::friend-link{name="..." url="..." avatar="..." desc="..."}`：静态友链卡，多个连续自动排成网格；avatar 缺省回退首字母圆圈。
+  - 平台 directive 产出 HTML，主题提供样式（已同步 seanblog-default + cardinal）；rehype-sanitize 放行 `a[target][rel]`、`img[alt]`、`figure`、`i` 等。

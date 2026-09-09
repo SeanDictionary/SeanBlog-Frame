@@ -11,6 +11,7 @@ import remarkParse from 'remark-parse'
 import remarkRehype from 'remark-rehype'
 import type { ShikiTransformer } from '@shikijs/types'
 import { visit } from 'unist-util-visit'
+import { getGithubRepo, languageColor } from '@/lib/content/github'
 import { unified } from 'unified'
 
 function getClassNames(value: unknown) {
@@ -95,6 +96,84 @@ function getClassFromAttrs(attrs: Record<string, unknown>): string | null {
   return cls.find((c) => CALLOUT_TYPES.has(c)) ?? cls[0] ?? null
 }
 
+// --- github-repo / friend-link 卡片 directive ---
+// 作者写法：
+//   :::github-repo{author="solstice23" project="argon-theme" size="full"}
+//   :::friend-link{name="站点名" url="https://..." avatar="https://..." desc="..."}
+// github-repo 服务端拉取 GitHub API（缓存 1h，失败降级）；friend-link 纯静态。
+// 产出 raw HTML 字符串（设为 mdast html 节点），经 rehype-raw 解析、rehype-sanitize 净化。
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
+
+function cardAttr(attrs: Record<string, unknown>, key: string): string {
+  const v = attrs[key]
+  return typeof v === 'string' ? v.trim() : ''
+}
+
+function friendLinkCard(attrs: Record<string, unknown>): string {
+  const name = cardAttr(attrs, 'name')
+  const url = cardAttr(attrs, 'url')
+  const avatar = cardAttr(attrs, 'avatar')
+  const desc = cardAttr(attrs, 'desc')
+  if (!name || !url) {
+    return `<figure class="friend-link-card fl-card--error"><span class="fl-card__error">friend-link: 缺少 name / url</span></figure>`
+  }
+  const avatarHtml = avatar
+    ? `<img class="fl-card__avatar-img" src="${escapeHtml(avatar)}" alt="${escapeHtml(name)}" loading="lazy">`
+    : `<span class="fl-card__avatar-fallback">${escapeHtml(name.charAt(0).toUpperCase())}</span>`
+  return `<figure class="friend-link-card"><a class="fl-card__link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${avatarHtml}<span class="fl-card__main"><span class="fl-card__name">${escapeHtml(name)}</span>${desc ? `<span class="fl-card__desc">${escapeHtml(desc)}</span>` : ''}</span></a></figure>`
+}
+
+async function githubRepoCard(attrs: Record<string, unknown>): Promise<string> {
+  let owner = cardAttr(attrs, 'author')
+  let repo = cardAttr(attrs, 'project')
+  const shorthand = cardAttr(attrs, 'repo')
+  if ((!owner || !repo) && shorthand) {
+    const m = shorthand.match(/^([^/]+)\/(.+)$/)
+    if (m) { owner = m[1]; repo = m[2] }
+  }
+  const size = cardAttr(attrs, 'size') === 'mini' ? 'mini' : 'full'
+  if (!owner || !repo) {
+    return `<figure class="github-repo-card gh-card--error"><span class="gh-card__error">github-repo: 缺少 author / project</span></figure>`
+  }
+  const data = await getGithubRepo(owner, repo)
+  const href = data?.htmlUrl ?? `https://github.com/${owner}/${repo}`
+  const title = data?.fullName ?? `${owner}/${repo}`
+  if (size === 'mini') {
+    const stars = data ? `<span class="gh-card__stars"><i class="fa-solid fa-star"></i>${data.stars}</span>` : ''
+    return `<figure class="github-repo-card gh-card--mini"><a class="gh-card__link" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer"><i class="gh-card__icon fa-brands fa-github"></i><span class="gh-card__title">${escapeHtml(title)}</span>${stars}</a></figure>`
+  }
+  const desc = data?.description ? `<span class="gh-card__desc">${escapeHtml(data.description)}</span>` : ''
+  const langColor = data?.language ? languageColor(data.language) : null
+  const lang = data?.language ? `<span class="gh-card__lang"><i class="gh-card__lang-dot" style="background:${escapeHtml(langColor ?? '')}"></i>${escapeHtml(data.language)}</span>` : ''
+  const stars = data ? `<span class="gh-card__stars"><i class="fa-solid fa-star"></i>${data.stars}</span>` : ''
+  const forks = data ? `<span class="gh-card__forks"><i class="fa-solid fa-code-fork"></i>${data.forks}</span>` : ''
+  const meta = (lang || stars || forks) ? `<span class="gh-card__meta">${lang}${stars}${forks}</span>` : ''
+  return `<figure class="github-repo-card"><a class="gh-card__link" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer"><i class="gh-card__icon fa-brands fa-github"></i><span class="gh-card__main"><span class="gh-card__title">${escapeHtml(title)}</span>${desc}${meta}</span><i class="gh-card__arrow fa-solid fa-arrow-up-right-from-square"></i></a></figure>`
+}
+
+function remarkCardDirectives() {
+  return async (tree: any) => {
+    const targets: any[] = []
+    visit(tree, (node: any) => {
+      if (node.type === 'containerDirective' && (node.name === 'github-repo' || node.name === 'friend-link')) {
+        targets.push(node)
+      }
+    })
+    await Promise.all(targets.map(async (node) => {
+      const attrs = node.attributes || {}
+      const html = node.name === 'github-repo' ? await githubRepoCard(attrs) : friendLinkCard(attrs)
+      node.type = 'html'
+      node.value = html
+      delete node.children
+      delete node.data
+    }))
+  }
+}
+
 const processor = unified()
   .use(remarkParse)
   .use(remarkGfm)
@@ -110,6 +189,7 @@ const processor = unified()
   })
   .use(remarkDirective)
   .use(remarkCalloutDirectives)
+  .use(remarkCardDirectives)
   .use(remarkRehype, { allowDangerousHtml: true })
   .use(rehypeRaw)
   .use(rehypeKatex)
@@ -146,6 +226,15 @@ const processor = unified()
       span: [
         ...(defaultSchema.attributes?.span ?? []),
         ['className', /^.*/],
+      ],
+      a: [
+        'href', 'target', 'rel',
+        'ariaDescribedBy', 'ariaLabel', 'ariaLabelledBy',
+        ['className', /^.*$/],
+      ],
+      img: [
+        ...(defaultSchema.attributes?.img ?? []),
+        'alt', 'loading',
       ],
       math: [
         'xmlns', 'display',
