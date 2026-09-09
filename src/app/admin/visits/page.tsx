@@ -73,7 +73,7 @@ export default async function AdminAnalyticsVisitorsPage({ searchParams }: Admin
           }
         />
 
-        <VisitRecordTable visits={result.items} />
+        <VisitRecordTable visits={result.items} statsScope={{ start: startValue, end: endValue }} />
 
         <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
           {pageItems.map((item, index) =>

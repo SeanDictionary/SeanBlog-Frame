@@ -319,9 +319,13 @@ model AnalyticsEvent {
   tagId              String?
   visitorId          String?
   referrer           String?
+  referrerDomain     String?      # 来源站点域名（referrer 去前导 www.、本站内部跳转归 null），供统计 groupBy；写入时由 extractReferrerDomain 派生
   country            String?      # 访问者国家/地区名称，由 IP 经 ipinfo.io lite 接口查得（需在后台设置 ipinfoToken，未设置则不查询、留空）
   ipAddress          String?
   userAgent          String?
+  operatingSystem    String?      # 由 userAgent 解析的操作系统标签，供统计 groupBy；写入时由 parseOperatingSystem 派生（iOS 先于 macOS 判定）
+  browser            String?      # 由 userAgent 解析的浏览器标签，供统计 groupBy；写入时由 parseBrowser 派生；爬虫 UA 落“爬虫”
+  isBot              Boolean?     # 是否为爬虫/自动程序，由 isCrawlerUa 判定（写入时落值，NULL 经统计懒回填补齐）。趋势与各字段统计统一用它排除爬虫
   browserFingerprint String?
   hardware           String?
   durationSeconds    Int?
@@ -337,6 +341,10 @@ model AnalyticsEvent {
   @@index([tagId, createdAt])
   @@index([contentType, createdAt])
   @@index([visitorId])
+  @@index([country])
+  @@index([referrerDomain])
+  @@index([operatingSystem])
+  @@index([browser])
 }
 ```
 
@@ -348,6 +356,11 @@ model AnalyticsEvent {
 - `ipAddress`、`userAgent` 由操作日志始终采集（不受分析隐私开关控制，用于管理审计）；`browserFingerprint`、`hardware` 由 `AdminIdentityBootstrap` 在后台通过 cookies（`sb-fp`/`sb-hw`）采集
 - `browserFingerprint` 与 `hardware` 均为客户端生成的明文 JSON，按"显示环境"与"硬件算力"分栏：`browserFingerprint` = `{ language, timezone, screenWidth, screenHeight, devicePixelRatio }`（屏幕宽高只在指纹中保留一份）；`hardware` = `{ cores, memory, gpu }`，其中 `gpu` 由 WebGL（`WEBGL_debug_renderer_info` 的 UNMASKED_RENDERER，回退标准 RENDERER）取得 renderer 后经 `normalizeGpu` 清洗为显卡型号（剥 `ANGLE(...)` 外壳、去后端后缀与 PCI ID），清洗失败时保留原始 renderer；隐私模式或无 WebGL 时留空
 - `referrer` 等隐私字段默认不采集，仅在后台设置中显式开启后写入
+- 派生列 `referrerDomain` / `operatingSystem` / `browser` / `isBot` 在写入事件时由原始 `referrer` / `userAgent` 解析得到（解析函数集中在 `src/lib/analytics/parse.ts`，供写入、访问记录展示、统计懒回填共用）。本站内部跳转与直接访问的 `referrerDomain` 落 null；`isBot` 标注爬虫；统计只计真人值，NULL / 未采集 / 其他 / 爬虫等不纳入合计
+- UA 解析口径：`parseBrowser` 先判爬虫（`/bot|crawler|spider|slurp|externalhit|externalagent/i`，含 Google/Bing/Baidu/Sogou/字节/GPTBot/ClaudeBot 等，新 -bot 命名爬虫天然免疫），再判国产浏览器（QQ/UC/360/搜狗/猎豹/百度）→ Edge（含 `Edg/EdgA/EdgiOS`）→ Chrome/Firefox/Safari；`parseOperatingSystem` 先判 iOS（`iPhone|iPad|iPod`，先于 `Mac OS X` 以免 iPhone/iPad 的 `like Mac OS X` 被误判为 macOS）→ Windows/macOS/Android/Linux
+- 访问记录页「地区 / IP」「系统」「浏览器」「来源 URL」四个列头可点击，弹窗按当前 `start/end` 日期范围聚合该字段全部值的分布（统计值 / 计数·合计 / 百分占比）；爬虫不纳入合计，弹窗底部单独显示「爬虫 N 条」。取数走 `GET /api/admin/analytics/field-stats?field=country|referrer|os|browser&start=&end=`（仅 admin，返回 `items`/`total`/`crawlerCount`），统计前懒回填派生列与 `isBot`（类似搜索索引的自愈：按 distinct 源列现算并写库补齐 NULL，补完即纯快路径）
+- 访问记录列表/详情按 `isBot` 标记爬虫行（列表燕麦色背景、详情标题旁「爬虫访问」徽标）；详情的系统/浏览器直接读存储字段，不再在读取时解析 UA
+- 统计总览页全站访问趋势图新增「不含爬虫的访问量」线（绿色，`viewsHuman`），与「访问量」（蓝）、「访客数」（琥珀虚线）并列；`buildTrend` 按 `isBot` 拆分真人/爬虫访问量
 - 文章 `viewCount` / `visitorCount` 由前台访问埋点脚本写入事件时回写，避免页面元数据渲染和详情渲染重复增加浏览量
 - 前台埋点由 `public/analytics.js`（vanilla，零依赖）实现，经 `render-service.ts` 的 `platform_enhance` 注入到所有公开主题页（与 `enhance.js` 一同加载）；身份生成与 `src/lib/client/identity.ts` 共用 localStorage key 与 fingerprint/hardware JSON 格式，保证评论与访问共享同一 visitorId
 - 后台统计页包含“总览”和“访问记录”子页：总览按天/周/月展示趋势、Top 文章、最近访问、分段访问量、来源地区和系统统计；访问记录按访问记录分页展示并支持 CSV 导出

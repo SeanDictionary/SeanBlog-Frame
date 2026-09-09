@@ -10,6 +10,22 @@
 
 ## [Unreleased]
 
+### Added
+
+- 访问记录页新增「访问来源字段分布」弹窗：在 `/admin/visits` 表头的「地区 / IP」「系统」「浏览器」「来源 URL」四列点击（带 `fa-chart-simple` 图标）即弹窗，按当前 `start/end` 日期范围聚合该字段全部值的分布，显示「统计值 / 计数·合计 / 百分占比」。本站内部跳转、直接访问、未采集、其他等哨兵值不纳入统计，合计只含已知值。
+- `AnalyticsEvent` 新增派生列 `referrerDomain` / `operatingSystem` / `browser`（均 `String?`）与 `country` / `referrerDomain` / `operatingSystem` / `browser` 四个索引，供统计直接 `groupBy` 低基数列，避免对高基数原始 `referrer` / `userAgent` 聚合。
+- 新增 `GET /api/admin/analytics/field-stats?field=country|referrer|os|browser&start=&end=`（仅 admin）：返回 `{ items: [{label,count}], total }`，统计前懒回填派生列。
+- UA / 来源解析提取为公共模块 `src/lib/analytics/parse.ts`（`parseBrowser` / `parseOperatingSystem` / `extractReferrerDomain` / `normalizeHost` / `isCrawlerUa`），写入、访问记录展示、统计懒回填共用，保证解析口径一致。
+
+### Changed
+
+- UA 解析修正与拓充：`parseBrowser` 先判爬虫再判国产浏览器（QQ/UC/360/搜狗/猎豹/百度）→ Edge（含 `Edg/EdgA/EdgiOS`）→ Chrome/Firefox/Safari，修复 QQ 浏览器等被 `Chrome/` 抢匹配、Edge Android（`EdgA/`）漏判的问题；`parseOperatingSystem` 将 iOS（`iPhone|iPad|iPod`）提到 macOS 之前，修复 iPhone/iPad UA 里 `like Mac OS X` 导致 iOS 被误记为 macOS（dev 数据 135 条）。
+- 爬虫识别并入 UA 解析：`parseBrowser` 对爬虫 UA 返回「爬虫」，新增 `isCrawlerUa`（`/bot|crawler|spider|slurp|externalhit|externalagent/i`，实测 18 爬虫全中、0 真人误判）。
+- `AnalyticsEvent` 新增 `isBot Boolean?` 与 `@@index([isBot])`，写入时落值、统计前懒回填 NULL。趋势图与各字段统计统一用 `isBot` 排除爬虫，不再依赖 `browser='爬虫'` 过滤。
+- 统计总览页全站访问趋势图新增「不含爬虫的访问量」线（绿色 `viewsHuman`），与「访问量」（蓝）、「访客数」（琥珀虚线）并列；`buildTrend` 按 `isBot` 拆分真人/爬虫访问量。
+- 访问来源字段分布弹窗：爬虫不纳入合计，弹窗底部单独显示「爬虫 N 条（不计入合计）」；`GET /api/admin/analytics/field-stats` 响应新增 `crawlerCount`。
+- 访问记录列表与详情按 `isBot` 标记爬虫：列表爬虫行醒目燕麦色背景（浏览器列显示「爬虫」）、详情弹窗标题旁显示「爬虫访问」徽标。访问详情的系统/浏览器改用存储字段（`operatingSystem`/`browser`）直接显示，不再在读取时解析 UA（`getAnalyticsVisitors` 统计前懒回填派生列，保证存量行也填好）。
+
 ### Changed
 
 - 后台统计总览页时间范围控制重构：移除「最近访问记录」「文章统计」「访问来源地区」「访问系统」四张卡片各自的独立时间选择器，合并为全站访问趋势卡片顶部的时间范围选择（`rangeDays`），单一控制趋势、文章统计、来源地区、访问系统四张卡片的数据采样；最近访问记录固定展示最新 20 条，不再受时间范围影响。原 URL query 参数 `trendRangeDays` / `articlesRangeDays` / `recentRangeDays` / `sourcesRangeDays` / `systemsRangeDays` 合并为 `rangeDays`（破坏性变更，不影响主题契约）。

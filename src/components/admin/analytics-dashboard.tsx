@@ -5,7 +5,8 @@ import Link from 'next/link'
 import { useEffect, useId, useRef, useState } from 'react'
 
 import { ExternalLink } from '@/components/common/external-link'
-import type { AnalyticsVisitRecord } from '@/lib/services/analytics-service'
+import { FieldStatsDialog, buildRangeLabel } from '@/components/admin/field-stats-dialog'
+import type { AnalyticsStatsField, AnalyticsVisitRecord } from '@/lib/services/analytics-service'
 
 import { formatDateTime, formatDurationShort, formatDurationFull } from '@/lib/format'
 
@@ -93,7 +94,10 @@ function VisitDetailDialog({ visit, onClose }: { visit: AnalyticsVisitRecord; on
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between gap-4">
-          <h2 id={titleId} className="text-lg font-semibold tracking-tight">访问详情</h2>
+          <div className="flex items-center gap-2">
+            <h2 id={titleId} className="text-lg font-semibold tracking-tight">访问详情</h2>
+            {visit.isBot && <span className="rounded bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">爬虫访问</span>}
+          </div>
           <button ref={closeRef} type="button" onClick={onClose} className="rounded-md bg-neutral-950 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:opacity-90 dark:bg-neutral-100 dark:text-neutral-950">关闭</button>
         </div>
         <dl className="divide-y divide-neutral-100 dark:divide-neutral-900">
@@ -116,9 +120,20 @@ function VisitDetailDialog({ visit, onClose }: { visit: AnalyticsVisitRecord; on
   )
 }
 
-export function VisitRecordTable({ visits, tiny = false }: { visits: AnalyticsVisitRecord[]; tiny?: boolean }) {
+function StatsHeaderButton({ label, field, title, onOpen }: { label: string; field: AnalyticsStatsField; title: string; onOpen: (field: AnalyticsStatsField, title: string) => void }) {
+  return (
+    <button type="button" onClick={() => onOpen(field, title)} className="inline-flex items-center gap-1 text-neutral-500 transition-colors hover:text-neutral-950 dark:hover:text-neutral-50">
+      {label}
+      <i className="fa-solid fa-chart-simple text-[10px]" aria-hidden="true" />
+    </button>
+  )
+}
+
+export function VisitRecordTable({ visits, tiny = false, statsScope }: { visits: AnalyticsVisitRecord[]; tiny?: boolean; statsScope?: { start?: string; end?: string } }) {
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [statsField, setStatsField] = useState<{ field: AnalyticsStatsField; title: string } | null>(null)
   const activeVisit = visits.find((visit) => visit.id === activeId) ?? null
+  const openStats = (field: AnalyticsStatsField, title: string) => setStatsField({ field, title })
 
   return (
     <>
@@ -138,10 +153,10 @@ export function VisitRecordTable({ visits, tiny = false }: { visits: AnalyticsVi
                   <th className="py-2 pl-5 pr-4">访问时间</th>
                   <th className="py-2 pr-4">访问时长</th>
                   <th className="py-2 pr-4">访问内容</th>
-                  <th className="py-2 pr-4">地区 / IP</th>
-                  <th className="py-2 pr-4">系统</th>
-                  <th className="py-2 pr-4">浏览器</th>
-                  <th className="py-2 pr-5">来源 URL</th>
+                  <th className="py-2 pr-4">{statsScope ? <StatsHeaderButton label="地区 / IP" field="country" title="来源地区分布" onOpen={openStats} /> : '地区 / IP'}</th>
+                  <th className="py-2 pr-4">{statsScope ? <StatsHeaderButton label="系统" field="os" title="操作系统分布" onOpen={openStats} /> : '系统'}</th>
+                  <th className="py-2 pr-4">{statsScope ? <StatsHeaderButton label="浏览器" field="browser" title="浏览器分布" onOpen={openStats} /> : '浏览器'}</th>
+                  <th className="py-2 pr-5">{statsScope ? <StatsHeaderButton label="来源 URL" field="referrer" title="来源站点分布" onOpen={openStats} /> : '来源 URL'}</th>
                 </>
               )}
             </tr>
@@ -151,9 +166,9 @@ export function VisitRecordTable({ visits, tiny = false }: { visits: AnalyticsVi
               <tr
                 key={visit.id}
                 onClick={() => setActiveId(visit.id)}
-                className={`cursor-pointer transition-colors ${activeId === visit.id ? 'bg-blue-50/70 dark:bg-blue-950/20' : 'hover:bg-neutral-50 dark:hover:bg-neutral-900/60'}`}
+                className={`cursor-pointer transition-colors ${activeId === visit.id ? 'bg-blue-50/70 dark:bg-blue-950/20' : visit.isBot ? 'bg-amber-50/70 dark:bg-amber-950/20' : 'hover:bg-neutral-50 dark:hover:bg-neutral-900/60'}`}
               >
-                <td className="py-3 pl-5 pr-4 font-mono text-xs">{formatDateTime(visit.createdAt)}</td>
+                <td className="py-3 pl-5 pr-4 font-mono text-xs"><span className="block">{formatDateTime(visit.createdAt)}</span></td>
                 <td className="py-3 pr-4">{formatDurationShort(visit.durationSeconds)}</td>
                 <td className="py-3 pr-4"><Link href={contentHref(visit)} onClick={(event) => event.stopPropagation()} className="block max-w-52 truncate font-medium hover:text-blue-600">{visit.contentLabel}</Link><p className="mt-0.5 flex items-center gap-2 font-mono text-xs text-neutral-500"><span className="max-w-48 truncate">{visit.contentSlug ?? visit.path}</span><a href={contentHref(visit) as string} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()} className="shrink-0 text-neutral-400 transition-colors hover:text-neutral-950 dark:hover:text-neutral-50" aria-label="在新窗口打开"><i className="fa-solid fa-arrow-up-right-from-square" aria-hidden="true" /></a></p></td>
                 {tiny ? null : (
@@ -171,6 +186,16 @@ export function VisitRecordTable({ visits, tiny = false }: { visits: AnalyticsVi
         </table>
       </div>
       {activeVisit && <VisitDetailDialog visit={activeVisit} onClose={() => setActiveId(null)} />}
+      {statsField && statsScope && (
+        <FieldStatsDialog
+          field={statsField.field}
+          title={statsField.title}
+          start={statsScope.start}
+          end={statsScope.end}
+          rangeLabel={buildRangeLabel(statsScope.start, statsScope.end)}
+          onClose={() => setStatsField(null)}
+        />
+      )}
     </>
   )
 }

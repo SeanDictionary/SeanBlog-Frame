@@ -356,6 +356,12 @@ export const analyticsVisitorQuerySchema = paginationQuerySchema.extend({
   end: optionalDateQuery,
 })
 
+export const analyticsFieldStatsQuerySchema = z.object({
+  field: z.enum(['country', 'referrer', 'os', 'browser']),
+  start: optionalDateQuery,
+  end: optionalDateQuery,
+})
+
 export const operationLogQuerySchema = paginationQuerySchema.extend({
   module: optionalQueryString,
   result: z.preprocess(emptyQueryParamToUndefined, z.nativeEnum(OperationLogResult).optional()),

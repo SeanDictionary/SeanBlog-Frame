@@ -3,6 +3,8 @@ import { AnalyticsDimension } from '@prisma/client'
 import type { Prisma } from '@prisma/client'
 
 import { getCountryByIp, isPrivateIp } from '@/lib/geoip'
+import { extractReferrerDomain, isCrawlerUa, parseBrowser, parseOperatingSystem } from '@/lib/analytics/parse'
+import { getSiteUrl } from '@/lib/services/setting-service'
 import { getPrisma } from '@/lib/prisma'
 import { pageMeta, paginate } from '@/lib/services/shared'
 import { getPublicArticleWhere } from '@/lib/services/article-visibility'
@@ -14,6 +16,8 @@ export type AnalyticsTrendPoint = {
   date: string
   views: number
   visitors: number
+  viewsHuman: number
+  visitorsHuman: number
 }
 export type AnalyticsBucket = {
   label: string
@@ -34,6 +38,7 @@ export type AnalyticsVisitRecord = {
   userAgent: string | null
   browser: string
   operatingSystem: string
+  isBot: boolean | null
   referrer: string | null
   durationSeconds: number | null
   browserFingerprint: string | null
@@ -44,6 +49,7 @@ type RequestMetadata = {
   ipAddress?: string | null
   userAgent?: string | null
   country?: string | null
+  siteHost?: string | null
 }
 
 type AnalyticsSettings = {
@@ -240,24 +246,6 @@ async function resolveContent(input: AnalyticsEventInput) {
   return { articleId: null, categoryId: null, tagId: null }
 }
 
-function parseBrowser(userAgent: string | null) {
-  if (!userAgent) return '未采集'
-  if (/Edg\//.test(userAgent)) return 'Edge'
-  if (/Chrome\//.test(userAgent) && !/Chromium\//.test(userAgent)) return 'Chrome'
-  if (/Firefox\//.test(userAgent)) return 'Firefox'
-  if (/Safari\//.test(userAgent) && !/Chrome\//.test(userAgent)) return 'Safari'
-  return '其他浏览器'
-}
-
-function parseOperatingSystem(userAgent: string | null) {
-  if (!userAgent) return '未采集'
-  if (/Windows NT/.test(userAgent)) return 'Windows'
-  if (/Mac OS X/.test(userAgent)) return 'macOS'
-  if (/Android/.test(userAgent)) return 'Android'
-  if (/(iPhone|iPad|iPod)/.test(userAgent)) return 'iOS'
-  if (/Linux/.test(userAgent)) return 'Linux'
-  return '其他系统'
-}
 
 const PAGE_LABELS: Record<string, string> = {
   '/': '首页',
@@ -291,8 +279,10 @@ function serializeVisitRecord(event: AnalyticsEventWithContent): AnalyticsVisitR
     country: event.country ?? (event.ipAddress == null ? '未采集' : isPrivateIp(event.ipAddress) ? '本地' : '未知'),
     ipAddress: event.ipAddress,
     userAgent: event.userAgent,
-    browser: parseBrowser(event.userAgent),
-    operatingSystem: parseOperatingSystem(event.userAgent),
+    // 直接用写入/回填时落库的派生列，不再在读取时解析 UA
+    browser: event.browser ?? '未采集',
+    operatingSystem: event.operatingSystem ?? '未采集',
+    isBot: event.isBot,
     referrer: event.referrer,
     durationSeconds: event.durationSeconds,
     browserFingerprint: event.browserFingerprint,
@@ -322,13 +312,18 @@ function topValues(values: string[], take = 5) {
 }
 
 function buildTrend(events: AnalyticsEventWithContent[], granularity: AnalyticsGranularity, rangeStart?: Date, rangeEnd?: Date): AnalyticsTrendPoint[] {
-  const buckets = new Map<string, { date: string; views: number; visitors: Set<string> }>()
+  const buckets = new Map<string, { date: string; views: number; visitors: Set<string>; viewsHuman: number; visitorsHuman: Set<string> }>()
 
   for (const event of events) {
     const key = getGranularityKey(event.createdAt, granularity)
-    const bucket = buckets.get(key) ?? { date: key, views: 0, visitors: new Set<string>() }
+    const bucket = buckets.get(key) ?? { date: key, views: 0, visitors: new Set<string>(), viewsHuman: 0, visitorsHuman: new Set<string>() }
     bucket.views += 1
     if (event.visitorId) bucket.visitors.add(event.visitorId)
+    // 不含爬虫的访问量/访客数（isBot 为 true 即爬虫，排除；null/未判定当非爬虫）
+    if (!event.isBot) {
+      bucket.viewsHuman += 1
+      if (event.visitorId) bucket.visitorsHuman.add(event.visitorId)
+    }
     buckets.set(key, bucket)
   }
 
@@ -338,13 +333,13 @@ function buildTrend(events: AnalyticsEventWithContent[], granularity: AnalyticsG
     const allKeys = generateGranularityKeys(rangeStart, rangeEnd, granularity)
     for (const key of allKeys) {
       if (!buckets.has(key)) {
-        buckets.set(key, { date: key, views: 0, visitors: new Set<string>() })
+        buckets.set(key, { date: key, views: 0, visitors: new Set<string>(), viewsHuman: 0, visitorsHuman: new Set<string>() })
       }
     }
   }
 
   return [...buckets.values()]
-    .map((bucket) => ({ date: bucket.date, views: bucket.views, visitors: bucket.visitors.size }))
+    .map((bucket) => ({ date: bucket.date, views: bucket.views, visitors: bucket.visitors.size, viewsHuman: bucket.viewsHuman, visitorsHuman: bucket.visitorsHuman.size }))
     .sort((left, right) => left.date.localeCompare(right.date))
 }
 
@@ -437,6 +432,15 @@ export async function createAnalyticsEvent(input: AnalyticsEventInput, metadata:
     ? await prisma.analyticsEvent.count({ where: { articleId: content.articleId, visitorId } }).then((count) => count === 0)
     : false
 
+  // 派生列：与原始 referrer / userAgent 同步写入，供统计直接 groupBy，避免查询时
+  // 对高基数原始列聚合。本站内部跳转与直接访问的 referrerDomain 落 null（统计自然排除）。
+  const collectedReferrer = settings.analyticsCollectReferrer ? (input.referrer ?? '') : null
+  const referrerDomain = collectedReferrer ? extractReferrerDomain(collectedReferrer, metadata.siteHost) : null
+  const collectedUserAgent = settings.analyticsCollectUserAgent ? metadata.userAgent : null
+  const operatingSystem = collectedUserAgent ? parseOperatingSystem(collectedUserAgent) : null
+  const browser = collectedUserAgent ? parseBrowser(collectedUserAgent) : null
+  const isBot = collectedUserAgent ? isCrawlerUa(collectedUserAgent) : false
+
   // 事件创建与每日统计增量放在同一事务，避免统计漂移（事件已存但 dailyStat 缺失）。
   const event = await prisma.$transaction(async (tx) => {
     const created = await tx.analyticsEvent.create({
@@ -445,10 +449,14 @@ export async function createAnalyticsEvent(input: AnalyticsEventInput, metadata:
         contentType: input.contentType,
         ...content,
         visitorId,
-        referrer: settings.analyticsCollectReferrer ? (input.referrer ?? '') : null,
+        referrer: collectedReferrer,
+        referrerDomain,
         country,
         ipAddress: settings.analyticsCollectIp ? metadata.ipAddress : null,
-        userAgent: settings.analyticsCollectUserAgent ? metadata.userAgent : null,
+        userAgent: collectedUserAgent,
+        operatingSystem,
+        browser,
+        isBot,
         browserFingerprint: settings.analyticsCollectFingerprint ? input.browserFingerprint : null,
         hardware: settings.analyticsCollectHardware ? input.hardware : null,
         durationSeconds: input.durationSeconds,
@@ -494,6 +502,9 @@ export async function getAnalyticsOverview(options: OverviewOptions) {
   const thirtyDayRange = getRangeForDays(30)
   const ninetyDayRange = getRangeForDays(90)
   const retentionRange = getRangeForDays(retentionDays)
+
+  // 趋势需 isBot 区分爬虫与真人访问量，先懒回填，保证 fetch 出来的事件 isBot 已判定。
+  await ensureIsBotWarmed()
 
   // Bounded event queries for trend, top content, recent visits, sources, systems, and yesterday visitors.
   const [trendEvents, articleEvents, recentEvents, sourceEvents, systemEvents, yesterdayEvents] = await Promise.all([
@@ -548,6 +559,9 @@ export async function getAnalyticsOverview(options: OverviewOptions) {
 
 export async function getAnalyticsVisitors(query: AnalyticsVisitorQuery) {
   const prisma = getPrisma()
+  // 访问记录列表/详情直接用派生列显示，先懒回填 isBot / os / browser，保证存量行也填好。
+  await ensureIsBotWarmed()
+  await ensureUaDerivedWarmed()
   const where = whereForDateRange(query.start ? startOfDay(query.start) : undefined, query.end ? addDays(startOfDay(query.end), 1) : undefined)
   const [items, total] = await Promise.all([
     prisma.analyticsEvent.findMany({
@@ -567,6 +581,173 @@ export async function getAnalyticsVisitors(query: AnalyticsVisitorQuery) {
     items: items.map(serializeVisitRecord),
     meta: pageMeta(total, query.page, query.pageSize),
   }
+}
+
+export type AnalyticsStatsField = 'country' | 'referrer' | 'os' | 'browser'
+
+export type AnalyticsFieldStats = {
+  items: Array<{ label: string; count: number }>
+  total: number
+  crawlerCount: number
+}
+
+/**
+ * 懒回填 operatingSystem / browser（从 userAgent 派生）。统计前自愈：缓存冷时
+ * 在查询路径上按 distinct userAgent 现算并写库补齐，补完即纯快路径；之后新建事件
+ * 已在 createAnalyticsEvent 同步写入这两列，不再产生 NULL。AnalyticsEvent 无
+ * @updatedAt，updateMany 不会改动 createdAt。
+ */
+async function ensureUaDerivedWarmed() {
+  const prisma = getPrisma()
+  const where: Prisma.AnalyticsEventWhereInput = {
+    userAgent: { not: null },
+    OR: [{ operatingSystem: null }, { browser: null }],
+  }
+  if ((await prisma.analyticsEvent.count({ where })) === 0) return 0
+  const rows = await prisma.analyticsEvent.findMany({
+    where,
+    select: { userAgent: true },
+    distinct: ['userAgent'],
+    take: 2000,
+  })
+  let filled = 0
+  for (const { userAgent } of rows) {
+    const operatingSystem = parseOperatingSystem(userAgent)
+    const browser = parseBrowser(userAgent)
+    const result = await prisma.analyticsEvent.updateMany({
+      where: { userAgent, OR: [{ operatingSystem: null }, { browser: null }] },
+      data: { operatingSystem, browser },
+    })
+    filled += result.count
+  }
+  return filled
+}
+
+/**
+ * 懒回填 referrerDomain（从 referrer 派生）。历史数据无请求上下文，退化用后台
+ * siteUrl 的 host 判定本站内部跳转；siteUrl 未配置时退化为 localhost，老数据的
+ * 本站跳转可能无法完全排除（新写入不受影响——写入时用真实请求 host）。
+ */
+async function ensureReferrerDomainWarmed() {
+  const prisma = getPrisma()
+  const where: Prisma.AnalyticsEventWhereInput = {
+    referrer: { not: '' },
+    referrerDomain: null,
+  }
+  if ((await prisma.analyticsEvent.count({ where })) === 0) return 0
+  let selfHost: string | null = null
+  try {
+    selfHost = new URL(await getSiteUrl()).hostname
+  } catch {
+    selfHost = null
+  }
+  const rows = await prisma.analyticsEvent.findMany({
+    where,
+    select: { referrer: true },
+    distinct: ['referrer'],
+    take: 5000,
+  })
+  let filled = 0
+  for (const { referrer } of rows) {
+    const referrerDomain = extractReferrerDomain(referrer, selfHost)
+    const result = await prisma.analyticsEvent.updateMany({
+      where: { referrer, referrerDomain: null },
+      data: { referrerDomain },
+    })
+    filled += result.count
+  }
+  return filled
+}
+
+const OS_SENTINELS = ['其他系统', '未采集']
+const BROWSER_SENTINELS = ['其他浏览器', '未采集', '爬虫']
+
+/**
+ * 懒回填 isBot（从 userAgent 派生）。isBot 为 nullable：NULL = 未判定。统计前自愈——
+ * UA 为空的行落 false（当作非爬虫），UA 非空的按 isCrawlerUa 落 true/false。按
+ * distinct userAgent 处理，补完后纯快路径（之后新写入已在 createAnalyticsEvent 落值）。
+ */
+async function ensureIsBotWarmed() {
+  const prisma = getPrisma()
+  const where: Prisma.AnalyticsEventWhereInput = { isBot: null }
+  if ((await prisma.analyticsEvent.count({ where })) === 0) return 0
+  // UA 为空的行直接落 false
+  await prisma.analyticsEvent.updateMany({ where: { isBot: null, userAgent: null }, data: { isBot: false } })
+  // UA 非空的按 distinct UA 判定
+  const rows = await prisma.analyticsEvent.findMany({
+    where: { isBot: null, userAgent: { not: null } },
+    select: { userAgent: true },
+    distinct: ['userAgent'],
+    take: 2000,
+  })
+  let filled = 0
+  for (const { userAgent } of rows) {
+    const result = await prisma.analyticsEvent.updateMany({
+      where: { isBot: null, userAgent },
+      data: { isBot: isCrawlerUa(userAgent) },
+    })
+    filled += result.count
+  }
+  return filled
+}
+
+/**
+ * 按字段聚合访问来源分布。统计前懒回填派生列，NULL / 未采集 / 其他等哨兵值不纳入
+ * 统计（合计只含已知值）。返回按计数降序的明细与合计。
+ */
+export async function getAnalyticsFieldStats(
+  field: AnalyticsStatsField,
+  range: { start?: Date; end?: Date },
+): Promise<AnalyticsFieldStats> {
+  const prisma = getPrisma()
+  // isBot 统一懒回填（趋势图与字段统计都用它排除爬虫）
+  await ensureIsBotWarmed()
+  if (field === 'os' || field === 'browser') {
+    await ensureUaDerivedWarmed()
+  } else if (field === 'referrer') {
+    await ensureReferrerDomainWarmed()
+  }
+  // country 无法从其他列派生，不回填；NULL 自然排除。
+
+  const dateWhere = whereForDateRange(range.start, range.end)
+  // 爬虫不纳入合计，单独计入 crawlerCount
+  const crawlerCount = await prisma.analyticsEvent.count({ where: { ...dateWhere, isBot: true } })
+  const humanWhere = { ...dateWhere, isBot: false }
+  let rows: Array<{ label: string; count: number }> = []
+
+  if (field === 'country') {
+    const groups = await prisma.analyticsEvent.groupBy({
+      by: ['country'],
+      where: { ...humanWhere, NOT: [{ country: null }] },
+      _count: { _all: true },
+    })
+    rows = groups.map((g) => ({ label: g.country ?? '未知', count: g._count._all }))
+  } else if (field === 'referrer') {
+    const groups = await prisma.analyticsEvent.groupBy({
+      by: ['referrerDomain'],
+      where: { ...humanWhere, NOT: [{ referrerDomain: null }] },
+      _count: { _all: true },
+    })
+    rows = groups.map((g) => ({ label: g.referrerDomain ?? '未知', count: g._count._all }))
+  } else if (field === 'os') {
+    const groups = await prisma.analyticsEvent.groupBy({
+      by: ['operatingSystem'],
+      where: { ...humanWhere, operatingSystem: { notIn: OS_SENTINELS } },
+      _count: { _all: true },
+    })
+    rows = groups.map((g) => ({ label: g.operatingSystem ?? '未知', count: g._count._all }))
+  } else {
+    const groups = await prisma.analyticsEvent.groupBy({
+      by: ['browser'],
+      where: { ...humanWhere, browser: { notIn: BROWSER_SENTINELS } },
+      _count: { _all: true },
+    })
+    rows = groups.map((g) => ({ label: g.browser ?? '未知', count: g._count._all }))
+  }
+
+  rows.sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, 'zh-CN'))
+  const total = rows.reduce((sum, r) => sum + r.count, 0)
+  return { items: rows, total, crawlerCount }
 }
 
 function escapeCsv(value: unknown) {

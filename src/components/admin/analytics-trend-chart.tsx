@@ -30,7 +30,7 @@ const PLOT_W = WIDTH - PAD.left - PAD.right
 const PLOT_H = HEIGHT - PAD.top - PAD.bottom
 const MAX_POINT_SPACING = 150
 const AXIS_FONT = 13
-const TOOLTIP_WIDTH = 148
+const TOOLTIP_WIDTH = 155
 const TOOLTIP_GAP = 16
 
 type HoverState = {
@@ -95,7 +95,7 @@ export function AnalyticsTrendChart({
   }, [tipHeight, hover])
 
   const pointCount = trend.length
-  const rawMax = Math.max(1, ...trend.flatMap((point) => [point.views, point.visitors]))
+  const rawMax = Math.max(1, ...trend.flatMap((point) => [point.views, point.visitors, point.viewsHuman]))
   const { max: maxValue, ticks } = niceTicks(rawMax, 5)
 
   const naturalSpacing = pointCount > 1 ? PLOT_W / (pointCount - 1) : 0
@@ -109,7 +109,7 @@ export function AnalyticsTrendChart({
       : PAD.left + PLOT_W / 2
   const yOf = (value: number) => PAD.top + PLOT_H - (value / maxValue) * PLOT_H
 
-  const buildPath = (key: 'views' | 'visitors') =>
+  const buildPath = (key: 'views' | 'visitors' | 'viewsHuman') =>
     pointCount > 1
       ? trend
           .map((point, index) => `${index === 0 ? 'M' : 'L'} ${xOf(index).toFixed(2)} ${yOf(point[key]).toFixed(2)}`)
@@ -118,6 +118,7 @@ export function AnalyticsTrendChart({
 
   const viewsPath = buildPath('views')
   const visitorsPath = buildPath('visitors')
+  const viewsHumanPath = buildPath('viewsHuman')
 
   const maxLabels = 6
   const labelStep = pointCount > maxLabels ? Math.ceil(pointCount / maxLabels) : 1
@@ -262,6 +263,17 @@ export function AnalyticsTrendChart({
                   style={{ strokeDasharray: 1, animation: 'analytics-trend-draw 0.6s cubic-bezier(0.2, 0, 0, 1)' }}
                 />
                 <path
+                  key={`views-human-${currentGranularity}`}
+                  d={viewsHumanPath}
+                  fill="none"
+                  stroke="#16a34a"
+                  strokeWidth={2.5}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  pathLength={1}
+                  style={{ strokeDasharray: 1, animation: 'analytics-trend-draw 0.6s cubic-bezier(0.2, 0, 0, 1)' }}
+                />
+                <path
                   key={`visitors-${currentGranularity}`}
                   d={visitorsPath}
                   fill="none"
@@ -281,6 +293,7 @@ export function AnalyticsTrendChart({
                 {trend.map((point, index) => (
                   <g key={`pt-${index}`}>
                     <circle cx={xOf(index)} cy={yOf(point.visitors)} r={5} fill="#d97706" />
+                    <circle cx={xOf(index)} cy={yOf(point.viewsHuman)} r={5} fill="#16a34a" />
                     <circle cx={xOf(index)} cy={yOf(point.views)} r={5} fill="#2563eb" />
                   </g>
                 ))}
@@ -289,6 +302,7 @@ export function AnalyticsTrendChart({
               hoveredPoint && hoverIndex !== null && (
                 <g key={`points-hover`}>
                   <circle cx={xOf(hoverIndex)} cy={yOf(hoveredPoint.visitors)} r={4} fill="#d97706" style={{ transition: 'opacity 0.15s ease' }} />
+                  <circle cx={xOf(hoverIndex)} cy={yOf(hoveredPoint.viewsHuman)} r={4} fill="#16a34a" style={{ transition: 'opacity 0.15s ease' }} />
                   <circle cx={xOf(hoverIndex)} cy={yOf(hoveredPoint.views)} r={4} fill="#2563eb" style={{ transition: 'opacity 0.15s ease' }} />
                 </g>
               )
@@ -312,12 +326,13 @@ export function AnalyticsTrendChart({
           {hover && hoveredPoint && (
             <div
               ref={tipRef}
-              className="pointer-events-none absolute z-10 rounded-md border border-white/10 bg-neutral-900 px-3 py-2 text-xs text-white shadow-lg dark:border-white/10 dark:bg-neutral-800"
+              className="pointer-events-none absolute z-10 rounded-md border border-white/10 bg-neutral-900 px-2 py-2 text-xs text-white shadow-lg dark:border-white/10 dark:bg-neutral-800"
               style={{ left: tooltipLeft, width: TOOLTIP_WIDTH, ...tooltipVertical, transition: 'opacity 0.15s ease, top 0.12s ease, left 0.12s ease, bottom 0.12s ease' }}
             >
               <p className="font-semibold">{shortDateLabel(hoveredPoint.date)}</p>
-              <p className="mt-1 flex items-center gap-1.5"><span className="size-2 rounded-full bg-blue-600" />访问量 {formatNumber(hoveredPoint.views)}</p>
-              <p className="mt-0.5 flex items-center gap-1.5"><span className="size-2 rounded-full bg-amber-600" />访客数 {formatNumber(hoveredPoint.visitors)}</p>
+              <p className="mt-1 flex items-center gap-1.5"><span className="size-2 rounded-full bg-blue-600" />{formatNumber(hoveredPoint.views)} 访问量</p>
+              <p className="mt-0.5 flex items-center gap-1.5"><span className="size-2 rounded-full bg-green-600" />{formatNumber(hoveredPoint.viewsHuman)} 访问量(不含爬虫)</p>
+              <p className="mt-0.5 flex items-center gap-1.5"><span className="size-2 rounded-full bg-amber-600" />{formatNumber(hoveredPoint.visitors)} 访客数</p>
               <span className={`absolute h-2 w-2 rotate-45 bg-neutral-900 dark:bg-neutral-800 ${tooltipAbove ? '-bottom-1' : '-top-1'}`} style={{ left: clamp(hover.px - tooltipLeft - 4, 4, TOOLTIP_WIDTH - 12) }} />
             </div>
           )}
@@ -327,6 +342,7 @@ export function AnalyticsTrendChart({
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-4 text-xs text-neutral-500">
           <span className="inline-flex items-center gap-1"><i className="size-2 rounded-full bg-blue-600" />访问量</span>
+          <span className="inline-flex items-center gap-1"><i className="size-2 rounded-full bg-green-600" />访问量(不含爬虫)</span>
           <span className="inline-flex items-center gap-1"><i className="size-2 rounded-full bg-amber-600" />访客数</span>
         </div>
         {granularityOptions.length > 0 && (

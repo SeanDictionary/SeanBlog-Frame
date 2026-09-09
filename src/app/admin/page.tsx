@@ -41,15 +41,15 @@ function formatDateKey(date: Date) {
   return date.toISOString().slice(0, 10)
 }
 
-function getLast30DaysTrend(events: Array<{ createdAt: Date; visitorId: string | null }>) {
+function getLast30DaysTrend(events: Array<{ createdAt: Date; visitorId: string | null; isBot: boolean | null }>) {
   const end = addDays(startOfDay(new Date()), 1)
   const start = addDays(end, -SITE_ANALYTICS_RANGE_DAYS)
-  const buckets = new Map<string, { date: string; views: number; visitors: Set<string> }>()
+  const buckets = new Map<string, { date: string; views: number; visitors: Set<string>; viewsHuman: number; visitorsHuman: Set<string> }>()
 
   for (let index = 0; index < SITE_ANALYTICS_RANGE_DAYS; index += 1) {
     const date = addDays(start, index)
     const key = formatDateKey(date)
-    buckets.set(key, { date: key, views: 0, visitors: new Set<string>() })
+    buckets.set(key, { date: key, views: 0, visitors: new Set<string>(), viewsHuman: 0, visitorsHuman: new Set<string>() })
   }
 
   for (const event of events) {
@@ -59,12 +59,18 @@ function getLast30DaysTrend(events: Array<{ createdAt: Date; visitorId: string |
 
     bucket.views += 1
     if (event.visitorId) bucket.visitors.add(event.visitorId)
+    if (!event.isBot) {
+      bucket.viewsHuman += 1
+      if (event.visitorId) bucket.visitorsHuman.add(event.visitorId)
+    }
   }
 
   return [...buckets.values()].map((bucket) => ({
     date: bucket.date,
     views: bucket.views,
     visitors: bucket.visitors.size,
+    viewsHuman: bucket.viewsHuman,
+    visitorsHuman: bucket.visitorsHuman.size,
   }))
 }
 
@@ -201,7 +207,7 @@ export default async function AdminDashboardPage() {
         },
       },
       orderBy: { createdAt: 'asc' },
-      select: { createdAt: true, visitorId: true, country: true, referrer: true, userAgent: true },
+      select: { createdAt: true, visitorId: true, country: true, referrer: true, userAgent: true, isBot: true },
     }),
     prisma.comment.findMany({
       orderBy: { createdAt: 'desc' },

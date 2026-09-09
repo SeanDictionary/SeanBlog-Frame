@@ -22,6 +22,7 @@ export async function POST(request: Request) {
       const result = await createAnalyticsEvent(input, {
         ipAddress,
         userAgent: request.headers.get('user-agent'),
+        siteHost: request.headers.get('host'),
       })
 
       return json(result)

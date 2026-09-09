@@ -186,9 +186,13 @@ model AnalyticsEvent {
   tagId              String?
   visitorId          String?
   referrer           String?
+  referrerDomain     String?
   country            String?
   ipAddress          String?
   userAgent          String?
+  operatingSystem    String?
+  browser            String?
+  isBot              Boolean?
   browserFingerprint String?
   hardware           String?
   durationSeconds    Int?
@@ -206,6 +210,11 @@ model AnalyticsEvent {
   @@index([contentType, createdAt])
   @@index([visitorId])
   @@index([articleId, visitorId])
+  @@index([country])
+  @@index([referrerDomain])
+  @@index([operatingSystem])
+  @@index([browser])
+  @@index([isBot])
 }
 
 enum AnalyticsDimension {
