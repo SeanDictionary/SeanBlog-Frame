@@ -22,6 +22,7 @@
 
 ### Changed
 
+- 文章渲染管线新增 `wrapFriendLinkGrid` 后处理步骤：将连续的 `<figure class="friend-link-card">` 自动包裹在 `<div class="friend-link-grid">` 容器中，供主题侧以 CSS Grid 实现自适应多列布局。
 - 后台「主题」页设置读取统一走 `getThemeSettings`（与公开渲染同一条缓存路径），不再直接拼 `dbRow + schema 默认值`，消除 `settingsVersion` 未迁移前后台与前台显示不一致的窗口。
 - `ThemesManager` 客户端 state 同步：活跃主题切换或 `themeSettings` prop 变化（如就地更新后服务端返回新值）时重建 `liveValues` / `themeSettingsState`，避免表单与 Callout CSS 显示旧主题/旧值。
 - 保存主题设置时对「合并后的整体」跑一次 `validateThemeSettingsValues`，schema 收紧（如删除某 select 选项）时能及时发现库里残留旧值。

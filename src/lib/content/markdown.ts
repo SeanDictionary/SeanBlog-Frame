@@ -261,10 +261,21 @@ const processor = unified()
   })
   .use(rehypeStringify)
 
+/** 将连续的 friend-link <figure> 包裹在 .friend-link-grid 容器中，实现网格布局 */
+function wrapFriendLinkGrid(html: string): string {
+  return html.replace(
+    /((?:<figure class="friend-link-card[^"]*"[\s\S]*?<\/figure>\s*)+)/g,
+    (match) => {
+      const trimmed = match.trim()
+      return `<div class="friend-link-grid">${trimmed}</div>`
+    }
+  )
+}
+
 export async function markdownToHtml(markdown: string) {
   const result = await processor.process(markdown)
 
-  return String(result)
+  return wrapFriendLinkGrid(String(result))
 }
 
 export function createExcerpt(markdown: string, maxLength = 160) {
