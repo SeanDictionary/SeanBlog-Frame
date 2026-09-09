@@ -99,6 +99,6 @@
 ## 后台管理员
 
 admin
-0y_NraRpMUTFUhbMDABexGELsRjv-tOL
+_FOE2V6t07LvT6B1cTjlBIOuVQNiSBP7
 
 如果密码不对可以使用脚本重新生成密码，同时需要告知用户，并更新上方密码
