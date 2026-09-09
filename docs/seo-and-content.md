@@ -189,7 +189,7 @@ export default function robots(): MetadataRoute.Robots {
 | 文章详情页 | 动态渲染（Route Handler + 主题模板） | 按主题 + slug tag | 正文即时渲染 Markdown；预览接口复用同一渲染管线与主题 CSS |
 | 分类归档页 | 动态渲染 | 按主题 tag | 同上 |
 | 标签归档页 | 动态渲染 | 按主题 tag | 同上 |
-| 搜索结果页 | 动态渲染 | 不缓存 | 空格 / `+` 拆分多关键词，全部命中；标题 / 摘要高亮 |
+| 搜索结果页 | 动态渲染 | 不缓存 | 空格 / `+` 拆分多关键词，`OR`（命中任一即返回），`publishedAt desc` 排序；`searchText` 列为 NULL 的行搜索时懒回填补齐，结果不依赖索引预热；标题 / 摘要高亮 |
 | sitemap.xml | 动态生成（`export const dynamic = 'force-dynamic'`） | 按请求 | `sitemap.ts` 每请求查询已发布文章 / 分类 / 标签 |
 | robots.txt | 静态约定 | - | `robots.ts` 生成 |
 | rss.xml | 动态生成 | 按请求 | 已发布文章倒序 |

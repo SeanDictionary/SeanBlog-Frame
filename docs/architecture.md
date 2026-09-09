@@ -90,7 +90,7 @@
 | `commentService` | 评论提交，嵌套回复构建，审核流转，反垃圾标记 |
 | `adminAuthService` | 管理员登录、密码重置与后台访问校验 |
 | `seoService` | sitemap 生成，robots 策略，结构化数据 JSON-LD 生成 |
-| `searchService` | 搜索统一接口（Phase 1：PG tsvector；Phase 2：Meilisearch） |
+| `searchService` | 搜索统一接口（MVP：PG `ILIKE` on `search_text` 列 + 懒回填；后续可切 Meilisearch / Orama 等） |
 | `analytics-service.ts` | 分析统计核心逻辑（趋势、总览、访客、访问记录） |
 | `setting-service.ts` | 站点设置读写 |
 | `comment-moderation-rules.ts` | 评论审核规则 |
@@ -189,7 +189,7 @@ src/
 
 ### 7.2 搜索引擎
 
-`searchService` 是搜索的统一入口。MVP 使用 PostgreSQL 原生的 `tsvector` + `websearch_to_tsquery` 实现全文搜索。当前内置搜索交互支持用空格或 `+` 拆分多个关键词，并按“全部关键词命中”返回结果；搜索弹窗和搜索结果页都应高亮命中的标题/摘要关键词。后续切换到 Meilisearch 或 Typesense 时只需替换 `searchService` 内部实现，不影响前端路由和组件。
+`searchService` 是搜索的统一入口。MVP 在 `Article.searchText`（列名 `search_text`，存标题 + 摘要 + 正文去 Markdown 符号后的纯文本）上用 PostgreSQL `ILIKE` 做模糊匹配，关键词按空格 / `+` 拆分、多词 `OR`（命中任一即返回），按 `publishedAt desc` 排序。该列由 `buildSearchText` 在新建 / 编辑 / 导入时生成；**搜索前若检测到 `searchText` 为 NULL 的已发布文章会现算并用 raw SQL 补齐（懒回填，不触发 `@updatedAt`）**，故搜索结果不依赖索引是否预热——索引只是缓存，缓存冷时在搜索路径即时补齐，补完即纯快路径。搜索弹窗和搜索结果页高亮命中的标题 / 摘要关键词。后续切换到 Meilisearch / Typesense / Orama 等时只需替换 `searchService` 内部实现，不影响前端路由和组件。
 
 ### 7.3 媒体存储
 

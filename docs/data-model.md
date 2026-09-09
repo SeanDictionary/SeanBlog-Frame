@@ -112,7 +112,8 @@ model Article {
   excerpt               String?
   contentPath           String?       // content/articles/{articleId}/index.md
   legacyContentMarkdown String?       @map("contentMarkdown") // 迁移期回退来源
-  legacyContentHtml     String?       @map("contentHtml")     // 迁移期回退来源
+  legacyContentHtml     String?       @map("contentHtml")     // 预渲染 HTML 缓存（新建/编辑/导入时生成；NULL 时文章页回退实时 Shiki 渲染）
+  searchText            String?       @map("search_text")    // 搜索索引（标题+摘要+正文纯文本；新建/编辑/导入时生成；搜索路径懒回填 NULL 行）
   coverImage            String?
   status                ArticleStatus       @default(DRAFT)
   commentsMode          ArticleCommentsMode @default(ENABLED)
@@ -144,8 +145,9 @@ model Article {
 设计说明：
 
 - Markdown 正文以 `content/articles/{articleId}/index.md` 文件为唯一权威源；`contentPath` 保存该相对路径，因此 slug 改动不会重命名正文文件
-- 文章详情/后台编辑按需读取 Markdown 文件；`contentHtml` 为运行时渲染结果，可由缓存层缓存，但不是持久化源数据
-- `legacyContentMarkdown` / `legacyContentHtml` 映射旧数据库列，仅用于迁移期回退与导出；所有存量文件迁移完成、验证备份后可用后续迁移删除
+- 文章详情/后台编辑按需读取 Markdown 文件；`legacyContentHtml`（`@map("contentHtml")`）为预渲染 HTML 缓存，在新建 / 编辑 / ZIP 导入时由 `markdownToHtml` 生成并持久化，NULL 时文章页回退实时 Shiki 渲染（~800ms，ISR 5 分钟兜底）。维护性回填与搜索路径的懒回填均用 raw SQL 只写该列、不触发 `@updatedAt`，不改动文章更新时间
+- `searchText`（`@map("search_text")`）为搜索索引，由 `buildSearchText`（纯 regex 去 Markdown 符号，无 Shiki）在新建 / 编辑 / 导入时生成。搜索在它上做 `ILIKE` 模糊匹配；`searchArticles` 搜索前检测 NULL 行会现算并用 raw SQL 补齐（懒回填），故搜索结果不依赖索引是否预热
+- `legacyContentMarkdown` 映射旧数据库列，仅用于迁移期回退与导出；所有存量文件迁移完成、验证备份后可用后续迁移删除
 - 修订正文同样保存在 `content/articles/{articleId}/revisions/{revisionId}.md`，数据库仅保留修订元数据和相对路径；后台编辑器可读取历史版本并恢复到当前编辑区，保存后才覆盖正文
 - SEO 字段 (`metaTitle` / `metaDescription` / `metaKeywords`) 为可选，fallback 到文章标题和摘要
 - `viewCount` 使用数据库字段，后续可改用 Redis HLL 异步更新
