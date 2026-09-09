@@ -81,6 +81,6 @@
 ## 后台管理员
 
 admin
-YYK9gZJdXa6iAJdCwCBmUbWOuqJKm5lU
+0y_NraRpMUTFUhbMDABexGELsRjv-tOL
 
 如果密码不对可以使用脚本重新生成密码，同时需要告知用户，并更新上方密码
