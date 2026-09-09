@@ -16,6 +16,8 @@
 - 新增站点设置 `siteIcon`（站点图标 URL / favicon）：后台「设置 → 站点信息」新增字段，保存后注入到前台主题渲染 `<head>` 的 `<link rel="icon">`（经 `enrichCtx` 追加到 `seo_head`，主题无需改动）与后台 root layout head；`ctx.site.icon` 供主题模板消费。
 - 新增 `GET /api/admin/version` 接口：读取当前 `package.json` 版本，拉取 GitHub `SeanDictionary/SeanBlog-Frame` 的 latest release tag 做 semver 比较，带 5 分钟内存缓存。
 - 后台侧边栏「SeanBlog Admin」下方新增小字版本行（当前版本号），点击触发版本检查；存在新版本时以绿色跟随显示新版本号，检查失败显示提示。
+- 搜索索引自愈：`searchArticles` 现在搜索前先检测是否有 `searchText` 为 NULL 的已发布文章，有则现算（`buildSearchText`，纯 regex 无 Shiki）并用 raw SQL 写库补齐，然后走正常列查询。搜索结果**不再依赖索引是否已预热**——索引只是缓存，缓存冷时在搜索路径上即时补齐（只发生一次，之后纯快路径）。0.5.0 升级后无需任何手动回填步骤即可搜索。
+- 新增 `POST /api/admin/articles/backfill-search` 接口（仅 admin，记操作日志）：可选的「预热」操作，原地回填存量文章的 `contentHtml` / `searchText`（幂等，`?force=1` 全量重渲染、`?limit=N` 限量）。用 raw SQL 只写这两列、不触发 `@updatedAt`，故不改动文章更新时间。非必须——搜索现已自愈。
 
 ### Changed
 
@@ -27,6 +29,10 @@
 
 ### Fixed
 
+- 修复 ZIP 导入不回填 `contentHtml` / `searchText` 的问题：导入路径 `createArticleInTransaction` 此前创建后只写 `contentPath`，导致导入的文章 `searchText` 为 NULL（基于该列 `ILIKE` 的搜索失效，搜不到）、`contentHtml` 为 NULL（文章页每请求实时 Shiki 渲染 ~800ms）。现与 `createArticle` / `updateArticle` 一致，导入即预渲染 HTML 并生成搜索文本。
+- 修复 `createArticle` / `updateArticle` / 导入路径写 `contentHtml` 列时用错字段名（写成 `contentHtml`，实际模型字段为 `legacyContentHtml`，`@map("contentHtml")`）导致这些路径运行时 `PrismaClientValidationError` 500 的问题。此前因站点文章均经导入而非后台新建/编辑产生，该 bug 未被触发。
+- 修复 ZIP 导入不保留 `article.json` 的 `updatedAt` 的问题：此前导入虽在 `create` 时传入了 `updatedAt`，但随后的 `contentPath` update 被 Prisma `@updatedAt` 自动覆盖为当前时间，导致导入的文章更新时间全部变成导入时刻。现在该 update 中显式回写 `updatedAt`，导入的文章保留原更新时间。
+- 修复维护性回填会踩文章更新时间的问题：`backfillArticleSearchContent` 原用 `prisma.article.update` 写 `contentHtml` / `searchText`，被 `@updatedAt` 自动覆盖 `updatedAt` 为当前时刻，会毁掉导入时保留的 WP 修改时间。现改用 raw SQL `UPDATE "Article" SET "contentHtml"=..., "search_text"=... WHERE "id"=...`，只动这两列、不碰 `updated_at`。搜索路径的懒回填同样用 raw SQL。
 - 修复更新主题需「先卸载再上传」、卸载又禁止删除活跃主题导致的 4 步流程与设置丢失问题。
 - 修复前台分类/标签页 404 误报 500：`publicErrorResponse` 现识别 `ApiError.status`，404 统一走主题 `404.hbs`（回退内置静态 404），其他业务错误码透传其 status。此前 `/tags/<不存在>`、`/categories/<不存在>` 因 `classifyError` 仅判数据库错误、忽略 `ApiError.status` 而返回 500；文章详情路由靠手写兜底才正确，现已清理该重复兜底。
 
@@ -40,10 +46,11 @@
 
 1. **数据库迁移**：容器启动时自动执行 `prisma migrate deploy`，新增 `contentHtml` 和 `searchText` 列。
 
-2. **回填现有文章**（可选但推荐）：
-   - 导出所有文章，删除文章和静态资源，重新导入文章，触发 `contentHtml` 和 `searchText` 回填
-   - `contentHtml`：不回填不影响功能（NULL 时回退实时渲染），但性能差（每请求 ~800ms Shiki 渲染）
-   - `searchText`：**必须回填**，否则搜索功能失效（新搜索逻辑用 `ILIKE` 查此列，NULL 搜不到）
+2. **搜索索引**：无需手动操作。0.5.0 之前导入的文章 `searchText` / `contentHtml` 为 NULL，升级后**首次搜索会自动现算并用 raw SQL 补齐 `searchText`**（不改动文章更新时间），之后纯快路径——搜索结果不依赖索引是否预热。
+   - `searchText`：搜索硬依赖，但懒回填已保证 NULL 行也能搜到并即时补齐，无需任何手动步骤。
+   - `contentHtml`：仅文章页渲染性能优化。NULL 时文章页回退实时 Shiki 渲染（功能正确，~800ms，ISR 5 分钟兜底），不影响搜索。
+   - （可选）想避免首次搜索的一次性现算成本、或预热 `contentHtml` 省掉文章页首次渲染，可在后台已登录态调一次 `POST /api/admin/articles/backfill-search`（幂等、raw SQL 不踩 `updatedAt`），返回 `{ processed, skipped, errored, total }`。非必须。
+   - 0.5.0 之后新建 / 编辑 / 导入的文章已在各自写入路径自动生成这两列，不会再产生 NULL。
 
 3. **更新 cardinal 主题**：后台「主题」页使用「更新」按钮上传新主题包（见 Added 第一条）。
 

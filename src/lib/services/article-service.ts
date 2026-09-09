@@ -670,7 +670,12 @@ async function createArticleInTransaction(input: ArticleInput, client: Prisma.Tr
 
   const contentPath = getArticleContentPath(article.id)
   await writeArticleMarkdownAtPath(contentPath, input.contentMarkdown)
-  await client.article.update({ where: { id: article.id }, data: { contentPath } })
+  // 与 createArticle / updateArticle 一致：预渲染 contentHtml 并生成 searchText，
+  // 否则导入的文章 contentHtml 为 NULL（每请求实时 Shiki 渲染 ~800ms）、
+  // searchText 为 NULL（搜索基于该列 ILIKE，搜不到）。
+  const contentHtml = await markdownToHtml(input.contentMarkdown)
+  const searchText = buildSearchText(article.title, input.excerpt ?? '', input.contentMarkdown)
+  await client.article.update({ where: { id: article.id }, data: { contentPath, legacyContentHtml: contentHtml, searchText, ...(input.updatedAt ? { updatedAt: input.updatedAt } : {}) } })
 
   const revision = await client.articleRevision.create({
     data: {
@@ -1178,6 +1183,70 @@ export async function importAdminArticlesArchive(buffer: Buffer) {
   }
 }
 
+/**
+ * 原地回填文章的 contentHtml / searchText。
+ *
+ * 0.5.0 之前导入的文章这两列为 NULL（导入路径未回填），导致搜索（基于 searchText 列
+ * ILIKE）搜不到、文章页（contentHtml 缺省时）每请求实时 Shiki 渲染。升级后跑一次
+ * 本函数即可在不删文章、不丢评论/修订/访问记录的前提下补齐。幂等：默认只处理仍有
+ * NULL 的行；`force: true` 时全量重渲染（用于 buildSearchText 逻辑变更后重建索引）。
+ */
+export async function backfillArticleSearchContent(options: { force?: boolean; limit?: number } = {}) {
+  const prisma = getPrisma()
+  const where: Prisma.ArticleWhereInput = options.force
+    ? {}
+    : { OR: [{ searchText: null }, { legacyContentHtml: null }] }
+
+  const articles = await prisma.article.findMany({
+    where,
+    select: {
+      id: true,
+      title: true,
+      excerpt: true,
+      contentPath: true,
+      legacyContentMarkdown: true,
+      searchText: true,
+      legacyContentHtml: true,
+    },
+    take: options.limit,
+    orderBy: { createdAt: 'asc' },
+  })
+
+  let processed = 0
+  let skipped = 0
+  const errors: Array<{ id: string; title: string; reason: string }> = []
+
+  for (const article of articles) {
+    if (!options.force && article.searchText != null && article.legacyContentHtml != null) {
+      skipped++
+      continue
+    }
+    try {
+      const markdown = await readMarkdownFromStorage(article)
+      const contentHtml = await markdownToHtml(markdown)
+      const searchText = buildSearchText(article.title, article.excerpt ?? '', markdown)
+      // raw SQL 只写这两列：绕过 Prisma 的 @updatedAt，避免维护性回填把文章的更新时间
+      // （如导入时保留的 WP 修改时间）踩成当前时刻。
+      await prisma.$executeRaw`UPDATE "Article" SET "contentHtml" = ${contentHtml}, "search_text" = ${searchText} WHERE "id" = ${article.id}`
+      processed++
+    } catch (error) {
+      errors.push({
+        id: article.id,
+        title: article.title,
+        reason: error instanceof Error ? error.message : String(error),
+      })
+    }
+  }
+
+  return {
+    processed,
+    skipped,
+    errored: errors.length,
+    total: articles.length,
+    errors: errors.slice(0, 20),
+  }
+}
+
 export async function getPublicArticleNavigation(slug: string, order: 'publishedAt' | 'updatedAt' = 'publishedAt') {
   const prisma = getPrisma()
   const where = getPublicArticleWhere()
@@ -1303,7 +1372,7 @@ export async function createArticle(input: ArticleInput) {
 
     await prisma.article.update({
       where: { id: article.id },
-      data: { contentPath, contentHtml, searchText },
+      data: { contentPath, legacyContentHtml: contentHtml, searchText },
     })
     await createRevision(article.id, article.title, input.contentMarkdown, input.changeNote ?? 'Initial version')
 
@@ -1368,7 +1437,7 @@ export async function updateArticle(id: string, input: ArticleUpdateInput) {
         data: {
           ...data,
           ...(contentPath ? { contentPath } : {}),
-          ...(contentHtml ? { contentHtml } : {}),
+          ...(contentHtml ? { legacyContentHtml: contentHtml } : {}),
           ...(searchText ? { searchText } : {}),
         },
       })
@@ -1450,8 +1519,38 @@ export async function archiveArticle(id: string) {
   })
 }
 
+// 懒回填已发布文章的 searchText：若存在 NULL 行，现算并写库（raw SQL，不触发
+// Prisma 的 @updatedAt，故不改动文章的更新时间）。保证搜索结果不依赖回填状态——
+// searchText 只是缓存，缓存冷时在搜索路径上即时补齐，只发生一次（补完即纯快路径）；
+// 之后新建 / 编辑 / 导入都已在各自写入路径同步生成该列，不会再产生 NULL。
+async function ensureSearchIndexWarmed() {
+  const prisma = getPrisma()
+  const nullWhere: Prisma.ArticleWhereInput = { ...getPublicArticleWhere(), searchText: null }
+  if ((await prisma.article.count({ where: nullWhere })) === 0) return 0
+
+  const rows = await prisma.article.findMany({
+    where: nullWhere,
+    select: { id: true, title: true, excerpt: true, contentPath: true, legacyContentMarkdown: true },
+  })
+
+  let filled = 0
+  for (const row of rows) {
+    try {
+      const markdown = await readMarkdownFromStorage(row)
+      const text = buildSearchText(row.title, row.excerpt ?? '', markdown)
+      await prisma.$executeRaw`UPDATE "Article" SET "search_text" = ${text} WHERE "id" = ${row.id}`
+      filled++
+    } catch {
+      // 单行失败不阻断搜索，跳过该行（下次搜索会重试）
+    }
+  }
+  return filled
+}
+
 export async function searchArticles(input: { q: string; page: number; pageSize: number }) {
   const prisma = getPrisma()
+  // 懒回填：让搜索结果不依赖索引是否已预热（缓存冷时即时补齐，失败则降级为仅查列）
+  await ensureSearchIndexWarmed().catch(() => undefined)
   const searchTerms = parseSearchTerms(input.q)
   // 用 searchText 列做 ILIKE 模糊匹配，避免每请求读盘
   const where: Prisma.ArticleWhereInput = {
