@@ -262,6 +262,7 @@ form[data-sb-comment-form][data-state="pending"] .sb-comment-status { color: var
 
 /* github-repo */
 .gh-card__link { display: flex; align-items: flex-start; gap: .875rem; padding: 1rem 1.25rem; color: var(--color-text); text-decoration: none; }
+.gh-card__link * { text-decoration: none; }
 .gh-card__icon { flex-shrink: 0; margin-top: .15rem; font-size: 1.5rem; color: var(--color-text-secondary); transition: color .2s ease; }
 .github-repo-card:hover .gh-card__icon,
 .github-repo-card:hover .gh-card__title,
@@ -283,6 +284,7 @@ form[data-sb-comment-form][data-state="pending"] .sb-comment-status { color: var
 .friend-link-card { display: inline-block; width: 100%; max-width: 340px; margin: 0 .875rem .875rem 0; vertical-align: top; }
 .friend-link-card .fl-card__link { margin: 0; }
 .fl-card__link { display: flex; align-items: center; gap: .875rem; padding: .875rem 1.1rem; color: var(--color-text); text-decoration: none; }
+.fl-card__link * { text-decoration: none; }
 .fl-card__avatar-img, .fl-card__avatar-fallback { width: 2.75rem; height: 2.75rem; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
 .fl-card__avatar-fallback { display: inline-flex; align-items: center; justify-content: center; background: var(--color-accent-subtle); color: var(--color-accent-text); font-weight: 600; font-size: 1.125rem; }
 .fl-card__main { display: flex; flex-direction: column; gap: .2rem; min-width: 0; }
