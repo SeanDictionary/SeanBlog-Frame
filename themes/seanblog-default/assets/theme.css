@@ -105,7 +105,15 @@ img { max-width: 100%; height: auto; display: block; }
 .sb-pagination .sb-page-active { background: var(--color-accent); color: #fff; }
 
 /* === 文章详情 === */
-.sb-post { }
+.sb-post { display: grid; grid-template-columns: 1fr; gap: 0; }
+@media (min-width: 1024px) {
+  .sb-post { grid-template-columns: 1fr 240px; gap: 2rem; }
+  .sb-post-head { grid-column: 1 / -1; }
+  .sb-post-content { grid-column: 1; }
+  .sb-toc { grid-column: 2; grid-row: 2; position: sticky; top: 5rem; align-self: start; margin: 0; }
+  .sb-post-nav { grid-column: 1 / -1; }
+  .sb-comments { grid-column: 1 / -1; }
+}
 .sb-post-head { margin-bottom: 2.5rem; }
 .sb-post-kicker { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--color-text-tertiary); margin: 0 0 0.5rem; }
 .sb-post-title { font-size: 2.25rem; font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; margin: 0 0 1rem; }
@@ -147,6 +155,9 @@ img { max-width: 100%; height: auto; display: block; }
 
 /* TOC */
 .sb-toc { margin: 2.5rem 0; padding: 1rem 1.25rem; border: 1px solid var(--color-border); border-radius: var(--radius); }
+@media (min-width: 1024px) {
+  .sb-toc { margin: 0; }
+}
 .sb-toc-title { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-text-tertiary); margin: 0 0 0.5rem; }
 .sb-toc a { display: block; text-decoration: none; color: var(--color-text-secondary); font-size: 0.85rem; padding: 0.15rem 0; transition: color .15s; }
 .sb-toc a:hover { color: var(--color-text); }
@@ -252,7 +263,7 @@ form[data-sb-comment-form][data-state="pending"] .sb-comment-status { color: var
 
 /* github-repo 极简 */
 .gh-card__link { display: block; padding: .875rem 1rem; color: var(--color-text); text-decoration: none; }
-.cf-post-content .gh-card__link { text-decoration: none; }
+.sb-post-content .gh-card__link { text-decoration: none; }
 .gh-card__link * { text-decoration: none; }
 .gh-card__icon, .gh-card__arrow { display: none; }
 .gh-card__main { display: flex; flex-direction: column; gap: .25rem; }
@@ -273,7 +284,7 @@ form[data-sb-comment-form][data-state="pending"] .sb-comment-status { color: var
 .friend-link-card { display: inline-block; width: 100%; max-width: 320px; margin: 0 .75rem .75rem 0; vertical-align: top; }
 .friend-link-card .fl-card__link { margin: 0; }
 .fl-card__link { display: flex; align-items: center; gap: .75rem; padding: .75rem 1rem; color: var(--color-text); text-decoration: none; }
-.cf-post-content .fl-card__link { text-decoration: none; }
+.sb-post-content .fl-card__link { text-decoration: none; }
 .fl-card__link * { text-decoration: none; }
 .fl-card__avatar-img { margin: 0; width: 2rem; height: 2rem; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
 .fl-card__avatar-fallback { display: none; }
