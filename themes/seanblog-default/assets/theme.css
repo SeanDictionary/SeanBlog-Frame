@@ -264,7 +264,7 @@ form[data-sb-comment-form][data-state="pending"] .sb-comment-status { color: var
 /* github-repo 极简 */
 .gh-card__link { display: block; padding: .875rem 1rem; color: var(--color-text); text-decoration: none; }
 .sb-post-content .gh-card__link { text-decoration: none; }
-.gh-card__link * { text-decoration: none; }
+.sb-post-content .gh-card__link * { text-decoration: none; }
 .gh-card__icon, .gh-card__arrow { display: none; }
 .gh-card__main { display: flex; flex-direction: column; gap: .25rem; }
 .gh-card__title { font-weight: 600; font-size: .95rem; line-height: 1.4; color: var(--color-accent); }
@@ -285,7 +285,7 @@ form[data-sb-comment-form][data-state="pending"] .sb-comment-status { color: var
 .friend-link-card .fl-card__link { margin: 0; }
 .fl-card__link { display: flex; align-items: center; gap: .75rem; padding: .75rem 1rem; color: var(--color-text); text-decoration: none; }
 .sb-post-content .fl-card__link { text-decoration: none; }
-.fl-card__link * { text-decoration: none; }
+.sb-post-content .fl-card__link * { text-decoration: none; }
 .fl-card__avatar-img { margin: 0; width: 2rem; height: 2rem; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
 .fl-card__avatar-fallback { display: none; }
 .fl-card__main { display: flex; flex-direction: column; gap: .15rem; min-width: 0; }
