@@ -180,7 +180,7 @@ export function AnalyticsTrendChart({
             {title && <h2 className="font-semibold">{title}</h2>}
             {description && <p className="mt-1 text-sm text-neutral-500">{description}</p>}
           </div>
-          {toolbar ?? <div className="flex gap-4 text-xs text-neutral-500"><span className="inline-flex items-center gap-1"><i className="size-2 rounded-full bg-blue-600" />访问量</span><span className="inline-flex items-center gap-1"><i className="size-2 rounded-full bg-amber-600" />访客数</span></div>}
+          {toolbar}
         </div>
       )}
 

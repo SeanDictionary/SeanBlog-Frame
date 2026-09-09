@@ -351,6 +351,7 @@ model AnalyticsEvent {
 - 文章 `viewCount` / `visitorCount` 由前台访问埋点脚本写入事件时回写，避免页面元数据渲染和详情渲染重复增加浏览量
 - 前台埋点由 `public/analytics.js`（vanilla，零依赖）实现，经 `render-service.ts` 的 `platform_enhance` 注入到所有公开主题页（与 `enhance.js` 一同加载）；身份生成与 `src/lib/client/identity.ts` 共用 localStorage key 与 fingerprint/hardware JSON 格式，保证评论与访问共享同一 visitorId
 - 后台统计页包含“总览”和“访问记录”子页：总览按天/周/月展示趋势、Top 文章、最近访问、分段访问量、来源地区和系统统计；访问记录按访问记录分页展示并支持 CSV 导出
+- 总览页顶部时间范围控制全站访问趋势、文章统计、来源地区与访问系统四张卡片（同一 `rangeDays` 参数，可选 7/30/90/180 天，上限受 `DEFAULT_ANALYTICS_RANGE_DAYS` 钳制）；最近访问记录固定取最新 20 条，不受时间范围影响
 - 默认统计范围为 180 天（硬编码常量 `DEFAULT_ANALYTICS_RANGE_DAYS`），事件明细永久保存，不做保留清理
 
 ### 4.5b Visitor（访客注册表）访客注册表，每个唯一 visitorId 一行，用于快速计数访客数和判断新老访客。```model Visitor {  visitorId       String   @id  firstSeenAt     DateTime @default(now())  lastSeenAt      DateTime @default(now())  visitCount      Int      @default(1)  analyticsEvents AnalyticsEvent[]  comments        Comment[]  @@index([lastSeenAt])  @@index([firstSeenAt])}```- `visitorId` 是客户端 localStorage 生成的随机 UUID，直接做主键- `firstSeenAt` / `lastSeenAt` 用于判定区间内是否有该访客（lastSeenAt ≥ T ⟺ 在 [T,now] 有访问）### 4.5c AnalyticsDailyStat（每日访问量物化）每日按维度的访问量聚合表，用于快速计算区间访问量、趋势和 Top 内容，避免全量扫描事件表。```enum AnalyticsDimension { all article category tag }model AnalyticsDailyStat {  date       DateTime  dimension  AnalyticsDimension  contentId  String  views      Int      @default(0)  @@id([date, dimension, contentId])  @@index([dimension, date])  @@index([contentId, date])}```- `contentId` 为 article/category/tag 的 id，`dimension=all` 时为空串- 复合主键确保每天每维度每内容一行

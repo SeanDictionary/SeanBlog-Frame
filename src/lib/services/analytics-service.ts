@@ -65,12 +65,8 @@ type AnalyticsEventWithContent = Prisma.AnalyticsEventGetPayload<{
 }>
 
 type OverviewOptions = {
-  trendRangeDays: number
+  rangeDays: number
   trendGranularity: AnalyticsGranularity
-  articlesRangeDays: number
-  recentRangeDays: number
-  sourcesRangeDays: number
-  systemsRangeDays: number
 }
 
 const DEFAULT_RANGE_DAYS = 30
@@ -490,11 +486,7 @@ export async function getAnalyticsOverview(options: OverviewOptions) {
   const prisma = getPrisma()
   const retentionDays = DEFAULT_ANALYTICS_RANGE_DAYS
   const normalizeRange = (days: number) => clamp(Math.round(days), 1, retentionDays)
-  const trendRange = getRangeForDays(normalizeRange(options.trendRangeDays))
-  const articlesRange = getRangeForDays(normalizeRange(options.articlesRangeDays))
-  const recentRange = getRangeForDays(normalizeRange(options.recentRangeDays))
-  const sourcesRange = getRangeForDays(normalizeRange(options.sourcesRangeDays))
-  const systemsRange = getRangeForDays(normalizeRange(options.systemsRangeDays))
+  const range = getRangeForDays(normalizeRange(options.rangeDays))
   const currentYearStart = new Date(startOfDay(new Date()).getFullYear(), 0, 1)
   const todayStart = startOfDay(new Date())
   const yesterdayRange = getYesterdayRange()
@@ -506,22 +498,21 @@ export async function getAnalyticsOverview(options: OverviewOptions) {
   // Bounded event queries for trend, top content, recent visits, sources, systems, and yesterday visitors.
   const [trendEvents, articleEvents, recentEvents, sourceEvents, systemEvents, yesterdayEvents] = await Promise.all([
     prisma.analyticsEvent.findMany({
-      where: whereForDateRange(trendRange.start, trendRange.end),
+      where: whereForDateRange(range.start, range.end),
       orderBy: { createdAt: 'asc' },
       include: { article: { select: { title: true, slug: true } }, category: { select: { name: true, slug: true } }, tag: { select: { name: true, slug: true } } },
     }),
     prisma.analyticsEvent.findMany({
-      where: whereForDateRange(articlesRange.start, articlesRange.end),
+      where: whereForDateRange(range.start, range.end),
       include: { article: { select: { title: true, slug: true } }, category: { select: { name: true, slug: true } }, tag: { select: { name: true, slug: true } } },
     }),
     prisma.analyticsEvent.findMany({
-      where: whereForDateRange(recentRange.start, recentRange.end),
       orderBy: { createdAt: 'desc' },
       take: 20,
       include: { article: { select: { title: true, slug: true } }, category: { select: { name: true, slug: true } }, tag: { select: { name: true, slug: true } } },
     }),
-    prisma.analyticsEvent.findMany({ where: whereForDateRange(sourcesRange.start, sourcesRange.end), select: { country: true } }),
-    prisma.analyticsEvent.findMany({ where: whereForDateRange(systemsRange.start, systemsRange.end), select: { userAgent: true } }),
+    prisma.analyticsEvent.findMany({ where: whereForDateRange(range.start, range.end), select: { country: true } }),
+    prisma.analyticsEvent.findMany({ where: whereForDateRange(range.start, range.end), select: { userAgent: true } }),
     prisma.analyticsEvent.findMany({ where: whereForDateRange(yesterdayRange.start, yesterdayRange.end), select: { visitorId: true } }),
   ])
 
@@ -535,14 +526,8 @@ export async function getAnalyticsOverview(options: OverviewOptions) {
 
   return {
     retentionDays,
-    ranges: {
-      trend: normalizeRange(options.trendRangeDays),
-      articles: normalizeRange(options.articlesRangeDays),
-      recent: normalizeRange(options.recentRangeDays),
-      sources: normalizeRange(options.sourcesRangeDays),
-      systems: normalizeRange(options.systemsRangeDays),
-    },
-    trend: buildTrend(trendEvents, options.trendGranularity, trendRange.start, trendRange.end),
+    range: normalizeRange(options.rangeDays),
+    trend: buildTrend(trendEvents, options.trendGranularity, range.start, range.end),
     trendGranularity: options.trendGranularity,
     topArticles: buildContentBuckets(articleEvents).topArticles,
     recentVisits: recentEvents.map(serializeVisitRecord),

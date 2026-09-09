@@ -10,7 +10,14 @@
 
 ## [Unreleased]
 
-（暂无）
+### Changed
+
+- 后台统计总览页时间范围控制重构：移除「最近访问记录」「文章统计」「访问来源地区」「访问系统」四张卡片各自的独立时间选择器，合并为全站访问趋势卡片顶部的时间范围选择（`rangeDays`），单一控制趋势、文章统计、来源地区、访问系统四张卡片的数据采样；最近访问记录固定展示最新 20 条，不再受时间范围影响。原 URL query 参数 `trendRangeDays` / `articlesRangeDays` / `recentRangeDays` / `sourcesRangeDays` / `systemsRangeDays` 合并为 `rangeDays`（破坏性变更，不影响主题契约）。
+- 总览页时间范围选择器从「全站访问趋势」卡片右上迁移至页面标题栏右侧（原「访客统计」跳转按钮位置），并移除「访客统计」跳转按钮（该入口仍可从侧边栏「访问记录」进入）。`AnalyticsTrendChart` 同步移除标题栏右上重复的图例 fallback（底部始终有图例），避免迁移后出现图例重复。
+
+### Fixed
+
+- 修复统计总览页切换到 90/180 天时控制台报 `Each child in a list should have a unique "key" prop` 的问题：作为 `toolbar` prop 传入 `AnalyticsTrendChart` 并在标题栏与兄弟节点并列渲染的范围选择表单元素缺少 `key`，React 19 在该元素由父组件创建、被子组件放入列表时提示缺 key。给该元素显式加上 `key` 即消除警告。
 
 ## [0.6.0] - 2026-09-09
 

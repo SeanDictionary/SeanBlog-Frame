@@ -344,13 +344,11 @@ export const analyticsQuerySchema = z.object({
   granularity: z.preprocess(emptyQueryParamToUndefined, z.enum(['day', 'week', 'month']).default('day')),
 })
 
+// 总览页统一时间范围：`rangeDays` 同时控制全站访问趋势、文章统计、来源地区、访问系统四个卡片；
+// 最近访问记录固定取最新 20 条，不受时间范围影响。趋势粒度 `trendGranularity` 仅作用于趋势图。
 export const analyticsOverviewQuerySchema = z.object({
-  trendRangeDays: z.preprocess(emptyQueryParamToUndefined, z.coerce.number().int().min(1).default(30)),
+  rangeDays: z.preprocess(emptyQueryParamToUndefined, z.coerce.number().int().min(1).default(30)),
   trendGranularity: z.preprocess(emptyQueryParamToUndefined, z.enum(['day', 'week', 'month']).default('day')),
-  articlesRangeDays: z.preprocess(emptyQueryParamToUndefined, z.coerce.number().int().min(1).default(30)),
-  recentRangeDays: z.preprocess(emptyQueryParamToUndefined, z.coerce.number().int().min(1).default(30)),
-  sourcesRangeDays: z.preprocess(emptyQueryParamToUndefined, z.coerce.number().int().min(1).default(30)),
-  systemsRangeDays: z.preprocess(emptyQueryParamToUndefined, z.coerce.number().int().min(1).default(30)),
 })
 
 export const analyticsVisitorQuerySchema = paginationQuerySchema.extend({
