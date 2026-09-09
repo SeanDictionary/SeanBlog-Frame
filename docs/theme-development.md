@@ -343,8 +343,8 @@ partial fallback 同 [§6.1](#61-模板-fallback-链重申)。
 | `settings` | object | 站点级设置 map（同 `theme.config`，历史别名） |
 | `sidebarData` | object | `{ recentArticles[5], tags[50], categories[50] }`（侧栏数据，详见下） |
 | `seo_head` | string | 注入 `<title>`/meta/OG/JSON-LD/canonical/RSS/sitemap（放 `<head>`） |
-| `theme_css` | string | 主题 CSS + 设置 cssVariable + callout 合并包，包成 `<style>...</style>` |
-| `callout_css` | string | Callout/Admonition 样式 `<style>...</style>`（已并入 theme_css，通常无需单独输出） |
+| `theme_css` | string | 主题 CSS + 设置 cssVariable + 代码高亮（Shiki）合并包，包成 `<style>...</style>`（不含 callout） |
+| `callout_css` | string | Callout 提示框样式 `<style>...</style>`，独立字段（后台 calloutCustomCss 或主题 `assets/callout.css` 或内置默认，逐级兑底） |
 | `katex_css_link` | string | KaTeX 数学公式样式 `<link>`（有公式时才非空） |
 | `font_awesome` | string | Font Awesome 7 CDN `<link>`（带 integrity） |
 | `platform_enhance` | string | 平台脚本 `<script src="/enhance.js" defer><script src="/analytics.js" defer>` |
@@ -583,7 +583,57 @@ CSS 里的 `url(...)` 只能引用**包内相对资源**，由平台重写为 `/
 
 ### 10.4 后台自定义 Callout CSS
 
-后台「Callout 样式」是站点级设置（非主题包内文件），经 `/api/admin/validate-css` 用类似但略宽的规则校验（允许 `@import`? 否——同样禁 `!important` 等）。主题如需默认 callout 样式，放在 `theme.css` 里，平台会通过 `{{{theme_css}}}` 一并输出。
+后台「主题 → Callout CSS」是**每主题**的管理员设置（存 `ThemeCustomization`，切主题各有一套），不是主题包内文件，用于覆盖该主题的提示框样式。经 `validateThemeCss` 用与主题 CSS **相同**的规则校验（禁 `@import` / `!important` / `expression()` / `javascript:` / `behavior:` / `<>` / `</style>`，只允许规则与 `@media`），非法则回退到主题预设/内置默认、不破坏渲染。校验后的 CSS 注入 `{{{callout_css}}}`（独立 `<style>`，与 `{{{theme_css}}}` 分开）。主题自带的默认 callout 样式放在 `assets/callout.css`（见 §10.5.1）。
+
+### 10.5 正文内容样式（平台渲染产出，主题负责样式）
+
+文章正文经统一 Markdown 管线（remark + rehype）渲染为**可信 HTML**，注入 ctx `content`（见 §7.3），主题用 `{{{content}}}` 原样输出。建议把正文样式 scope 在 `.article-content` 下（默认主题与内置样式都假定该容器）。平台产出的主要结构如下，主题需为它们提供样式。
+
+#### 10.5.1 Callout / 提示框
+
+5 种类型：`note` `tip` `important` `warning` `caution`。
+
+两种**等价**写法（同名同样式）：
+
+- GitHub：`> [!NOTE]` 开头的引用块（类型名**大写**）
+- 指令：`:::note … :::` 包裹容器（类型名**小写**）
+
+**大小写敏感**：`[!note]` / `:::NOTE` 等不规范写法不被识别，`[!note]` 渲染成普通引用块、`:::NOTE` 不渲染成提示框。产物：
+
+```html
+<div class="callout callout--note">…</div>
+```
+
+主题配色约定：定义 `--color-callout-{type}` 与 `.callout--{type} { --callout-color: var(--color-callout-{type}) }`；基础框 `.callout`（左边框、圆角、内边距、底色 `color-mix(... 10%)` 等）。参考 `seanblog-default` / `cardinal` 的 `assets/callout.css`。配色经 `{{{callout_css}}}` 注入，逐级兜底：后台 calloutCustomCss → 主题 `assets/callout.css` → 内置默认。
+
+自定义类型逃生口：`:::callout{type=自定义名}` **不校验类型名**，产出 `<div class="callout callout--{自定义名}">`，需主题或后台 calloutCustomCss 自配配色（否则回退默认边框色）。裸 `:::自定义名` 不识别（仅上述 5 种）。
+
+#### 10.5.2 代码块
+
+Shiki 语法高亮，**双主题** `github-light` / `github-dark`：浅色颜色内联、深色颜色以 `--shiki-dark` CSS 变量产出，由 `[data-theme="dark"]` 切换。主题需提供深色切换（如 `[data-theme="dark"] { color: var(--shiki-dark); ... }`，或沿用 Shiki 默认行为）。
+
+产物：
+
+```html
+<pre class="shiki shiki-themes github-light github-dark language-js" tabindex="0">
+  <code><span class="line"><span style="color:#...;--shiki-dark:#...">…</span></span></code>
+</pre>
+```
+
+围栏语法 ` ```js `；`sage` 别名映射到 `python`；未指定语言默认 `text`。行内 `` `code` `` 产出 `<code>`（无 `language-` 前缀）。高亮基础样式已并入 `{{{theme_css}}}`（`DEFAULT_HIGHLIGHT_CSS`），主题无需另加。
+
+#### 10.5.3 数学公式（KaTeX）
+
+服务端 `rehype-katex` 渲染为带 `katex-*` 类名的 HTML。语法：行内 `$...$`、块级 `$$...$$`。样式由 `{{{katex_css_link}}}` 注入 KaTeX CDN `<link>`（**仅当文章含公式时非空**），主题需在 `<head>` 输出该字段。
+
+#### 10.5.4 标题与目录
+
+正文 h2–h4 自动生成 slug 化 `id`（已存在 `id` 则保留），同名去重追加序号。`ctx.toc = [{ id, text, level }]`（见 §7.3），主题可据此渲染目录；锚点 `#id` 可跳转。
+
+#### 10.5.5 GFM 与原始 HTML
+
+- **GFM**（remark-gfm）：表格、删除线、任务列表（`- [ ]` / `- [x]`）、自动链接。
+- **原始 HTML**：`rehype-raw` 允许文章内嵌 HTML，经 `rehype-sanitize` 白名单净化。允许的标签含 `div` `span` `figure` `figcaption` `iframe` `details` `summary` 及 KaTeX 的 MathML 标签；`iframe` 的 `src` 仅限 `http`/`https`（禁 `data:`）；`script` / `style` 标签等不允许。`className` / `style` / `data-*` 属性允许。
 
 ---
 
