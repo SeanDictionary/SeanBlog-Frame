@@ -16,6 +16,7 @@
 - 新增站点设置 `siteIcon`（站点图标 URL / favicon）：后台「设置 → 站点信息」新增字段，保存后注入到前台主题渲染 `<head>` 的 `<link rel="icon">`（经 `enrichCtx` 追加到 `seo_head`，主题无需改动）与后台 root layout head；`ctx.site.icon` 供主题模板消费。
 - 新增 `GET /api/admin/version` 接口：读取当前 `package.json` 版本，拉取 GitHub `SeanDictionary/SeanBlog-Frame` 的 latest release tag 做 semver 比较，带 5 分钟内存缓存。
 - 后台侧边栏「SeanBlog Admin」下方新增小字版本行（当前版本号），点击触发版本检查；存在新版本时以绿色跟随显示新版本号，检查失败显示提示。
+- `GET /api/health` 响应新增 `version`（来自打包进镜像的 `package.json.version`）：供 `install.sh` 在部署/升级时读取当前运行版本，无需鉴权。`install.sh` 据此在完成横幅打印「已升级 v旧 → v新 / 首次安装 v新 / 已运行 v新（未变化）」；应用未就绪或旧版 health 无 `version` 字段时省略版本行（向后兼容）。
 - 搜索索引自愈：`searchArticles` 现在搜索前先检测是否有 `searchText` 为 NULL 的已发布文章，有则现算（`buildSearchText`，纯 regex 无 Shiki）并用 raw SQL 写库补齐，然后走正常列查询。搜索结果**不再依赖索引是否已预热**——索引只是缓存，缓存冷时在搜索路径上即时补齐（只发生一次，之后纯快路径）。0.5.0 升级后无需任何手动回填步骤即可搜索。
 - 新增 `POST /api/admin/articles/backfill-search` 接口（仅 admin，记操作日志）：可选的「预热」操作，原地回填存量文章的 `contentHtml` / `searchText`（幂等，`?force=1` 全量重渲染、`?limit=N` 限量）。用 raw SQL 只写这两列、不触发 `@updatedAt`，故不改动文章更新时间。非必须——搜索现已自愈。
 

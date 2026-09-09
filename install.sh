@@ -30,6 +30,12 @@ log() { printf '%s==>%s %s\n' "$c_bold" "$c_reset" "$*"; }
 warn() { printf '%s!!%s %s\n' "$c_yellow" "$c_reset" "$*"; }
 die() { printf '%s!!%s %s\n' "$c_red" "$c_reset" "$*" >&2; exit 1; }
 
+# 从运行中的应用 /api/health 读取版本号（package.json.version，打包进镜像）。
+# 纯 sed 提取，不依赖 jq/python；应用未就绪或旧版 health 无 version 字段时返回空。
+health_version() {
+  curl -sf "$HEALTH_URL" 2>/dev/null | sed -n 's/.*"version":"\([^"]*\)".*/\1/p' | head -1
+}
+
 # --- 1. 依赖检查 ---
 command -v docker >/dev/null 2>&1 || die "未检测到 docker，请先安装 Docker。"
 docker compose version >/dev/null 2>&1 || die "未检测到 docker compose 子命令，需 Docker Compose v2。"
@@ -66,6 +72,9 @@ ensure_compose() {
 ensure_compose
 
 # --- 3. 拉取镜像并启动 ---
+# 先记录当前运行版本（升级前的旧版本）；首次安装或应用未就绪时为空。
+old_version="$(health_version || true)"
+
 log "拉取镜像并启动（首次部署会下载镜像，耗时较长）"
 if ! docker compose pull; then
   warn "拉取镜像失败（可能离线或网络受限），尝试用本地已有镜像启动"
@@ -86,12 +95,24 @@ if [ "$ready" -ne 1 ]; then
   die "应用未在时限内就绪。查看日志：docker compose logs app"
 fi
 
+new_version="$(health_version || true)"
+
 # --- 5. 抓取并打印首次管理员密码 ---
 # initialize-admin 仅在首次创建管理员时把密码打到 app 容器 stdout；之后不再输出。
 pw=$(docker compose logs app 2>/dev/null | grep -E 'Password:' | tail -1 | awk '{print $NF}' || true)
 
 echo ""
 printf '%s================== SeanBlog Frame ==================%s\n' "$c_green" "$c_reset"
+# 版本行：升级 A→B / 首次安装 B / 重跑同版 / 旧版 health 无 version 字段时省略
+if [ -n "$new_version" ]; then
+  if [ -z "$old_version" ]; then
+    printf '版本    ：%s首次安装 v%s%s\n' "$c_bold" "$new_version" "$c_reset"
+  elif [ "$old_version" != "$new_version" ]; then
+    printf '版本    ：%s已升级 v%s → v%s%s\n' "$c_bold" "$old_version" "$new_version" "$c_reset"
+  else
+    printf '版本    ：%s已运行 v%s（未变化）%s\n' "$c_bold" "$new_version" "$c_reset"
+  fi
+fi
 if [ -n "$pw" ]; then
   printf '管理员账号已创建（%s仅本次显示，请立即保存%s）：\n' "$c_bold" "$c_reset"
   printf '  用户名：admin\n'
