@@ -69,6 +69,24 @@
 - 避免重复代码，提取公共逻辑和组件
 - 涉及到 ui/ux 设计部分，请遵循现代设计原则，确保界面美观、易用。可以使用 `ui-ux-pro-max`, `web-design-guidelines`, `frontend-design`, `vercel-react-view-transitions` 等相关 skill，并且搭配 `chrome-devtools`, `playwright` 这两个浏览器自动化 mcp 工具
 
+## 缓存目录（`.cache/`）
+
+`.cache/` 是本仓库的**本地工作 / 暂存目录**，已在 `.gitignore` 中忽略（`/.cache/` 与历史遗留的 `/cache/`），**不入库**。以下约束适用于 agent 与人工操作。
+
+- **用途定位**：仅存放**中间产物 / 支持材料**，例如：
+  - 竞品 / 设计调研快照（截图、抓站报告）；
+  - bug 复现截图、一次性诊断 / 探测脚本（`probe-*`、`repro-*`、`ssh_*` 等）；
+  - 临时 HTML / log / 预览 markdown；
+  - 导入数据暂存（如 `wp-import/` 这类大体积迁移素材）。
+- **不存放项目资产**：凡需被 `src/` / `public/` / `docs/` / `scripts/` 等正式目录引用的代码、配置、文档，一律不放进 `.cache/`。`.cache/` 内的文件默认视为「无引用、可丢弃」，与全局 AGENTS 的「Cache Management」语义一致。
+- **命名与组织**：按任务 / 来源建子目录（`.cache/<task>/...`），文件不散落根；不同任务的产物不混放同一子目录。导入数据等大体积项保持独立子目录（如 `.cache/wp-import/`）。
+- **目录统一**：统一使用 `.cache/`，**不再使用根级 `cache/` 目录**（已清理合并到 `.cache/`）。新任务若需缓存目录，一律落到 `.cache/` 下。
+- **生命周期**：
+  - 中间产物可随时清理；任务完成后或定期清理已失去参考价值的调研 / 调试产物，避免目录膨胀。
+  - 清理前评估每一项：确认无在用、无被正式目录引用（`grep -rn cache/ src docs scripts` 应为空）；**导入数据暂存（`wp-import/` 等）默认保留**，删除前需与用户确认。
+  - 删除涉及大体积目录或不可重建的导入素材时，按敏感操作处理（先列清单、确认后执行）。
+- **不作为项目变更**：`.cache/` 的增删不进 CHANGELOG、不进 git 提交，仅作为完成任务的支持材料。
+
 ## 提交规范
 
 - 遵循 [Conventional Commits](https://www.conventionalcommits.org/)：`feat` / `fix` / `docs` / `refactor` / `chore` / `perf`，可带 scope，如 `feat(cardinal): …`、`fix(search): …`、`fix(install): …`。
