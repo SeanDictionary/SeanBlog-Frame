@@ -36,6 +36,7 @@
 - 修复维护性回填会踩文章更新时间的问题：`backfillArticleSearchContent` 原用 `prisma.article.update` 写 `contentHtml` / `searchText`，被 `@updatedAt` 自动覆盖 `updatedAt` 为当前时刻，会毁掉导入时保留的 WP 修改时间。现改用 raw SQL `UPDATE "Article" SET "contentHtml"=..., "search_text"=... WHERE "id"=...`，只动这两列、不碰 `updated_at`。搜索路径的懒回填同样用 raw SQL。
 - 修复更新主题需「先卸载再上传」、卸载又禁止删除活跃主题导致的 4 步流程与设置丢失问题。
 - 修复前台分类/标签页 404 误报 500：`publicErrorResponse` 现识别 `ApiError.status`，404 统一走主题 `404.hbs`（回退内置静态 404），其他业务错误码透传其 status。此前 `/tags/<不存在>`、`/categories/<不存在>` 因 `classifyError` 仅判数据库错误、忽略 `ApiError.status` 而返回 500；文章详情路由靠手写兜底才正确，现已清理该重复兜底。
+- 修复 GitHub 风格提示框 `[!IMPORTANT]` / `[!CAUTION]` 拿不到对应配色的问题：`remark-github-admonitions-to-directives` 默认把 `IMPORTANT` 映射成 `info`、`CAUTION` 映射成 `danger`（为对齐 Docusaurus 词汇表），而主题 `callout.css` 配的是 `.callout--important` / `.callout--caution`，导致这两种写法命不中配色、回退灰。现给插件传自定义 `mapping`，让 `IMPORTANT`→`important`、`CAUTION`→`caution`，与指令写法 `:::important` / `:::caution` 同名同样式（对齐 GitHub 5 种词汇表）。同时把 `CALLOUT_TYPES` 收敛为这 5 种（note/tip/important/warning/caution），移除 `info` / `success` / `danger`：`:::info` 等不再渲染成提示框（已确认无存量内容使用）。`:::callout{type=...}` 显式形式不受影响，仍可作自定义逃生口。
 
 ### Removed
 

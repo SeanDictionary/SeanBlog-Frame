@@ -4,7 +4,7 @@ import rehypeRaw from 'rehype-raw'
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize'
 import rehypeStringify from 'rehype-stringify'
 import remarkDirective from 'remark-directive'
-import remarkGithubAdmonitions from 'remark-github-admonitions-to-directives'
+import remarkGithubAdmonitions, { DEFAULT_MAPPING, GithubAlertType } from 'remark-github-admonitions-to-directives'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import remarkParse from 'remark-parse'
@@ -46,7 +46,10 @@ const languageLabelTransformer: ShikiTransformer = {
 
 // --- Admonition / Callout directive plugin ---
 
-const CALLOUT_TYPES = new Set(['note', 'tip', 'important', 'warning', 'caution', 'info', 'success', 'danger'])
+// 提示框类型词汇表统一对齐 GitHub 的 5 种（note/tip/important/warning/caution）。
+// GitHub `[!IMPORTANT]`/`[!CAUTION]` 经插件映射后也输出 important/caution（见下 mapping），
+// 与指令 `:::important`/`:::caution` 同名同样式。info/success/danger 不再作为类型。
+const CALLOUT_TYPES = new Set(['note', 'tip', 'important', 'warning', 'caution'])
 
 /**
  * remark plugin: converts directive nodes (:::callout, :::note, etc.) into
@@ -96,7 +99,15 @@ const processor = unified()
   .use(remarkParse)
   .use(remarkGfm)
   .use(remarkMath)
-  .use(remarkGithubAdmonitions)
+  .use(remarkGithubAdmonitions, {
+    // 把 GitHub 的 IMPORTANT/CAUTION 映射到同名 directive（而非默认的 info/danger），
+    // 使 `> [!IMPORTANT]` 与 `:::important` 同名同样式（对齐 GitHub 5 种词汇表）。
+    mapping: {
+      ...DEFAULT_MAPPING,
+      [GithubAlertType.IMPORTANT]: 'important',
+      [GithubAlertType.CAUTION]: 'caution',
+    },
+  })
   .use(remarkDirective)
   .use(remarkCalloutDirectives)
   .use(remarkRehype, { allowDangerousHtml: true })
