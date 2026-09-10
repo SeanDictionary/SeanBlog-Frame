@@ -76,7 +76,10 @@ ensure_compose
 old_version="$(health_version || true)"
 
 log "拉取镜像并启动（首次部署会下载镜像，耗时较长）"
-if ! docker compose pull; then
+pull_ok=0
+if docker compose pull; then
+  pull_ok=1
+else
   warn "拉取镜像失败（可能离线或网络受限），尝试用本地已有镜像启动"
 fi
 docker compose up -d
@@ -102,6 +105,14 @@ new_version="$(health_version || true)"
 pw=$(docker compose logs app 2>/dev/null | grep -E 'Password:' | tail -1 | awk '{print $NF}' || true)
 
 echo ""
+# 镜像更新状态行：明确告知本次是否真的拉到新镜像，避免 pull 失败回退旧镜像时
+# 用户误以为升级成功。
+if [ "$pull_ok" -eq 1 ]; then
+  printf '%s==> 镜像已更新到最新%s\n' "$c_green" "$c_reset"
+else
+  printf '%s!! 镜像拉取失败，本次升级未生效，仍运行旧镜像%s\n' "$c_red" "$c_reset"
+fi
+printf '\n'
 printf '%s================== SeanBlog Frame ==================%s\n' "$c_green" "$c_reset"
 # 版本行：升级 A→B / 首次安装 B / 重跑同版 / 旧版 health 无 version 字段时省略
 if [ -n "$new_version" ]; then
@@ -130,4 +141,11 @@ printf '\n'
 printf '常用命令：\n'
 printf '  实时日志：docker compose logs -f app\n'
 printf '  升级    ：bash install.sh   （或 docker compose pull && docker compose up -d）\n'
+if [ "$pull_ok" -ne 1 ]; then
+  printf '\n'
+  printf '%s本次升级未生效：镜像拉取失败，仍运行旧镜像。建议：\n' "$c_red"
+  printf '  - 多重试几次：bash install.sh\n'
+  printf '  - 或给 docker 配置代理后重试\n'
+  printf '  - 当前运行版本：${new_version:-未知（旧版镜像无 version 字段）}%s\n' "$c_reset"
+fi
 printf '%s====================================================%s\n' "$c_green" "$c_reset"
