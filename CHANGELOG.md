@@ -10,6 +10,8 @@
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-09-10
+
 ### Changed
 
 - UA 解析拓充与标签简化：`parseBrowser` 在 `Chrome/` 兜底规则之前新增 App 内置 WebView 与厂商浏览器识别，修复微信/微博/支付宝/钉钉/飞书/QQ/夸克/华为/小米/OPPO/vivo/遨游/三星/Samsung/Opera 等 UA 因含 `Chrome/`（Chromium 内核）被误记为 Chrome 的问题（微信 iOS 无 `Chrome/` 原被记为"其他浏览器"）。同步补 iOS 客户端漏判：`CriOS/`→Chrome、`FxiOS/`→Firefox、`OPiOS/`→Opera（iOS 受 Apple 限制用 WKWebView，UA 不含 `Chrome/`/`Firefox/`/`OPR/`）。标签去掉"浏览器""内置浏览器"后缀，只取品牌 / 产品名（微信/微博/支付宝/钉钉/飞书/QQ/UC/360/搜狗/猎豹/百度/夸克/遨游/华为/小米/OPPO/vivo/三星），手机 QQ 客户端与 QQ 浏览器统一归"QQ"。OS 与爬虫解析不变。
