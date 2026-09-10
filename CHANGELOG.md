@@ -10,6 +10,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- UA 解析拓充与标签简化：`parseBrowser` 在 `Chrome/` 兜底规则之前新增 App 内置 WebView 与厂商浏览器识别，修复微信/微博/支付宝/钉钉/飞书/QQ/夸克/华为/小米/OPPO/vivo/遨游/三星/Samsung/Opera 等 UA 因含 `Chrome/`（Chromium 内核）被误记为 Chrome 的问题（微信 iOS 无 `Chrome/` 原被记为"其他浏览器"）。同步补 iOS 客户端漏判：`CriOS/`→Chrome、`FxiOS/`→Firefox、`OPiOS/`→Opera（iOS 受 Apple 限制用 WKWebView，UA 不含 `Chrome/`/`Firefox/`/`OPR/`）。标签去掉"浏览器""内置浏览器"后缀，只取品牌 / 产品名（微信/微博/支付宝/钉钉/飞书/QQ/UC/360/搜狗/猎豹/百度/夸克/遨游/华为/小米/OPPO/vivo/三星），手机 QQ 客户端与 QQ 浏览器统一归"QQ"。OS 与爬虫解析不变。
+
 ### Fixed
 
 - `install.sh` 拉取镜像失败回退本地旧镜像时，原先照常打出成功横幅、用户无从判断是否更新生效。现捕获 `docker compose pull` 结果：失败时在横幅首行用红色警告「镜像拉取失败，本次升级未生效，仍运行旧镜像」，并在末尾给出重试建议与当前运行版本（旧版镜像无 `version` 字段时显示「未知」），避免误判升级成功。

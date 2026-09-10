@@ -24,23 +24,53 @@ export function isCrawlerUa(userAgent: string | null | undefined): boolean {
   return !!userAgent && CRAWLER_RE.test(userAgent)
 }
 
-/** 解析浏览器标签。爬虫返回"爬虫"；无法识别返回"其他浏览器"；空 UA 返回"未采集"。 */
+/**
+ * 解析浏览器标签。爬虫返回"爬虫"；无法识别返回"其他"；空 UA 返回"未采集"。
+ *
+ * 标签只取品牌 / 产品名，不带"浏览器""内置浏览器"后缀：App 内置 WebView 取
+ * App 名（微信/微博/支付宝/钉钉/飞书/QQ），手机厂商浏览器取厂商名（华为/小米/
+ * OPPO/vivo/三星），其余国产浏览器取品牌名（UC/360/搜狗/猎豹/百度/夸克/遨游）。
+ *
+ * 国产 App 与厂商浏览器的 UA 大多含 `Chrome/`（Chromium 内核），必须按特征 token
+ * 在 `Chrome/` 规则之前优先识别，否则会被 Chrome 兜底吞掉。iOS 上 Chrome/Firefox/
+ * Opera 受 Apple 限制用 WKWebView，UA 用 `CriOS/`/`FxiOS/`/`OPiOS/` 而非 `Chrome/`/
+ * `Firefox/`/`OPR/`，需单独识别。
+ */
 export function parseBrowser(userAgent: string | null) {
   if (!userAgent) return '未采集'
   if (isCrawlerUa(userAgent)) return '爬虫'
+  // App 内置 WebView（优先于 Chrome/；这些 UA 多含 Chrome/ 但内核非普通 Chrome）
+  if (/MicroMessenger|WeChat|Weixin/.test(userAgent)) return '微信'
+  if (/__weibo__|Weibo\//.test(userAgent)) return '微博'
+  if (/AliApp|AlipayClient/.test(userAgent)) return '支付宝'
+  if (/DingTalk\//.test(userAgent)) return '钉钉'
+  if (/Lark\/|Feishu/.test(userAgent)) return '飞书'
+  // QQ：含手机 QQ 客户端（" QQ/"）与 QQ 浏览器（QQBrowser/MQQBrowser），统一归 QQ
+  if (/ QQ\/|QQBrowser\/|MQQBrowser\//.test(userAgent)) return 'QQ'
   // 国产浏览器（token 优先于 Chrome/，否则会被 Chrome/ 抢匹配）
-  if (/QQBrowser\/|MQQBrowser\//.test(userAgent)) return 'QQ浏览器'
-  if (/UCBrowser\/|UCWEB/.test(userAgent)) return 'UC浏览器'
-  if (/QIHU\s360|360SE|360AEE|360Browser/.test(userAgent)) return '360浏览器'
-  if (/MetaSr|Sogou/i.test(userAgent)) return '搜狗浏览器'
-  if (/LBBROWSER/.test(userAgent)) return '猎豹浏览器'
-  if (/baiduboxapp|BIDUBrowser|BaiduHD/.test(userAgent)) return '百度浏览器'
+  if (/UCBrowser\/|UCWEB/.test(userAgent)) return 'UC'
+  if (/QIHU\s360|360SE|360AEE|360Browser/.test(userAgent)) return '360'
+  if (/MetaSr|Sogou/i.test(userAgent)) return '搜狗'
+  if (/LBBROWSER/.test(userAgent)) return '猎豹'
+  if (/baiduboxapp|BIDUBrowser|BaiduHD/.test(userAgent)) return '百度'
+  if (/Quark\//.test(userAgent)) return '夸克'
+  if (/Maxthon\//.test(userAgent)) return '遨游'
+  // 手机厂商浏览器
+  if (/HuaweiBrowser\//.test(userAgent)) return '华为'
+  if (/XiaoMi\/MiuiBrowser|MiuiBrowser\//.test(userAgent)) return '小米'
+  if (/HeyTapBrowser\//.test(userAgent)) return 'OPPO'
+  if (/VivoBrowser\//.test(userAgent)) return 'vivo'
+  if (/SamsungBrowser\//.test(userAgent)) return '三星'
   // Edge（含桌面 Edg/、安卓 EdgA/、iOS EdgiOS/，以及旧版 EdgeHTML 的 Edge/）
   if (/Edg(A|iOS)?\/|Edge\//.test(userAgent)) return 'Edge'
-  if (/Chrome\//.test(userAgent) && !/Chromium\//.test(userAgent)) return 'Chrome'
-  if (/Firefox\//.test(userAgent)) return 'Firefox'
+  // Opera（桌面 OPR/、安卓 Opera/、Mini Opera Mini/、iOS OPiOS/）
+  if (/OPR\/|Opera\/|Opera Mini\/|OPiOS\//.test(userAgent)) return 'Opera'
+  // iOS 上 Chrome 用 CriOS/（非 Chrome/），与桌面/安卓 Chrome 合并
+  if ((/Chrome\//.test(userAgent) || /CriOS\//.test(userAgent)) && !/Chromium\//.test(userAgent)) return 'Chrome'
+  // iOS 上 Firefox 用 FxiOS/（非 Firefox/）
+  if (/Firefox\/|FxiOS\//.test(userAgent)) return 'Firefox'
   if (/Safari\//.test(userAgent) && !/Chrome\//.test(userAgent)) return 'Safari'
-  return '其他浏览器'
+  return '其他'
 }
 
 /** 解析操作系统标签。iOS 须先于 macOS——iPhone/iPad UA 含"like Mac OS X"。 */
