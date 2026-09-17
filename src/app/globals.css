@@ -181,6 +181,15 @@ body {
     }
   }
 
+  /* 平台卡片链接兜底：去除正文默认下划线。
+   * 不加 .article-content scope，保持特异性 (0,1,1)，靠层叠顺序压过上方 a 规则。
+   * 主题若需个性化卡片链接样式，可用任意带 scope 的选择器 (如 .cf-post-content .gh-card__link)
+   * 以更高特异性 (0,2,0) 覆盖此兜底。 */
+  .github-repo-card a,
+  .friend-link-card a {
+    text-decoration: none;
+  }
+
   ul, ol {
     margin-bottom: 1.25em;
     padding-left: 1.5em;

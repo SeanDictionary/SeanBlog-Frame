@@ -14,6 +14,10 @@
 
 - 新增《使用指南》文档 `docs/usage-guide.md`：面向博主/站长的完整日常使用文档，覆盖登录与认证、后台仪表盘、文章管理与写作（含 Callout/github-repo/friend-link 三种特殊卡片语法、代码块、KaTeX、GFM、原始 HTML）、文章字段、状态与定时发布、修订历史、ZIP 导入导出、分类标签、评论审核与黑名单、媒体库、主题管理与 Callout CSS 编辑、站点设置、访问分析、操作日志、SEO 自动生成，并附特殊卡片语法速查表。README「文档索引」同步加入链接。
 
+### Fixed
+
+- 文章编辑器预览与前台实际页面显示不一致：平台 `globals.css` 给 `.article-content a` 统一加了下划线（特异性 0,1,1），而主题（如 Cardinal）靠主题正文容器 scope（如 `.cf-post-content .gh-card__link`，特异性 0,2,0）才能覆盖回无下划线。但预览容器只挂 `article-content` 不挂主题容器 class，导致主题覆盖规则不命中，卡片链接出现下划线。现于 `.article-content` 块内追加 `.github-repo-card a, .friend-link-card a { text-decoration: none }` 作为平台兜底，不加 `.article-content` scope 保持特异性 0,1,1，靠层叠顺序压过正文链接规则；主题仍可用任意带 scope 的选择器（0,2,0）覆盖此兜底实现个性化样式，保证预览与前台一致且不锁死主题自由度。
+
 ## [0.7.1] - 2026-09-10
 
 ### Changed
