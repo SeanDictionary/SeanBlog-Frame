@@ -159,7 +159,14 @@ function remarkCardDirectives() {
   return async (tree: any) => {
     const targets: any[] = []
     visit(tree, (node: any) => {
-      if (node.type === 'containerDirective' && (node.name === 'github-repo' || node.name === 'friend-link')) {
+      // 同时支持三种写法：
+      //   containerDirective: :::github-repo{...}\n:::
+      //   leafDirective:      :::github-repo{...}（无闭合，单行）
+      //   textDirective:      :github-repo{...}（行内）
+      if (
+        (node.type === 'containerDirective' || node.type === 'leafDirective' || node.type === 'textDirective') &&
+        (node.name === 'github-repo' || node.name === 'friend-link')
+      ) {
         targets.push(node)
       }
     })

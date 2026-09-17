@@ -25,6 +25,10 @@
 - SEO（`seo_head` 注入 title/OG/canonical/JSON-LD、`sitemap.xml`、`robots.txt`、`/rss.xml`）
 - 后台概览仪表盘（统计卡片、文章热度、最近评论、趋势图）
 
+## 使用指南
+
+如果你是博主 / 站长，想了解如何登录后台、写文章、使用特殊卡片语法（Callout 提示框 / GitHub 仓库卡片 / 友链卡片）、管理评论与媒体、切换主题、配置访问分析等日常操作，请阅读 [《使用指南》](docs/usage-guide.md)。
+
 ## 环境变量
 
 | 变量 | 必填 | 说明 |

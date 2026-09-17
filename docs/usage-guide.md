@@ -166,10 +166,18 @@ GitHub 写法的大小写映射：`NOTE`→`note`、`TIP`→`tip`、`IMPORTANT`�
 
 在正文中插入一个 GitHub 仓库卡片，自动拉取仓库信息（描述、语言、Star、Fork），服务端缓存 1 小时。
 
+**语法**（三种写法均可）：
 ```
 :::github-repo{author="solstice23" project="argon-theme" size="full"}
-:::github-repo{repo="solstice23/argon-theme"}            简写
-:::github-repo{author="..." project="..." size="mini"}   mini 变体
+:::
+
+:::github-repo{repo="solstice23/argon-theme"}
+:::
+
+:::github-repo{author="..." project="..." size="mini"}
+:::
+
+:github-repo{author="solstice23" project="argon-theme"}   ← 单行写法
 ```
 
 - 必填：`author` + `project`，或用 `repo="owner/name"` 简写。
@@ -182,8 +190,12 @@ GitHub 写法的大小写映射：`NOTE`→`note`、`TIP`→`tip`、`IMPORTANT`�
 
 插入一张友链卡片。连续多个友链卡片会自动排列成多列网格。
 
+**语法**（两种写法均可）：
 ```
 :::friend-link{name="站点名" url="https://example.com" avatar="https://example.com/logo.png" desc="一句描述"}
+:::
+
+:friend-link{name="站点名" url="https://example.com"}   ← 单行写法
 ```
 
 - 必填：`name` + `url`。
@@ -584,9 +596,9 @@ Callout 样式有三层兜底链：后台 `calloutCustomCss`（此处编辑）�
 | Callout（5 种） | `:::note` … `:::`<br>`:::tip` / `:::important` / `:::warning` / `:::caution` | — |
 | Callout（GitHub 写法） | `> [!NOTE]` … | `NOTE/TIP/IMPORTANT/WARNING/CAUTION` |
 | Callout（自定义） | `:::callout{type=自定义名}` … `:::` | 需自配 CSS 配色 |
-| GitHub 仓库卡片 | `:::github-repo{author=… project=… size=…}` | 必填 author+project；可选 size=full/mini |
-| GitHub 仓库卡片（简写） | `:::github-repo{repo="owner/name"}` | 必填 repo |
-| 友链卡片 | `:::friend-link{name=… url=… avatar=… desc=…}` | 必填 name+url；可选 avatar/desc |
+| GitHub 仓库卡片 | `:::github-repo{author=… project=… size=…}` `:::`<br>或单行 `:github-repo{…}` | 必填 author+project；可选 size=full/mini |
+| GitHub 仓库卡片（简写） | `:::github-repo{repo="owner/name"}` `:::`<br>或单行 `:github-repo{repo="owner/name"}` | 必填 repo |
+| 友链卡片 | `:::friend-link{name=… url=… avatar=… desc=…}` `:::`<br>或单行 `:friend-link{…}` | 必填 name+url；可选 avatar/desc |
 | 代码块 | ` ```lang ` … ` ``` ` | 可选语言；`sage`≈`python` |
 | 行内公式 | `$E=mc^2$` | — |
 | 块级公式 | `$$` … `$$` | — |

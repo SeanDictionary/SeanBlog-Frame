@@ -18,6 +18,10 @@
 
 - 文章编辑器预览与前台实际页面显示不一致：平台 `globals.css` 给 `.article-content a` 统一加了下划线（特异性 0,1,1），而主题（如 Cardinal）靠主题正文容器 scope（如 `.cf-post-content .gh-card__link`，特异性 0,2,0）才能覆盖回无下划线。但预览容器只挂 `article-content` 不挂主题容器 class，导致主题覆盖规则不命中，卡片链接出现下划线。现于 `.article-content` 块内追加 `.github-repo-card a, .friend-link-card a { text-decoration: none }` 作为平台兜底，不加 `.article-content` scope 保持特异性 0,1,1，靠层叠顺序压过正文链接规则；主题仍可用任意带 scope 的选择器（0,2,0）覆盖此兜底实现个性化样式，保证预览与前台一致且不锁死主题自由度。
 
+### Changed
+
+- github-repo / friend-link 卡片指令现同时支持三种写法：容器指令（`:::github-repo{...}\n:::`）、叶子指令（`:::github-repo{...}` 单行无闭合）、行内指令（`:github-repo{...}`）。此前仅支持容器指令，单行写法无法渲染。使用文档同步更新语法示例。README 新增「使用指南」板块链接到完整使用文档。
+
 ## [0.7.1] - 2026-09-10
 
 ### Changed
