@@ -179,7 +179,10 @@ GitHub 写法的大小写映射：`NOTE`→`note`、`TIP`→`tip`、`IMPORTANT`�
 - 可选：`size` = `full`（默认，显示描述 / 语言 / Star / Fork）或 `mini`（精简，仅显示标题与 Star）。
 - 拉取失败时显示错误态卡片，不会让页面报错。
 
-> **语法说明**：`:::` 是容器指令（需闭合 `:::`），`::` 是叶子指令（单行，推荐），`:` 是行内指令。卡片是块级元素，建议独占一行，不要嵌在普通文本中间。
+> **语法说明**：
+> - `:::` 是容器指令，闭合 `:::` **必须独占一行**，不能 `:::xxx{...} :::` 写在同一行
+> - `::` 是叶子指令，**推荐的单行写法**，每行一个
+> - `:` 是行内指令，可以同行多个，但卡片是块级元素，建议独占一行
 
 > 建议在生产环境配置 `GITHUB_TOKEN` 环境变量以提升 API 速率限制。未配置时走匿名请求，高频拉取可能触发限流（但有 1 小时缓存兜底）。
 
@@ -597,9 +600,9 @@ Callout 样式有三层兜底链：后台 `calloutCustomCss`（此处编辑）�
 | Callout（5 种） | `:::note` … `:::`<br>`:::tip` / `:::important` / `:::warning` / `:::caution` | — |
 | Callout（GitHub 写法） | `> [!NOTE]` … | `NOTE/TIP/IMPORTANT/WARNING/CAUTION` |
 | Callout（自定义） | `:::callout{type=自定义名}` … `:::` | 需自配 CSS 配色 |
-| GitHub 仓库卡片 | `:::github-repo{author=… project=… size=…}` `:::`<br>或叶子 `::github-repo{…}` | 必填 author+project；可选 size=full/mini |
-| GitHub 仓库卡片（简写） | `:::github-repo{repo="owner/name"}` `:::`<br>或叶子 `::github-repo{repo="owner/name"}` | 必填 repo |
-| 友链卡片 | `:::friend-link{name=… url=… avatar=… desc=…}` `:::`<br>或叶子 `::friend-link{…}` | 必填 name+url；可选 avatar/desc |
+| GitHub 仓库卡片 | 推荐：`::github-repo{author=… project=… size=…}`<br>容器：`:::github-repo{…}` 换行 `:::` 闭合<br>行内：`:github-repo{…}` | 必填 author+project；可选 size=full/mini |
+| GitHub 仓库卡片（简写） | 推荐：`::github-repo{repo="owner/name"}`<br>容器：`:::github-repo{repo="owner/name"}` 换行 `:::` 闭合 | 必填 repo |
+| 友链卡片 | 推荐：`::friend-link{name=… url=… avatar=… desc=…}`<br>容器：`:::friend-link{…}` 换行 `:::` 闭合<br>行内：`:friend-link{…}` | 必填 name+url；可选 avatar/desc |
 | 代码块 | ` ```lang ` … ` ``` ` | 可选语言；`sage`≈`python` |
 | 行内公式 | `$E=mc^2$` | — |
 | 块级公式 | `$$` … `$$` | — |
