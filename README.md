@@ -231,6 +231,7 @@ node .next/standalone/server.js       # 监听 :3000
 
 ## 文档索引
 
+- [使用指南](docs/usage-guide.md)
 - [PRD - 产品需求](docs/prd.md)
 - [系统架构设计](docs/architecture.md)
 - [数据模型与数据库设计](docs/data-model.md)
