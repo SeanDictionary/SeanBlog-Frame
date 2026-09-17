@@ -157,20 +157,69 @@ async function githubRepoCard(attrs: Record<string, unknown>): Promise<string> {
 
 function remarkCardDirectives() {
   return async (tree: any) => {
-    const targets: any[] = []
+    // 收集需要处理的节点
+    const directiveTargets: { node: any }[] = []
+    const paragraphTargets: { node: any }[] = []
+
     visit(tree, (node: any) => {
-      // 同时支持三种写法：
-      //   containerDirective: :::github-repo{...}\n:::
-      //   leafDirective:      :::github-repo{...}（无闭合，单行）
-      //   textDirective:      :github-repo{...}（行内）
+      if (node.type === 'paragraph') {
+        // 检查 paragraph 是否包含卡片指令
+        const cardDirectives = node.children?.filter(
+          (c: any) => c.type === 'textDirective' && (c.name === 'github-repo' || c.name === 'friend-link')
+        ) || []
+        if (cardDirectives.length > 0) {
+          paragraphTargets.push({ node })
+          return // 不继续检查子节点
+        }
+      }
       if (
         (node.type === 'containerDirective' || node.type === 'leafDirective' || node.type === 'textDirective') &&
         (node.name === 'github-repo' || node.name === 'friend-link')
       ) {
-        targets.push(node)
+        directiveTargets.push({ node })
       }
     })
-    await Promise.all(targets.map(async (node) => {
+
+    // 处理包含卡片指令的 paragraph
+    await Promise.all(paragraphTargets.map(async ({ node: paragraph }) => {
+      const hasNonCardNonBlank = paragraph.children?.some(
+        (c: any) =>
+          !(c.type === 'textDirective' && (c.name === 'github-repo' || c.name === 'friend-link')) &&
+          !(c.type === 'text' && !c.value.trim())
+      )
+
+      if (hasNonCardNonBlank) {
+        // paragraph 包含普通文本，把卡片指令替换为 html，保留其他内容
+        const newChildren: any[] = []
+        for (const child of paragraph.children || []) {
+          if (child.type === 'textDirective' && (child.name === 'github-repo' || child.name === 'friend-link')) {
+            const attrs = child.attributes || {}
+            const html = child.name === 'github-repo' ? await githubRepoCard(attrs) : friendLinkCard(attrs)
+            newChildren.push({ type: 'html', value: html })
+          } else {
+            newChildren.push(child)
+          }
+        }
+        paragraph.children = newChildren
+      } else {
+        // paragraph 只包含卡片指令和空白文本，整体替换为 html
+        const htmls: string[] = []
+        for (const child of paragraph.children || []) {
+          if (child.type === 'textDirective' && (child.name === 'github-repo' || child.name === 'friend-link')) {
+            const attrs = child.attributes || {}
+            const html = child.name === 'github-repo' ? await githubRepoCard(attrs) : friendLinkCard(attrs)
+            htmls.push(html)
+          }
+        }
+        paragraph.type = 'html'
+        paragraph.value = htmls.join('\n')
+        delete paragraph.children
+        delete paragraph.data
+      }
+    }))
+
+    // 处理单独的指令（containerDirective / leafDirective）
+    await Promise.all(directiveTargets.map(async ({ node }) => {
       const attrs = node.attributes || {}
       const html = node.name === 'github-repo' ? await githubRepoCard(attrs) : friendLinkCard(attrs)
       node.type = 'html'
